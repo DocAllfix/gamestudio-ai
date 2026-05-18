@@ -20,7 +20,15 @@ Conventions:
   - commit: `feat(phase-0): import foundational design docs`
 - [x] **0.4** — `CLAUDE.md` + `PROJECT_STATUS.md` nella root (governance del workspace)
   - commit: `feat(phase-0): add governance files and project status`
-- [ ] **0.5** — `supabase/migrations/001_knowledge_base.sql` (pgvector schema + quarantine + parameters + ingestion_log + indici HNSW/GIN/BTREE + RPC `search_code_knowledge`, `get_reference_parameters`)
+- [x] **0.5** — Shared module: tassonomia + RAG defense modules
+  - [x] `scripts/shared/__init__.py`
+  - [x] `scripts/shared/taxonomy.py` (DOMAINS, PRIMARY_CATEGORIES, GENRE_TAGS, KEY_FEATURES, DESIGN_PATTERNS, COMPLEXITY_LEVELS, ENGINES, PUSHED_FILTERS con date corrette, ALLOWED_LICENSES, CATEGORY_TO_PARAM_GROUP)
+  - [x] `scripts/shared/classification_schema.py` (CLASSIFICATION_SCHEMA con `additionalProperties: False`, enum importati da taxonomy)
+  - [x] `scripts/shared/confidence_gate.py` (`gate_classification()` → accepted/quarantined/rejected)
+  - [x] `scripts/shared/heuristics.py` (`DOMAIN_HEURISTICS` + `heuristic_domain_triage()`, Godot vocab; estensione Phase 3)
+  - [x] `scripts/shared/validators.py` (placeholder `validate_chunk()`, implementazione Phase 6)
+  - commit: `feat(phase-0): add shared taxonomy and RAG defense modules`
+- [ ] **0.5-db** — `supabase/migrations/001_knowledge_base.sql` (pgvector schema + quarantine + parameters + ingestion_log + indici HNSW/GIN/BTREE + RPC `search_code_knowledge`, `get_reference_parameters`)
   - commit: `feat(phase-0): add pgvector knowledge-base schema migration`
 - [ ] **0.6** — `lib/knowledge.ts` + `lib/types.ts` (client KB + tipi `CodeReference`, `ParameterReference`, `ReferenceQuery`, `ParameterQuery`)
   - commit: `feat(phase-0): add knowledge-base client and shared types`
