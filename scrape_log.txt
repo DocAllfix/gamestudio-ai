@@ -1,6 +1,0 @@
-2026-05-18 22:49:05,891 [INFO] === scrape run start (dry_run=True engine=godot skip_clone=False)
-2026-05-18 22:49:05,891 [INFO] Loaded existing manifest: 0 entries
-2026-05-18 22:49:05,892 [INFO] [godot] starting scrape with 13 queries
-2026-05-18 22:49:53,568 [WARNING] Repo fetch HTTP 404: fenix-hub/godot-engine
-2026-05-18 22:50:05,269 [WARNING] Repo fetch HTTP 404: GDQuest/godot-2d-platformer-demo
-2026-05-18 22:50:07,603 [INFO] [godot] {'api_returned': 87, 'api_accepted': 48, 'awesome_found': 8, 'awesome_accepted': 0, 'official_accepted': 2, 'rejected': 41}

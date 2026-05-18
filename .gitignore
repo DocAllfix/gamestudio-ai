@@ -9,6 +9,10 @@ data/
 # Test output
 test_output/
 
+# Runtime logs from ingestion scripts
+*.log
+scrape_log.txt
+
 # Node
 node_modules/
 dist/
