@@ -39,6 +39,33 @@ Already-installed packages
 The project's existing utility functions
 Only then consider adding a new dependency. Prefer zero-dependency solutions.
 
+Database / Migration Sync Protocol
+The local migration files in supabase/migrations/ MUST stay perfectly in sync
+with the remote Supabase database. The local files are the source of truth.
+
+Rules:
+- NEVER modify the remote schema (tables, columns, indexes, RPCs, RLS policies)
+  through the Supabase Dashboard UI directly. Schema changes happen ONLY by
+  creating a new sequentially-numbered migration file (e.g. 002_*.sql, 003_*.sql)
+  and applying it via the SQL Editor.
+- NEVER edit an already-applied migration file in place. If migration 001 has
+  already been run on remote, treat it as immutable. Schema fixes are additive:
+  write a new migration that ALTERs, DROPs, or replaces what was wrong.
+- ALWAYS commit a migration file BEFORE telling the user to apply it on the
+  Dashboard. The git commit is the authorization record.
+- ALWAYS update PROJECT_STATUS.md with the migration's applied state and let the
+  user confirm "applied on Supabase" before treating it as live.
+- If you ever suspect the local files and remote schema have drifted, STOP and
+  reconcile first: ask the user to run a verification query (e.g.
+  `SELECT table_name FROM information_schema.tables WHERE table_schema='public'`)
+  and compare against the union of migrations under supabase/migrations/. Do not
+  write new code that touches the DB until the drift is resolved.
+- Migration filename convention: NNN_short_snake_case.sql, NNN zero-padded to 3
+  digits, monotonically increasing. The number is permanent once committed.
+
+The same protocol applies to RLS policies and RPC functions: they live in
+migrations, never authored ad-hoc in the Dashboard.
+
 ═══ CURRENT MISSION: PHASE 1 — RAG KNOWLEDGE BASE ═══
 What We're Building Right Now
 A vector database (Supabase pgvector) containing dissected, classified, and
