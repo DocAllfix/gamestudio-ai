@@ -77,8 +77,21 @@ Conventions:
 
 ## FASE 1 — GitHub Scraper
 
-- [ ] **1.1** — `scripts/ingestion/01_scrape.py`: query GitHub API per engine × genere
-  - commit: `feat(phase-1): add github api scraper with engine x genre queries`
+- [x] **1.1** — `scripts/ingestion/01_scrape.py`: scraper GitHub multi-source con filtri corretti
+  - [x] ≥10 query per ognuno degli 8 engine (godot=13, altri=12) — `_sources.py:SEARCH_QUERIES`
+  - [x] GitHub API: `Authorization: Bearer`, `Accept: application/vnd.github+json`, paginazione fino a 60 results/query, sleep 2s post-call
+  - [x] Filtri server-side nella query: `stars:>=20`, `pushed:>={PUSHED_FILTERS[engine]}`, `size:<=100000`
+  - [x] Filtri client-side: license whitelist (`ALLOWED_LICENSES`), engine language match (`ENGINE_LANGUAGES`), no fork/archived/private
+  - [x] Awesome lists hardcoded per 6 engine (godot/phaser/renpy/defold/monogame/love2d) con regex `github.com/owner/repo`
+  - [x] Official samples hardcoded per 7 engine (godot-demo-projects, phaser3-examples, MonoGame.Samples, ecc.)
+  - [x] Clone `git clone --depth 1 --quiet` con skip-if-exists e sleep 0.5s
+  - [x] Manifest `data/manifest.json` con `{url, engine, stars, license, size_kb, topics, pushed_at, language, clone_status, scraped_at}`
+  - [x] Flag `--dry-run`, `--engine`, `--skip-clone`
+  - [x] Logging tqdm + file `scrape_log.txt`
+  - [x] Error handling per ogni clone (`clone_status` su `cloned` / `already_cloned` / `failed` / `failed_timeout` / `failed_exception`)
+  - [x] Splittato in 3 moduli (`01_scrape.py` orchestrator + `_scrape_helpers.py` + `_sources.py`) per rispettare il 400-line file limit di CLAUDE.md
+  - [x] Verifica `--dry-run --engine godot`: 50 candidati validi, 41 rejected, 0 scritture
+  - commit: `feat(phase-1): add GitHub scraper with corrected date filters`
 - [ ] **1.2** — Filtro GitHub API: `stars ≥ 20`, `pushed ≥ 2025-01-01`, `size ≤ 100MB`, licenza whitelist
   - commit: `feat(phase-1): enforce stars/date/size/license filters in scraper`
 - [ ] **1.3** — Scrape awesome lists per ogni engine (fetch README → regex `github.com/owner/repo`)
