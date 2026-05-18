@@ -1,0 +1,23 @@
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Data directory (local-only, never commit ingestion artifacts)
+data/
+
+# Test output
+test_output/
+
+# Node
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
