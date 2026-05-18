@@ -43,12 +43,26 @@ Conventions:
   - [x] RLS attiva su tutte e 4 le tabelle + policy SELECT su `code_knowledge` e `game_parameters`
   - apply: incollare il file nel SQL Editor del Supabase Dashboard ed eseguire (Supabase CLI non configurata)
   - commit: `feat(phase-0): add Supabase pgvector schema with quarantine table`
-- [ ] **0.7** — `lib/knowledge.ts` + `lib/types.ts` (client KB + tipi `CodeReference`, `ParameterReference`, `ReferenceQuery`, `ParameterQuery`)
-  - commit: `feat(phase-0): add knowledge-base client and shared types`
+- [x] **0.7** — `lib/knowledge.ts` + `lib/types.ts` (TypeScript client per la KB)
+  - [x] `lib/types.ts` esporta `CodeReference`, `ParameterReference`, `ReferenceQuery`, `ParameterQuery` (più `ChunkType`/`Complexity` literal types per strict mode)
+  - [x] `CodeReference` include `confidence_score` (post-migration field)
+  - [x] `ReferenceQuery` include `minConfidence?` (default 85 al call site)
+  - [x] `ParameterReference.parameters` è `Record<string, unknown>` (zero `any`)
+  - [x] `lib/knowledge.ts` espone `getReferences()`, `getReferenceParameters()`, `buildReferenceContext()`
+  - [x] Embedding lazy con `text-embedding-3-small`; fire-and-forget `increment_retrieval_count`
+  - [x] Errori loggati con `console.error({context, ...})`, return `[]` su qualunque fallimento (zero throw)
+  - [x] Env vars lette tramite `process.env` con `requireEnv()` guard
+  - [x] `npx tsc --noEmit` ritorna exit code 0
+  - commit: `feat(phase-0): add TypeScript knowledge base client`
 - [ ] **0.8** — `.env` popolato con tutte le API key (`GITHUB_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`)
   - commit: *no commit — `.env` è gitignored*
 - [ ] **0.9** — Migration applicata su Supabase (tabelle, indici, RPC visibili nel Dashboard; `SELECT COUNT(*) FROM code_knowledge` ritorna 0 senza errori)
   - commit: `chore(phase-0): record supabase migration applied`
+
+### ✅ FASE 0 — GATE
+
+- [x] Workspace, governance, shared module, DB schema e TypeScript client pronti per la Fase 1
+  - Tutto il codice della Fase 0 è committato; le sotto-fasi 0.8 (`.env` reale) e 0.9 (migration applicata su Dashboard) restano operazioni manuali utente e non bloccano l'inizio della Fase 1 da parte dell'agente (gli script di scraping/filter non toccano Supabase finché 0.9 non è fatta).
 
 ---
 
