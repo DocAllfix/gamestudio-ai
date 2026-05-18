@@ -54,10 +54,19 @@ Conventions:
   - [x] Env vars lette tramite `process.env` con `requireEnv()` guard
   - [x] `npx tsc --noEmit` ritorna exit code 0
   - commit: `feat(phase-0): add TypeScript knowledge base client`
-- [ ] **0.8** — `.env` popolato con tutte le API key (`GITHUB_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`)
-  - commit: *no commit — `.env` è gitignored*
-- [ ] **0.9** — Migration applicata su Supabase (tabelle, indici, RPC visibili nel Dashboard; `SELECT COUNT(*) FROM code_knowledge` ritorna 0 senza errori)
-  - commit: `chore(phase-0): record supabase migration applied`
+- [x] **0.8** — `.env` popolato e smoke-testato (`.env` gitignored, no commit del file)
+  - [x] `GITHUB_TOKEN` — rate limit 5000/h verificato, search funzionante
+  - [x] `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — connessione PostgREST OK
+  - [x] `SUPABASE_DB_*` — credenziali pooler Postgres (host `aws-1-eu-central-1`, port 5432, session pooler)
+  - [x] `OPENAI_API_KEY` — `text-embedding-3-small` ritorna 1536 dim
+  - [x] `DEEPSEEK_API_KEY` — `deepseek-chat` con `response_format=json_object` OK
+- [x] **0.9** — Migration `001_knowledge_base` applicata su Supabase
+  - [x] `scripts/shared/db.py` (psycopg2 pooler connection)
+  - [x] `scripts/apply_migrations.py` (--dry-run, tracking via `public.schema_migrations`, transazioni atomiche)
+  - [x] Migration 001 applicata, registrata in `schema_migrations`
+  - [x] Verifica remota: extension `vector` ✓, 4 tabelle prodotto + bookkeeping ✓, 25 indici (B-tree+GIN+HNSW) ✓, 3 RPC ✓, RLS su tutte le 4 tabelle ✓, 2 policy di lettura ✓, `SELECT COUNT(*) FROM code_knowledge` = 0 ✓
+  - [x] Smoke test end-to-end TypeScript: `getReferences({engine:'godot'})` ritorna `[]` senza errori
+  - commit: `chore(phase-0): apply migration 001 and add migration runner`
 
 ### ✅ FASE 0 — GATE
 
