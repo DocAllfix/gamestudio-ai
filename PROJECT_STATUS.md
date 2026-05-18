@@ -28,13 +28,26 @@ Conventions:
   - [x] `scripts/shared/heuristics.py` (`DOMAIN_HEURISTICS` + `heuristic_domain_triage()`, Godot vocab; estensione Phase 3)
   - [x] `scripts/shared/validators.py` (placeholder `validate_chunk()`, implementazione Phase 6)
   - commit: `feat(phase-0): add shared taxonomy and RAG defense modules`
-- [ ] **0.5-db** — `supabase/migrations/001_knowledge_base.sql` (pgvector schema + quarantine + parameters + ingestion_log + indici HNSW/GIN/BTREE + RPC `search_code_knowledge`, `get_reference_parameters`)
-  - commit: `feat(phase-0): add pgvector knowledge-base schema migration`
-- [ ] **0.6** — `lib/knowledge.ts` + `lib/types.ts` (client KB + tipi `CodeReference`, `ParameterReference`, `ReferenceQuery`, `ParameterQuery`)
+- [x] **0.6** — `supabase/migrations/001_knowledge_base.sql` (pgvector + quarantine + RPC + RLS)
+  - [x] `CREATE EXTENSION vector`
+  - [x] `code_knowledge` con `confidence_score` (default 85, gate ≥85)
+  - [x] `code_knowledge_quarantine` (schema identico, lane 60-84)
+  - [x] `game_parameters` (parameter_group + jsonb parameters)
+  - [x] `ingestion_log` con `classification_status` (accepted/quarantined/rejected)
+  - [x] Indici B-tree (engine, category, chunk_type, complexity, quality, confidence)
+  - [x] Indici GIN (genre_tags, key_features, subcategories, design_patterns) su entrambe le tabelle code_knowledge*
+  - [x] Indice HNSW `vector_cosine_ops` (m=16, ef_construction=64) su `code_knowledge.embedding`
+  - [x] RPC `search_code_knowledge` con `p_min_confidence int default 85`
+  - [x] RPC `get_reference_parameters`
+  - [x] RPC `increment_retrieval_count(p_ids uuid[])`
+  - [x] RLS attiva su tutte e 4 le tabelle + policy SELECT su `code_knowledge` e `game_parameters`
+  - apply: incollare il file nel SQL Editor del Supabase Dashboard ed eseguire (Supabase CLI non configurata)
+  - commit: `feat(phase-0): add Supabase pgvector schema with quarantine table`
+- [ ] **0.7** — `lib/knowledge.ts` + `lib/types.ts` (client KB + tipi `CodeReference`, `ParameterReference`, `ReferenceQuery`, `ParameterQuery`)
   - commit: `feat(phase-0): add knowledge-base client and shared types`
-- [ ] **0.7** — `.env` popolato con tutte le API key (`GITHUB_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`)
+- [ ] **0.8** — `.env` popolato con tutte le API key (`GITHUB_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`)
   - commit: *no commit — `.env` è gitignored*
-- [ ] **0.8** — Migration applicata su Supabase (tabelle, indici, RPC visibili nel Dashboard; `SELECT COUNT(*) FROM code_knowledge` ritorna 0 senza errori)
+- [ ] **0.9** — Migration applicata su Supabase (tabelle, indici, RPC visibili nel Dashboard; `SELECT COUNT(*) FROM code_knowledge` ritorna 0 senza errori)
   - commit: `chore(phase-0): record supabase migration applied`
 
 ---
