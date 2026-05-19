@@ -19,6 +19,16 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "godot game jam",
         "godot demo project",
         "godot 4 shooter",
+        "godot 4 fps",
+        "godot multiplayer",
+        "godot shader",
+        "godot 4 3d",
+        "godot survival",
+        "godot stealth",
+        "godot card game",
+        "godot tower defense",
+        "godot bullet hell",
+        "gdextension",
         "topic:godot-4 topic:game",
         "topic:godot topic:platformer",
         "topic:godot topic:roguelike",
@@ -34,6 +44,11 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "phaser endless runner",
         "phaser shooter",
         "phaser match-3",
+        "phaser racing",
+        "phaser multiplayer",
+        "phaser bullet hell",
+        "phaser tile",
+        "phaser io game",
         "topic:phaser3 topic:game",
         "topic:phaser topic:html5-game",
     ],
@@ -62,6 +77,11 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "defold sample",
         "defold demo",
         "defold lua game",
+        "defold mobile game",
+        "defold gui",
+        "defold extension",
+        "defold rpg",
+        "defold roguelike",
         "topic:defold topic:game",
         "topic:defold-engine",
     ],
@@ -76,6 +96,9 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "monogame roguelike",
         "FNA game",
         "monogame 2d engine",
+        "monogame 2d game",
+        "monogame multiplayer",
+        "monogame puzzle",
         "topic:monogame topic:game",
         "topic:monogame topic:csharp",
     ],
@@ -90,6 +113,12 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "love2d roguelike",
         "love2d puzzle",
         "love2d arcade",
+        "love2d engine",
+        "love2d minigame",
+        "love2d jam",
+        "love2d demo",
+        "love2d entity component",
+        "lua love game",
         "topic:love2d topic:game",
         "topic:love2d topic:lua",
     ],
@@ -104,6 +133,13 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "three.js endless runner",
         "three.js puzzle 3d",
         "webgl game three",
+        "three.js minecraft",
+        "three.js cannon physics",
+        "three.js rapier",
+        "three.js multiplayer",
+        "three.js shader game",
+        "three.js space game",
+        "three.js infinite runner",
         "topic:threejs topic:game",
         "topic:three-js topic:game",
     ],
@@ -162,12 +198,134 @@ OFFICIAL_SAMPLES: dict[str, list[str]] = {
     ],
 }
 
+TOPIC_QUERIES: dict[str, list[str]] = {
+    "godot":    ["godot-4", "godot-engine", "gdscript"],
+    "phaser":   ["phaser3", "phaserjs", "phaser-3"],
+    "renpy":    ["renpy", "visual-novel", "ren-py"],
+    "defold":   ["defold", "defold-engine"],
+    "monogame": ["monogame", "xna-framework"],
+    "love2d":   ["love2d", "love-2d"],
+    "threejs":  ["threejs", "three-js", "webgl-game"],
+    "stride":   ["stride3d", "stride-engine"],
+}
+
+
+HARVEST_ORGS: dict[str, list[str]] = {
+    "godot":    ["godotengine", "GDQuest", "KoBeWi", "nathanhoad", "heartbeast",
+                 "uheartbeast", "MakerTech"],
+    "phaser":   ["phaserjs", "photonstorm", "samme", "rexrainbow"],
+    "renpy":    ["renpy"],
+    "defold":   ["defold", "britzl", "subsoap", "selimanac"],
+    "monogame": ["MonoGame", "FNA-XNA"],
+    "love2d":   ["rxi", "love2d-community", "Ulydev", "1bardesign", "Beelz"],
+    "threejs":  ["mrdoob", "donmccurdy", "felixmariotto"],
+    "stride":   ["stride3d"],
+}
+
+
+SUBDIR_EXPANSIONS: dict[str, str] = {
+    # parent_repo_html_url -> glob anchor (relative to repo root). The glob
+    # matches a marker file proving the subdir is a real project for that
+    # engine, then we extract `match.parent` as the synthetic project root.
+    "https://github.com/mrdoob/three.js":                 "examples/*.html",
+    "https://github.com/godotengine/godot-demo-projects": "*/project.godot",
+    "https://github.com/photonstorm/phaser3-examples":    "public/src/*/",
+    "https://github.com/defold/defold-examples":          "*/game.project",
+    "https://github.com/stride3d/stride":                 "samples/*/",
+}
+
+
+# Hand-vetted high-value repos: games or libraries known in the community as
+# exemplary references. They are added to the manifest with `source="notable"`
+# and `notable=True`, bypass `passes_basic_filters` (so license=NOASSERTION
+# slips through), and are protected during the pre-clone curation pass.
+NOTABLE_REPOS: dict[str, list[tuple[str, str]]] = {
+    "godot": [
+        ("GDQuest", "godot-2d-builder"),
+        ("GDQuest", "godot-design-patterns"),
+        ("GDQuest", "godot-procedural-generation"),
+        ("uheartbeast", "Heart-Platformer-Godot-4"),
+        ("nathanhoad", "godot_dialogue_manager"),
+        ("SlayHorizon", "godot-tiny-mmo"),
+    ],
+    "phaser": [
+        ("photonstorm", "phaser-ce"),
+        ("phaserjs", "phaser"),
+        ("sporadic-labs", "tile-extruder"),
+        ("digitsensitive", "phaser3-typescript"),
+        ("orange-games", "phaser-input"),
+    ],
+    "renpy": [
+        ("renpy", "renpy"),
+    ],
+    "defold": [
+        ("subsoap", "defos"),
+        ("britzl", "platypus"),
+        ("britzl", "monarch"),
+        ("britzl", "defold-input"),
+    ],
+    "monogame": [
+        ("MonoGame", "MonoGame.Samples"),
+        ("FNA-XNA", "FNA"),
+        ("mellinoe", "veldrid-samples"),
+        ("craftworkgames", "MonoGame.Extended"),
+    ],
+    "love2d": [
+        ("Stabyourself", "mari0"),
+        ("hawkthorne", "hawkthorne-journey"),
+        ("Ulydev", "push"),
+        ("bjornbytes", "lovr"),
+        ("1bardesign", "batteries"),
+        ("lume", "lume"),
+    ],
+    "threejs": [
+        ("elalish", "manifold"),
+        ("felixmariotto", "three-mesh-ui"),
+        ("IceCreamYou", "THREE.Terrain"),
+        ("schteppe", "cannon.js"),
+    ],
+    "stride": [
+        ("stride3d", "stride-community-toolkit"),
+    ],
+}
+
+
+CURATED_REPOS: dict[str, list[tuple[str, str]]] = {
+    "godot": [
+        ("godotengine", "godot-demo-projects"),
+        ("godotengine", "godot"),
+    ],
+    "phaser":   [("phaserjs", "examples")],
+    "renpy": [
+        ("renpy", "renpy"),
+    ],
+    "defold":   [("defold", "defold")],
+    "monogame": [("MonoGame", "MonoGame")],
+    "love2d":   [("love2d", "love")],
+    "threejs":  [("mrdoob", "three.js")],
+    "stride":   [("stride3d", "stride")],
+}
+
+
+LICENSE_BYPASS_ORGS: set[str] = {
+    "renpy", "godotengine", "GDQuest", "phaserjs", "photonstorm",
+    "stride3d", "MonoGame", "defold", "britzl", "rxi", "mrdoob",
+    "Stabyourself", "hawkthorne", "FNA-XNA", "nathanhoad",
+    "uheartbeast", "KoBeWi", "SlayHorizon", "sporadic-labs",
+    "digitsensitive", "orange-games", "subsoap", "selimanac",
+    "Ulydev", "bjornbytes", "1bardesign", "lume", "Beelz",
+    "elalish", "felixmariotto", "IceCreamYou", "schteppe",
+    "mellinoe", "craftworkgames", "donmccurdy", "samme",
+    "rexrainbow", "heartbeast", "MakerTech",
+}
+
+
 # Maps repo.language to our engine bucket. Used to weed out false positives
 # (a "godot platformer" query returning a JS clone of a Godot game).
 ENGINE_LANGUAGES: dict[str, set[str]] = {
     "godot":    {"gdscript", "godot script"},
     "phaser":   {"javascript", "typescript"},
-    "renpy":    {"renpy", "python"},
+    "renpy":    {"renpy", "ren'py", "python"},
     "defold":   {"lua"},
     "monogame": {"c#"},
     "love2d":   {"lua"},

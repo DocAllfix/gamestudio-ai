@@ -16,12 +16,27 @@ from typing import Any
 import requests
 
 from scripts.shared.taxonomy import ALLOWED_LICENSES, PUSHED_FILTERS
-from scripts.ingestion._sources import ENGINE_LANGUAGES
+from scripts.ingestion._sources import ENGINE_LANGUAGES, LICENSE_BYPASS_ORGS
+
+
+# Topic aliases for the language=null fallback. When GitHub does not report a
+# language for a repo, we check whether any of these topic strings appear in
+# repo.topics — they are strong evidence the repo belongs to that engine.
+ENGINE_TOPIC_ALIASES: dict[str, set[str]] = {
+    "godot":    {"godot", "godot-engine", "godot4", "godot-4", "gdscript"},
+    "phaser":   {"phaser", "phaser3", "phaserjs", "phaser-3"},
+    "renpy":    {"renpy", "ren-py", "visual-novel"},
+    "defold":   {"defold", "defold-engine"},
+    "monogame": {"monogame", "xna", "xna-framework"},
+    "love2d":   {"love2d", "love-2d", "love", "lua-game"},
+    "threejs":  {"threejs", "three-js", "three", "webgl-game"},
+    "stride":   {"stride3d", "stride-engine", "xenko"},
+}
 
 
 GITHUB_API = "https://api.github.com"
 SEARCH_PER_PAGE = 30
-SEARCH_MAX_RESULTS_PER_QUERY = 60
+SEARCH_MAX_RESULTS_PER_QUERY = 120
 MAX_SIZE_KB = 100_000
 MIN_STARS = 20
 
@@ -55,7 +70,7 @@ class GitHubClient:
 
     def search_repos(self, query: str) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
-        for page in (1, 2):
+        for page in (1, 2, 3, 4):
             params = {
                 "q": query,
                 "sort": "stars",
@@ -89,6 +104,56 @@ class GitHubClient:
 
         return results[:SEARCH_MAX_RESULTS_PER_QUERY]
 
+    def list_org_repos(self, org: str) -> list[dict[str, Any]]:
+        """List all repos under a GitHub organization (or personal account).
+        Paginates up to 3 pages of 100 (max 300 repos per org). Falls back to
+        /users/{org}/repos when /orgs/{org}/repos returns 404 (personal accounts
+        like rxi, mrdoob).
+        """
+        results: list[dict[str, Any]] = []
+        for page in (1, 2, 3):
+            params = {"per_page": 100, "page": page,
+                      "type": "public", "sort": "updated"}
+            try:
+                resp = self.session.get(
+                    f"{GITHUB_API}/orgs/{org}/repos", params=params, timeout=30,
+                )
+            except requests.RequestException as exc:
+                self.log.error("Org list failed: %s err=%s", org, exc)
+                break
+            if resp.status_code == 404:
+                try:
+                    resp = self.session.get(
+                        f"{GITHUB_API}/users/{org}/repos",
+                        params={"per_page": 100, "page": page, "sort": "updated"},
+                        timeout=30,
+                    )
+                except requests.RequestException as exc:
+                    self.log.error("User list failed: %s err=%s", org, exc)
+                    break
+            time.sleep(SLEEP_AFTER_API_CALL)
+            if resp.status_code != 200:
+                self.log.warning("Org/user list HTTP %s: %s", resp.status_code, org)
+                break
+            items = resp.json()
+            if not isinstance(items, list):
+                break
+            results.extend(items)
+            if len(items) < 100:
+                break
+        return results
+
+    def search_topic(self, topic: str, engine: str) -> list[dict[str, Any]]:
+        """Search GitHub for repos tagged with a given topic, scoped to the
+        engine's stars/pushed/size filters. Returns up to SEARCH_MAX_RESULTS_PER_QUERY.
+        """
+        q = (
+            f"topic:{topic} stars:>={MIN_STARS} "
+            f"pushed:>={PUSHED_FILTERS[engine]} "
+            f"size:<={MAX_SIZE_KB}"
+        )
+        return self.search_repos(q)
+
     def get_repo(self, owner: str, name: str) -> dict[str, Any] | None:
         try:
             resp = self.session.get(f"{GITHUB_API}/repos/{owner}/{name}", timeout=30)
@@ -109,9 +174,12 @@ def is_valid_license(repo: dict[str, Any]) -> bool:
 
 def matches_engine_language(repo: dict[str, Any], engine: str) -> bool:
     lang = (repo.get("language") or "").lower()
-    if not lang:
-        return False
-    return lang in ENGINE_LANGUAGES.get(engine, set())
+    if lang:
+        return lang in ENGINE_LANGUAGES.get(engine, set())
+    topics = {t.lower() for t in (repo.get("topics") or [])}
+    if engine in topics:
+        return True
+    return bool(topics & ENGINE_TOPIC_ALIASES.get(engine, set()))
 
 
 def passes_basic_filters(repo: dict[str, Any], engine: str) -> tuple[bool, str]:
@@ -128,8 +196,11 @@ def passes_basic_filters(repo: dict[str, Any], engine: str) -> tuple[bool, str]:
     if (repo.get("pushed_at") or "")[:10] < PUSHED_FILTERS[engine]:
         return False, f"pushed<{PUSHED_FILTERS[engine]}"
     if not is_valid_license(repo):
-        spdx = (repo.get("license") or {}).get("spdx_id")
-        return False, f"license_not_in_whitelist({spdx})"
+        owner = ((repo.get("owner") or {}).get("login") or "").lower()
+        bypass = {o.lower() for o in LICENSE_BYPASS_ORGS}
+        if owner not in bypass:
+            spdx = (repo.get("license") or {}).get("spdx_id")
+            return False, f"license_not_in_whitelist({spdx})"
     if not matches_engine_language(repo, engine):
         return False, f"language={repo.get('language')!r}_not_engine"
     return True, "ok"
@@ -194,6 +265,39 @@ def entry_from_repo(repo: dict[str, Any], engine: str) -> dict[str, Any]:
 def safe_repo_name(url: str) -> str:
     slug = url.rstrip("/").split("github.com/", 1)[-1].replace("/", "__")
     return re.sub(r"[^A-Za-z0-9._-]+", "_", slug)
+
+
+def expand_subdirs(
+    entry: dict[str, Any],
+    repo_dir: Path,
+    pattern: str,
+    log: logging.Logger,
+) -> list[dict[str, Any]]:
+    """Walk an already-cloned mono-repo and produce one synthetic manifest
+    entry per matching sub-directory. Each entry inherits the parent's
+    metadata and adds `subdir_path` / `parent_url` / `source="subdir"` /
+    `clone_status="via_parent"`. The parent repo is cloned once; downstream
+    parsers will `cd parent_clone / subdir_path` when `subdir_path` is set.
+    """
+    out: list[dict[str, Any]] = []
+    if not repo_dir.exists():
+        log.warning("Cannot expand subdirs: parent not cloned at %s", repo_dir)
+        return out
+    for match in repo_dir.glob(pattern):
+        subdir = match.parent if match.is_file() else match
+        try:
+            rel = subdir.relative_to(repo_dir).as_posix()
+        except ValueError:
+            continue
+        if not rel or rel == ".":
+            continue
+        synth = dict(entry)
+        synth["subdir_path"] = rel
+        synth["parent_url"] = entry.get("url")
+        synth["source"] = "subdir"
+        synth["clone_status"] = "via_parent"
+        out.append(synth)
+    return out
 
 
 def clone_repo(url: str, target_dir: Path, log: logging.Logger) -> str:

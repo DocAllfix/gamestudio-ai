@@ -12,6 +12,7 @@ test_output/
 # Runtime logs from ingestion scripts
 *.log
 scrape_log.txt
+dry_run_full.txt
 
 # Node
 node_modules/
