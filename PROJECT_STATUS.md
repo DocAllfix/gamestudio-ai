@@ -132,20 +132,34 @@ Conventions:
 
 ## FASE 2 — Quality Filter
 
-- [ ] **2.1** — `scripts/ingestion/02_filter.py`: 5 check strutturali per engine
-  - commit: `feat(phase-2): add structural quality filter pipeline`
-- [ ] **2.2** — Check struttura minima (file obbligatori per engine, es. `project.godot`, `main.lua`)
-  - commit: `feat(phase-2): enforce per-engine required-file checks`
-- [ ] **2.3** — Check LOC range (300–30 000)
-  - commit: `feat(phase-2): reject repos outside 300-30000 LOC band`
-- [ ] **2.4** — Check rapporto commenti/codice (≥ 3%)
-  - commit: `feat(phase-2): penalize repos below 3% comment ratio`
-- [ ] **2.5** — Check dipendenze (max 5 plugin/addon per Godot)
-  - commit: `feat(phase-2): cap godot plugins/addons at 5`
-- [ ] **2.6** — Check licenza whitelist (MIT/CC0/Apache/BSD/Zlib/Unlicense/ISC)
-  - commit: `feat(phase-2): enforce permissive-license whitelist`
-- [ ] **2.7** — Copia repo che passano in `data/repos_clean/{engine}/` ("Golden Repos")
-  - commit: `feat(phase-2): promote passing repos to data/repos_clean`
+- [x] **2.1** — `scripts/ingestion/02_filter.py` + `_filter_rules.py`: 5 check strutturali
+  - Manifest: legge `data/manifest.curated.json` (683 repo + 768 subdir = 1451 entries)
+  - Output: `data/quality_report.json` con `{repo, engine, checks, quality_score, pass, reason_if_failed}` per ogni entry
+- [x] **2.2** — Check A struttura minima per engine (`_filter_rules.py::STRUCTURE_CHECKS`)
+  - Godot: `project.godot` + `config_version=5` (anti-Godot-3 critico) + ≥3 file `.gd`/`.tscn`
+  - Phaser: file `.js/.ts` con `Phaser.Game`/`Phaser.Scene`
+  - Ren'Py: file `.rpy` con `label start`
+  - Defold: `game.project` + file `.script`/`.collection`/`.lua`
+  - MonoGame: `.csproj` con "MonoGame" nel contenuto
+  - LÖVE: `main.lua` con `love.` nel contenuto
+  - Three.js: file `.js/.ts` con `THREE.`/`three`
+  - Stride: `.cs`/`.sdpkg`/`.csproj`
+- [x] **2.3** — Check B LOC range (`MIN_LOC=300, MAX_LOC=30000`) sui file engine-specifici
+- [x] **2.4** — Check C comment ratio ≥3% (`COMMENT_PREFIXES` per estensione)
+- [x] **2.5** — Check D plugin/autoload count Godot (`MAX_PLUGINS=5`, `MAX_AUTOLOADS=10` in `[autoload]` di `project.godot`)
+- [x] **2.6** — Check E licenza whitelist con body-marker su `LICENSE`/`COPYING`/`license.md` (MIT, Apache-2.0, BSD-2/3, CC0-1.0, Unlicense, ISC, Zlib)
+- [x] **2.7** — Promozione `data/repos_clean/{engine}/<name>/` per repo con `quality_score ≥ 3`
+  - Subdir promotion: `<safe_repo_name(parent)>__<subdir_path>` per non collidere coi parent
+  - Skip-if-exists: re-run sicuro (la copia avanza solo per le destinazioni mancanti)
+  - `shutil.copytree` ignora `.git` (i cloni del dataset hanno già `.git` rimossi nella pulizia)
+- [x] **2.8** — Fix `MemoryError` (file giganti come bundle minified) tramite `MAX_FILE_BYTES=5MB` + lettura streaming `iter_lines()`
+- [x] **2.9** — Run live completato: 1451 valutate, **409 pass (28%)** copiati in `repos_clean/`
+  - Per engine: godot 115, threejs 89, phaser 61, defold 57, love2d 36, monogame 31, stride 12, renpy 8
+  - Repo (no-subdir): 354/683 pass (52%) — sono i Golden Repos veri
+  - Subdir: 55/768 pass (7%) — molti mini-scene three.js / micro-demo Godot falliscono `min_code_files=3` correttamente
+  - Anti-Godot-3 efficace: 31 repo `config_version=4` scartati
+  - Score distribution: 147×s5, 209×s4, 53×s3, 55×s2, 987×s1
+  - commit: `feat(phase-2): structural quality gate with 5 checks and golden-repo promotion`
 
 ---
 
