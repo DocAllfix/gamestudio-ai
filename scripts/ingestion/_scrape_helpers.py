@@ -283,14 +283,39 @@ def expand_subdirs(
     if not repo_dir.exists():
         log.warning("Cannot expand subdirs: parent not cloned at %s", repo_dir)
         return out
-    for match in repo_dir.glob(pattern):
-        subdir = match.parent if match.is_file() else match
+    # Pattern modes:
+    #  - ends with "/"      -> directory-mode: each matching dir is ONE entry
+    #    (groups many files under one project root; e.g. phaser per category)
+    #  - ends with ":file"  -> file-mode: each matching FILE is one entry
+    #    (e.g. three.js each examples/*.html is a standalone scene)
+    #  - otherwise          -> anchor-mode: match.parent is the project root,
+    #    deduped (e.g. **/project.godot -> the dir containing it)
+    if pattern.endswith(":file"):
+        mode, glob_pat = "file", pattern[: -len(":file")]
+    elif pattern.endswith("/"):
+        mode, glob_pat = "dir", pattern.rstrip("/")
+    else:
+        mode, glob_pat = "anchor", pattern
+
+    seen_rel: set[str] = set()
+    for match in sorted(repo_dir.glob(glob_pat)):
+        if mode == "dir":
+            if not match.is_dir():
+                continue
+            target = match
+        elif mode == "file":
+            if not match.is_file():
+                continue
+            target = match
+        else:
+            target = match.parent if match.is_file() else match
         try:
-            rel = subdir.relative_to(repo_dir).as_posix()
+            rel = target.relative_to(repo_dir).as_posix()
         except ValueError:
             continue
-        if not rel or rel == ".":
+        if not rel or rel == "." or rel in seen_rel:
             continue
+        seen_rel.add(rel)
         synth = dict(entry)
         synth["subdir_path"] = rel
         synth["parent_url"] = entry.get("url")

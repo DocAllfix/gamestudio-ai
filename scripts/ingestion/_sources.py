@@ -227,10 +227,10 @@ SUBDIR_EXPANSIONS: dict[str, str] = {
     # parent_repo_html_url -> glob anchor (relative to repo root). The glob
     # matches a marker file proving the subdir is a real project for that
     # engine, then we extract `match.parent` as the synthetic project root.
-    "https://github.com/mrdoob/three.js":                 "examples/*.html",
-    "https://github.com/godotengine/godot-demo-projects": "*/project.godot",
-    "https://github.com/photonstorm/phaser3-examples":    "public/src/*/",
-    "https://github.com/defold/defold-examples":          "*/game.project",
+    "https://github.com/mrdoob/three.js":                 "examples/*.html:file",
+    "https://github.com/godotengine/godot-demo-projects": "**/project.godot",
+    "https://github.com/phaserjs/examples":               "public/src/*/",
+    "https://github.com/defold/defold-examples":          "**/game.project",
     "https://github.com/stride3d/stride":                 "samples/*/",
 }
 

@@ -92,18 +92,41 @@ Conventions:
   - [x] Splittato in 3 moduli (`01_scrape.py` orchestrator + `_scrape_helpers.py` + `_sources.py`) per rispettare il 400-line file limit di CLAUDE.md
   - [x] Verifica `--dry-run --engine godot`: 50 candidati validi, 41 rejected, 0 scritture
   - commit: `feat(phase-1): add GitHub scraper with corrected date filters`
-- [ ] **1.2** — Filtro GitHub API: `stars ≥ 20`, `pushed ≥ 2025-01-01`, `size ≤ 100MB`, licenza whitelist
-  - commit: `feat(phase-1): enforce stars/date/size/license filters in scraper`
-- [ ] **1.3** — Scrape awesome lists per ogni engine (fetch README → regex `github.com/owner/repo`)
-  - commit: `feat(phase-1): harvest repos from per-engine awesome lists`
-- [ ] **1.4** — Repo ufficiali di demo/samples (lista hardcoded: godot-demo-projects, phaser examples, ecc.)
-  - commit: `feat(phase-1): seed scraper with official demo/sample repos`
-- [ ] **1.5** — `git clone --depth 1` in `data/repos_raw/{engine}/{repo_name}/`
-  - commit: `feat(phase-1): shallow-clone harvested repos into data/repos_raw`
-- [ ] **1.6** — Deduplica per URL nel manifest
-  - commit: `feat(phase-1): deduplicate manifest entries by repo url`
-- [ ] **1.7** — Rate limiting (max 30 req/min GitHub API + sleep tra clone)
-  - commit: `feat(phase-1): add rate limiting and backoff to scraper`
+- [x] **1.2** — Filtri scraper completi (server-side + client-side)
+  - Server-side query: `stars:>=20`, `pushed:>={PUSHED_FILTERS[engine]}` (godot 2022-06-01, threejs 2022-01-01, altri 2021-01-01 — `taxonomy.py`), `size:<=100MB`
+  - Client-side: `ALLOWED_LICENSES` whitelist + `LICENSE_BYPASS_ORGS` per ~41 org open-source con SPDX detector buggato, `ENGINE_LANGUAGES` whitelist con fix RenPy apostrofo + fallback su topic alias quando `language=null`, drop fork/archived/private
+  - commit: `feat(phase-1): expand harvest sources, add analyzer + adaptive curator`
+- [x] **1.3** — Awesome lists + Topic harvesting + Org harvesting + Curated + Notable
+  - Awesome: 6 engine (godot/phaser/renpy/defold/monogame/love2d — 4 URL morte ma il sistema le tollera)
+  - Topic: 8 engine, 2-3 topic/engine (`topic:godot-4`, `topic:phaser3`, `topic:visual-novel`, `topic:love2d`, ecc.)
+  - Org: 8 engine, 1-7 org/engine (godotengine, GDQuest, KoBeWi, phaserjs, photonstorm, britzl, MonoGame, rxi, mrdoob, ecc.)
+  - Curated: 8 engine, repo-engine root (es. `godotengine/godot-demo-projects`, `renpy/renpy`)
+  - Notable: 8 engine, 32 repo hand-vetted (Mari0, hawkthorne, FNA, lovr, cannon.js, three-mesh-ui, Nez, godot_dialogue_manager, ecc.)
+- [x] **1.4** — Repo ufficiali via OFFICIAL_SAMPLES (7 engine)
+- [x] **1.5** — Clone `--from-curated`: 683/683 clonati in `data/repos_raw/<engine>/<safe_repo_name>/`
+  - 680 alla prima passata, 3 timeout (`phaserjs/examples` 2GB, 2 piccoli flaky) → retry mirato → tutti recuperati
+  - 1451 entries totali nel manifest (683 repo + 768 subdir Stage 2)
+- [x] **1.6** — Deduplica multi-livello
+  - In-scrape via `seen_urls` set (dedup ogni source)
+  - Post-scrape in `03_curate_manifest.py`: hard dedup su URL normalizzato (risolve es. `phaserjs/examples` x2 source)
+  - Subdir dedup automatico via `seen_rel` set in `expand_subdirs`
+- [x] **1.7** — Rate limiting + retry logic
+  - GitHub Search API: `SLEEP_AFTER_API_CALL=2s` post-call, 30/min cap rispettato
+  - 403 rate-limited → sleep via `X-RateLimit-Reset` header (handled)
+  - Clone: `SLEEP_AFTER_CLONE=0.5s`, timeout 180s per clone, retry 3 timeout in clone manuale per repo grandi
+  - Bumped `SEARCH_MAX_RESULTS_PER_QUERY` 60→120 (4 pagine invece di 2), espanse SEARCH_QUERIES a 17-23 per engine ricchi
+
+### ✅ Harvest Expansion + Stage 2 + Cleanup (commit `dce7488`, `681d31d`)
+
+- [x] **Stage 0+1+2 implementati** in 3 file (`_sources.py`, `_scrape_helpers.py`, `01_scrape.py`) + 4 nuovi script (`02_analyze_manifest.py`, `03_curate_manifest.py`, `04_sample_inspect.py`, `05_deep_analyze.py`, `_clone_phase.py`)
+- [x] **Manifest finale**: 1451 entries (683 repo + 768 subdir di mono-repo)
+  - 683 repo distribuzione: godot 232, phaser 78, renpy 19, defold 61, monogame 58, love2d 71, threejs 158, stride 6
+  - 768 subdir: godot-demo-projects 137 (mini-games veri), phaser3-examples 34 (categorie), three.js 581 (scene HTML standalone), stride samples 11, defold-examples 5
+- [x] **Deep content analysis** (`05_deep_analyze.py` su tutti i 683 cloni reali): **80.8% usable media (552/683)**
+  - stride 100%, monogame 93%, defold 90%, threejs 88%, renpy 79%, phaser 79%, godot 76%, love2d 63%
+  - `data/deep_analysis.json` contiene record per-repo: anchor, LOC, comment_ratio, ext_counts, verdict, respect_score
+- [x] **Top "respect score"** identificati per engine (combo log-stars + LOC sweet-band + commenti + anchor + tests). I notable hand-vettati confermati nei top 5 di ogni engine.
+- [x] **Disco**: cleanup operato in sicurezza (drop .git da 683 cloni +6.32 GB, installer obsoleti +2.55 GB, duplicati MD5-verified +0.45 GB). Da 12.9 → 22.3 GB liberi. Dataset integro al 100%.
 
 ---
 

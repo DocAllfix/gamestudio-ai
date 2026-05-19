@@ -95,6 +95,11 @@ def run_from_curated(
 
     if dry_run:
         print("\nDRY RUN — would clone the pending entries above, nothing done.")
+        if expand:
+            # Subdir expansion only reads already-cloned parents, so it is
+            # meaningful (and side-effect-free) to preview match counts here.
+            expand_subdir_phase(curated, curated_path, repos_raw_dir, log,
+                                dry_run=True)
         return 0
 
     clone_phase(pending, repos_raw_dir, log)
