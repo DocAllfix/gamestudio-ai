@@ -137,17 +137,24 @@ def check_structure(root: Path, engine: str,
     if has_any and not any(exts.get(e, 0) for e in has_any):
         return {"ok": False, "reason": f"no_files:{','.join(has_any)}"}
 
-    # Godot 4 enforcement: project.godot must say config_version=5.
+    # Godot 4 enforcement: EVERY project.godot in the tree must say
+    # config_version=5. A repo may contain multiple project.godot files
+    # (e.g. a Godot-4 root project alongside a `godot-csharp/` Godot-3
+    # sub-version); copying that repo whole leaks Godot-3 code into the
+    # clean dataset. So we reject the repo as soon as we see any
+    # config_version != 5.
     marker = spec.get("godot4_marker")
     if marker:
-        pg = next((p for p in files if p.name.lower() == "project.godot"), None)
-        if pg is None:
+        pgs = [p for p in files if p.name.lower() == "project.godot"]
+        if not pgs:
             return {"ok": False, "reason": "no_project_godot"}
-        body = read_text(pg)
-        if marker not in body:
-            cv = re.search(r"config_version=(\d+)", body)
-            return {"ok": False,
-                    "reason": f"godot3_or_unknown(config_version={cv.group(1) if cv else '?'})"}
+        for pg in pgs:
+            body = read_text(pg)
+            if marker not in body:
+                cv = re.search(r"config_version=(\d+)", body)
+                where = pg.relative_to(root).as_posix()
+                return {"ok": False,
+                        "reason": f"godot3_or_unknown(config_version={cv.group(1) if cv else '?'} at {where})"}
 
     min_cf = spec.get("min_code_files")
     if min_cf:

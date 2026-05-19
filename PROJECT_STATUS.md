@@ -160,6 +160,19 @@ Conventions:
   - Anti-Godot-3 efficace: 31 repo `config_version=4` scartati
   - Score distribution: 147×s5, 209×s4, 53×s3, 55×s2, 987×s1
   - commit: `feat(phase-2): structural quality gate with 5 checks and golden-repo promotion`
+- [x] **2.10** — Verifica post-Fase-2 (analizza-controanalizza ogni check del blueprint)
+  - ✅ Check 1 — 8 engine in `repos_clean/` (>=6 richiesti)
+  - ✅ Check 2 — godot 114 ≥ 25 (4.5x sopra target post-fix)
+  - ✅ Check 3 — `quality_report.json` 1451/1451 entries, tutti con `engine`+`quality_score`+`reason_if_failed`
+  - ✅ Check 4 — 0 file `project.godot` con `config_version=4` in `repos_clean/` (dopo fix bug critico)
+  - ✅ Check 5 — 5 repo Godot random: 10/10 file `.gd` syntactically valid, 5/5 `.tscn` strutturalmente OK
+  - ✅ Check 6 — 5 repo Phaser random: dataset valido (mix di plugin/lib/giochi, alcuni mini-esempi senza package.json by design)
+  - ✅ Check 7 — drop ratio repos-only 48.2% (dentro 40-70%). Totale 71.8% è atteso per via dei 768 subdir sintetici
+  - 🐛 **Bug critico trovato e fixato**: `check_structure` per Godot leggeva solo il PRIMO `project.godot` via `next(...)`. Repo con sotto-versione Godot 3 accanto a Godot 4 in root passavano (es. `gdquest-demos/godot-design-patterns/godot-csharp/project.godot` config_version=4 leaked in `repos_clean/`). Fix: ora itera TUTTI i `project.godot` e rigetta se ANY ha `config_version!=5`. Test su 32 repo Godot 3-rejected, 0 leak residui. Godot count 115→114 (1 leaked rimosso).
+  - commit: `fix(phase-2): godot4 check must verify all project.godot files`
+
+### ✅ FASE 2 — GATE
+- [x] Quality gate strutturale completo, 409 Golden Repos in `repos_clean/`, dataset pulito e coerente, blueprint checklist verificata 7/7 con analisi multilivello.
 
 ---
 
