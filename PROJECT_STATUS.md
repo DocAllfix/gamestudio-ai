@@ -200,11 +200,18 @@ Conventions:
   - Top repo per chunk count: bitbrain__beehave 322, InvadingOctopus__comedot 278, Neroware__GodotRx 263, Structed__godot-playfab 262
   - `data/godot_parse_stats.json` con stats per repo/category/confidence
   - commit: `feat(phase-3): godot parser tscn+gd+heuristic with 5852 chunks generated`
-- [ ] **3.2** — `scripts/ingestion/03_parse_phaser.py` (parser scene Phaser: preload/create/update)
+- [x] **3.2** — `scripts/ingestion/03_parse_phaser.py` + `_phaser_scene.py` (entry point + Phaser.Scene + heuristic)
+  - 61 repos, 48 parsed, 13 skipped (libraries/ads/no scene class), **1626 chunks**
+  - high 114 / medium 208 / low 1304 (low = phaserjs/examples micro-demos → LLM Fase 4)
+  - top categories: A01_player_controller 88, B01_level_structure 80, E01_project_structure 68, A04_enemy_ai 50, D01_ui 36
   - commit: `feat(phase-3): add phaser scene parser`
-- [ ] **3.3** — `scripts/ingestion/03_parse_renpy.py` (parser `.rpy`: route, screen, config)
+- [x] **3.3** — `scripts/ingestion/03_parse_renpy.py` + `_renpy_rpy.py` (route/screen/vn-core/config)
+  - 8 repos, 8 parsed, **214 chunks**, high 182 / medium 32 / low 0
+  - D01_ui 161, C03_dialogue_narrative 23, E04_genre_specific 20, E01_project_structure 10
   - commit: `feat(phase-3): add ren'py rpy parser`
-- [ ] **3.4** — `scripts/ingestion/03_parse_generic.py` (Defold / MonoGame / LÖVE / Three.js / Stride)
+- [x] **3.4** — `scripts/ingestion/03_parse_generic.py` + `_generic_engines.py` (Defold / MonoGame / LÖVE / Three.js / Stride)
+  - **7063 chunks** across 5 engines: defold 1720, monogame 1613, love2d 1113, threejs 2260, stride 357
+  - Heuristic intenzionalmente debole come da blueprint §02.4.5 ("lavoro pesante" all'LLM in Fase 4)
   - commit: `feat(phase-3): add generic multi-engine parser`
 - [ ] **3.5** — Raggruppamento file correlati in chunk singoli (es. Player sparso su 3 file → 1 chunk concatenato)
   - commit: `feat(phase-3): merge related files into cohesive chunks`
