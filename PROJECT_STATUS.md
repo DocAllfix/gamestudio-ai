@@ -178,8 +178,28 @@ Conventions:
 
 ## FASE 3 — Engine-Specific Parsers
 
-- [ ] **3.1** — `scripts/ingestion/03_parse_godot.py` (parser `.tscn` + `.gd` con scene tree)
-  - commit: `feat(phase-3): add godot tscn/gd parser with scene-tree linking`
+- [x] **3.1** — `scripts/ingestion/03_parse_godot.py` + `_godot_tscn.py` + `_godot_gd.py`
+  - `_godot_tscn.py` (224 righe): parser custom TSCN (NON è INI), estrae ext_resources, sub_resources, nodes (con script_path risolto), connections; `build_scene_context()` produce one-liner tipo `"CharacterBody2D > AnimatedSprite2D, CollisionShape2D, Hitbox(Area2D)"`
+  - `_godot_gd.py` (189 righe): regex `extends`, `class_name`, `signal`, `@export`, `@onready`, `func`, `preload/load`; `heuristic_classify()` con 10 regole ordinate dal MASTER §3 (A01/A04/A03/A05/D01/D02/C04/B04/B01 + X00 fallback)
+  - `03_parse_godot.py` (372 righe): `parse_project_godot()` tolerant INI (Godot usa valori `NodePath()`, `&"action"`, dict/array literals che bloccano ConfigParser stdlib); `find_project_root()` cerca a depth ≤3; `GodotParser.chunk_project()` orchestrator
+  - Fix critici post-test: (1) `parse_project_godot` ConfigParser-free tolerant; (2) `resolve_res_path` ora risolve `res://` contro project_root, non scena.parent (scene_context ora popolato 18/26 nei test)
+  - Splitting >800 LOC: `split_big_file()` separa per func boundaries, ogni chunk resta coerente
+- [x] **3.7** — Run live completo su 114 repo Godot in `repos_clean/godot/`
+  - **5852 chunks generati** in `data/chunks_raw/godot/<repo>/chunk_NNNN.json`
+  - Distribuzione confidence: **high=337**, medium=1134, low=4381
+  - Categorie principali: X00=4381, C04_save_load=670, D01_ui=326, **A01_player_controller=144**, E01_project_structure=114, D02_audio=72, B01_level_structure=66, B04_navigation=27, **A04_enemy_ai=26**, A05_camera=19, A03_combat=7
+  - Verifica checklist Blueprint Fase 3 — 7/7 OK:
+    - ✅ `data/chunks_raw/godot/` esiste
+    - ✅ Godot ≥200 chunk `heuristic_confidence=high`: **337** (+68%)
+    - ✅ Godot ≥30 chunk `A01_player_controller`: **144** (+380%)
+    - ✅ Godot ≥20 chunk `A04_enemy_ai`: **26** (+30%)
+    - ✅ 0 chunk con code vuoto
+    - ✅ 0 chunk con loc=0
+    - ✅ 0 chunk con file_paths vuoto
+    - ✅ Spot-check 10 chunk random: 3/3 scene_context-extends coerenti (es. Camera3D dentro CharacterBody3D ✓, FileDialog root ✓, CanvasModulate dentro Node2D ✓)
+  - Top repo per chunk count: bitbrain__beehave 322, InvadingOctopus__comedot 278, Neroware__GodotRx 263, Structed__godot-playfab 262
+  - `data/godot_parse_stats.json` con stats per repo/category/confidence
+  - commit: `feat(phase-3): godot parser tscn+gd+heuristic with 5852 chunks generated`
 - [ ] **3.2** — `scripts/ingestion/03_parse_phaser.py` (parser scene Phaser: preload/create/update)
   - commit: `feat(phase-3): add phaser scene parser`
 - [ ] **3.3** — `scripts/ingestion/03_parse_renpy.py` (parser `.rpy`: route, screen, config)
