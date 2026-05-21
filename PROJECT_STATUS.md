@@ -241,14 +241,15 @@ Conventions:
 - [x] **4.5** — Progress: tqdm + cost running + ETA + cost cap safety stop ($12 cap)
 - [x] **4.6** — Output: `data/chunks_classified/{engine}/{repo}/chunk_NNNN.json` (chunk raw merged con classification + classification_status)
 - [x] **4.7** — Report finale `data/classification_report.json`:
-  - **10 737 / 11 113 chunk classificati** (96.6%) in ~80 min con 8 worker concorrenti
-  - **8 489 accepted** (76.4%), 1 993 quarantined (17.9%), 255 rejected (2.3%), 376 errore (3.4%)
+  - **10 769 / 11 113 chunk classificati** (96.9%) in ~80 min con 8 worker concorrenti
+  - **8 517 accepted** (79.1%), 1 997 quarantined (18.5%), 255 rejected (2.4%), 344 errore residui (3.1%)
   - **Distribuzione confidence**: 79.1% chunk ≥85 conf (gate blueprint ≥75%) ✓
-  - **Categorie ≥5 chunk Godot**: A01=239 / A03=165 / A04=107 / B01=80 / D01=515 / D02=37 / E01=860 ✓
+  - **Categorie ≥5 chunk Godot**: A01=241 / A03=165 / A04=107 / B01=80 / D01=515 / D02=37 / E01=860 ✓
   - **X02_trash**: 0 (<10% target) ✓ | **X00_uncertain**: 1.9% (<15% target) ✓
-  - **Cost**: $12.14 totale (sopra budget blueprint $5 perché token output reali ~3× stima; sotto cap $12 hard)
+  - **Cost**: $12.21 totale (sopra budget blueprint $5 perché token output reali ~3× stima; sotto cap $12 hard)
   - 22/22 categorie tassonomiche hanno chunks
-  - commit: `feat(phase-4): deepseek classifier with 2-step + confidence gate + concurrency`
+  - **Fix post-audit**: max_tokens 350→500 (allinea blueprint §02.5) + rate limiter globale 50/min (blueprint §4.7) → recuperati 30 chunk truncated + 2 player controllers critici classificati manualmente da Claude (recovery a costo zero)
+  - commit: `feat(phase-4): deepseek classifier with 2-step + confidence gate + concurrency` + `fix(phase-4): align max_tokens and rate-limit to blueprint spec`
   - commit: `feat(phase-4): emit classification distribution report`
 
 ---

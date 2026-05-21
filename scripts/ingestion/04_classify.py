@@ -40,7 +40,7 @@ if str(REPO_ROOT) not in sys.path:
 load_dotenv(REPO_ROOT / ".env")
 
 from scripts.ingestion._classify_llm import (  # noqa: E402
-    DeepSeekClassifier, UsageTracker, build_prompt,
+    DEFAULT_MAX_REQ_PER_MIN, DeepSeekClassifier, UsageTracker, build_prompt,
 )
 from scripts.shared.confidence_gate import gate_classification  # noqa: E402
 from scripts.shared.taxonomy import ENGINES  # noqa: E402
@@ -201,6 +201,7 @@ def run(args: argparse.Namespace) -> int:
     classifier = DeepSeekClassifier(
         api_key=os.getenv("DEEPSEEK_API_KEY", ""),
         verbose=args.verbose,
+        max_req_per_min=args.max_req_per_min,
     )
     usage = UsageTracker()
     started_at = time.time()
@@ -297,6 +298,11 @@ def main() -> int:
     ap.add_argument("--workers", type=int, default=DEFAULT_WORKERS,
                     help=f"Concurrent classification workers "
                          f"(default {DEFAULT_WORKERS}).")
+    ap.add_argument("--max-req-per-min", type=int,
+                    default=DEFAULT_MAX_REQ_PER_MIN,
+                    help=f"Global rate cap shared across workers "
+                         f"(default {DEFAULT_MAX_REQ_PER_MIN} per blueprint "
+                         f"§4.7; set 0 to disable).")
     return run(ap.parse_args())
 
 

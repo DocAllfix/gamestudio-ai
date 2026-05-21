@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +40,11 @@ CODE_MAX_TOKENS = 3000
 CHARS_PER_TOKEN = 4  # safe upper bound for code (real ratio is ~3.5)
 MAX_RETRIES = 3
 INITIAL_BACKOFF_S = 2.0
+
+# Blueprint §4.7: "max 50 requests/minuto. Sleep 1.2 secondi tra ogni call."
+# With N concurrent workers we enforce this as a global token bucket so the
+# aggregate rate across all workers stays at ~50/min, independent of N.
+DEFAULT_MAX_REQ_PER_MIN = 50
 
 PROMPT_TEMPLATE = """You are a game development expert. Classify this {engine} code.
 
@@ -155,28 +161,54 @@ def _calc_cost(usage: Any) -> float:
             + ct * DEEPSEEK_OUTPUT_USD_PER_M) / 1_000_000
 
 
+class _RateLimiter:
+    """Thread-safe global rate limiter — enforces the blueprint §4.7 cap of
+    50 req/min regardless of concurrent worker count. The first call goes
+    through immediately; subsequent calls block until min_interval has
+    elapsed since the previous one."""
+
+    def __init__(self, max_per_min: int) -> None:
+        self.min_interval = 60.0 / max_per_min if max_per_min > 0 else 0.0
+        self._lock = threading.Lock()
+        self._last_release_at = 0.0
+
+    def acquire(self) -> None:
+        if self.min_interval <= 0:
+            return
+        with self._lock:
+            now = time.monotonic()
+            wait = self._last_release_at + self.min_interval - now
+            if wait > 0:
+                time.sleep(wait)
+                now = time.monotonic()
+            self._last_release_at = now
+
+
 class DeepSeekClassifier:
     """OpenAI-compatible client for DeepSeek V4 Flash classification."""
 
     def __init__(self, api_key: str, model: str = "deepseek-chat",
                  base_url: str = "https://api.deepseek.com/v1",
-                 verbose: bool = False) -> None:
+                 verbose: bool = False,
+                 max_req_per_min: int = DEFAULT_MAX_REQ_PER_MIN) -> None:
         if not api_key:
             raise RuntimeError("DEEPSEEK_API_KEY missing in environment.")
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
         self.verbose = verbose
+        self.rate_limiter = _RateLimiter(max_req_per_min)
 
     def _one_call(self, prompt: str) -> tuple[dict[str, Any], Any]:
         """Single round-trip. Raises on transport errors so the caller can
         retry. Returns (parsed_json, usage) on a successful round-trip even
         if the JSON fails schema validation — the caller validates."""
+        self.rate_limiter.acquire()
         resp = self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.1,
-            max_tokens=350,
+            max_tokens=500,
         )
         raw = resp.choices[0].message.content or ""
         try:
