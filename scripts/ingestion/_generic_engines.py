@@ -63,6 +63,66 @@ def _uncertain() -> tuple[str, str, str]:
     return ("X_uncertain", "X00_uncertain", "low")
 
 
+# --- shared Stage 1 rules (medium confidence, language-agnostic) -------------
+# These cover the 5 categories that were empirically zero across the dataset.
+# Each helper inspects raw text; callers chain them after their engine-specific
+# high-priority rules so they don't override stronger signals.
+
+def _common_state_machine(t: str) -> tuple[str, str, str] | None:
+    if "statemachine" in t or "state_machine" in t or "current_state" in t \
+            or "transition_to(" in t or "change_state(" in t \
+            or "gamestate" in t or "hump.gamestate" in t:
+        return _hit("A_core_gameplay", "A02_state_machine", "medium")
+    return None
+
+
+def _common_procedural(t: str) -> tuple[str, str, str] | None:
+    if any(k in t for k in ("wfc", "wave_function_collapse", "bsp_dungeon",
+                             "cellular_automata", "perlin", "simplex_noise",
+                             "fastnoise", "drunkard")):
+        return _hit("B_world_level", "B02_procedural_gen", "medium")
+    return None
+
+
+def _common_collision(t: str) -> tuple[str, str, str] | None:
+    if "collisionobject" in t or "collisiondetect" in t \
+            or "rigidbodycomponent" in t or "physicscomponent" in t \
+            or "setmask" in t or "collider" in t:
+        return _hit("B_world_level", "B03_physics_collision", "medium")
+    return None
+
+
+_COMMON_PROG_RE = re.compile(
+    r"\b(xp|experience_points|level_up|skill_tree|"
+    r"loot_table|quest_state|gain_xp|add_xp)\b", re.I)
+
+
+def _common_progression(t: str) -> tuple[str, str, str] | None:
+    if _COMMON_PROG_RE.search(t):
+        return _hit("C_meta_game", "C01_progression", "medium")
+    return None
+
+
+_COMMON_INV_RE = re.compile(
+    r"\b(inventory|item_slot|add_item|equipment_slot|remove_item)\b", re.I)
+
+
+def _common_inventory(t: str) -> tuple[str, str, str] | None:
+    if _COMMON_INV_RE.search(t):
+        return _hit("C_meta_game", "C02_inventory", "medium")
+    return None
+
+
+def _stage1_fallback(t: str) -> tuple[str, str, str]:
+    """Run the 5 shared Stage 1 rules in order; default to _uncertain()."""
+    for rule in (_common_state_machine, _common_procedural,
+                 _common_collision, _common_progression, _common_inventory):
+        hit = rule(t)
+        if hit:
+            return hit
+    return _uncertain()
+
+
 # --- Defold (.script Lua) -----------------------------------------------------
 
 def _defold_classify(name: str, text: str) -> tuple[str, str, str]:
@@ -75,7 +135,7 @@ def _defold_classify(name: str, text: str) -> tuple[str, str, str]:
         return _hit("B_world_level", "B01_level_structure", "low")
     if name.lower() in ("init.script", "main.script"):
         return _hit("E_architecture", "E03_game_flow", "medium")
-    return _uncertain()
+    return _stage1_fallback(t)
 
 
 def _defold_entry(text: str) -> bool:
@@ -94,7 +154,7 @@ def _monogame_classify(name: str, text: str) -> tuple[str, str, str]:
         return _hit("A_core_gameplay", "A01_player_controller", "medium")
     if "spritebatch" in t and "draw(" in t:
         return _hit("D_presentation", "D03_vfx", "low")
-    return _uncertain()
+    return _stage1_fallback(t)
 
 
 def _monogame_entry(text: str) -> bool:
@@ -114,7 +174,7 @@ def _love_classify(name: str, text: str) -> tuple[str, str, str]:
         return _hit("A_core_gameplay", "A01_player_controller", "medium")
     if "function love.draw" in t:
         return _hit("D_presentation", "D03_vfx", "low")
-    return _uncertain()
+    return _stage1_fallback(t)
 
 
 def _love_entry(text: str) -> bool:
@@ -138,7 +198,7 @@ def _threejs_classify(name: str, text: str) -> tuple[str, str, str]:
         return _hit("A_core_gameplay", "A01_player_controller", "low")
     if has_scene or has_cam:
         return _hit("E_architecture", "E01_project_structure", "medium")
-    return _uncertain()
+    return _stage1_fallback(t)
 
 
 def _threejs_entry(text: str) -> bool:
@@ -156,7 +216,7 @@ def _stride_classify(name: str, text: str) -> tuple[str, str, str]:
         return _hit("A_core_gameplay", "A01_player_controller", "medium")
     if "stride.engine" in t or "stride.core" in t:
         return _hit("E_architecture", "E01_project_structure", "low")
-    return _uncertain()
+    return _stage1_fallback(t)
 
 
 def _stride_entry(text: str) -> bool:

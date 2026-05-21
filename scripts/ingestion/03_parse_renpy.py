@@ -32,7 +32,7 @@ from scripts.ingestion._parse_common import (
     ParseStats, make_chunk, reconstruct_repo_url, safe_name, write_chunks,
 )
 from scripts.ingestion._renpy_rpy import (
-    is_config_file, label_has_menu, parse_rpy_file,
+    detect_inventory_signal, is_config_file, label_has_menu, parse_rpy_file,
 )
 
 REPOS_CLEAN = REPO_ROOT / "data" / "repos_clean" / "renpy"
@@ -91,7 +91,26 @@ class RenPyParser:
             vn = self._vn_chunk(rel, parsed)
             if vn:
                 chunks.append(vn)
+            inv = self._inventory_chunk(rel, parsed)
+            if inv:
+                chunks.append(inv)
         return chunks
+
+    def _inventory_chunk(self, rel: str,
+                         parsed: dict[str, Any]) -> dict[str, Any] | None:
+        score = detect_inventory_signal(parsed)
+        if score < 3:
+            return None
+        items = [d for d in parsed["defines"]
+                 if isinstance(d, str) and d.startswith("item_")]
+        ctx = f"Ren'Py inventory: {len(items)} item defines (score={score})"
+        body = parsed["raw"]
+        return make_chunk(
+            repo_url=self.repo_url, engine="renpy", file_paths=[rel],
+            code=body, domain="C_meta_game", category="C02_inventory",
+            confidence="medium", scene_context=ctx,
+            functions_found=items[:40], chunk_kind="inventory",
+        )
 
     def _route_chunk(self, rel: str, parsed: dict[str, Any]) -> dict[str, Any] | None:
         labels = parsed["labels"]

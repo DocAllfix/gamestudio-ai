@@ -37,6 +37,7 @@ from scripts.ingestion._godot_tscn import (
 from scripts.ingestion._godot_gd import (
     heuristic_classify, parse_gdscript,
 )
+from scripts.shared.chunk_type import determine_chunk_type
 
 REPOS_CLEAN_GODOT = REPO_ROOT / "data" / "repos_clean" / "godot"
 CHUNKS_RAW_GODOT = REPO_ROOT / "data" / "chunks_raw" / "godot"
@@ -124,7 +125,7 @@ def make_e01_chunk(project_data: dict[str, Any], repo_name: str,
     ]
     code = Path(pg_path).read_text(encoding="utf-8", errors="ignore") \
         if Path(pg_path).exists() else "\n".join(summary_lines)
-    return {
+    chunk: dict[str, Any] = {
         "source_repo": repo_url,
         "engine": "godot",
         "file_paths": [rel],
@@ -135,12 +136,16 @@ def make_e01_chunk(project_data: dict[str, Any], repo_name: str,
         "heuristic_category": "E01_project_structure",
         "heuristic_confidence": "high",
         "extends_type": None,
+        "class_name": None,
         "exports_found": [],
         "functions_found": [],
         "signals_defined": [],
         "signals_connected_from_scene": [],
         "chunk_kind": "project_meta",
+        "part_index": None,
     }
+    chunk["chunk_type"] = determine_chunk_type(chunk)
+    return chunk
 
 
 def signals_connected_from_scenes(script_abs: Path, project_root: Path,
@@ -281,6 +286,7 @@ class GodotParser:
                     "chunk_kind": "script_part" if len(parts) > 1 else "script",
                     "part_index": i if len(parts) > 1 else None,
                 }
+                chunk["chunk_type"] = determine_chunk_type(chunk)
                 chunks.append(chunk)
         return chunks
 

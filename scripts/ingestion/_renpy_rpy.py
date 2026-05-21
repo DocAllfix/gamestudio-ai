@@ -99,3 +99,23 @@ def is_config_file(path: Path) -> bool:
 
 def label_has_menu(block_text: str) -> bool:
     return bool(MENU_RE.search(block_text))
+
+
+_INV_DEFINE_RE = re.compile(
+    r"^(?:define|default)\s+(item_[A-Za-z_]\w*)", re.M)
+_INV_CLASS_RE = re.compile(
+    r"^\s*class\s+(Item|Inventory|Bag|Equipment)\b", re.M)
+
+
+def detect_inventory_signal(parsed: dict[str, object]) -> int:
+    """Return a strength score (0-N) suggesting C02_inventory presence.
+
+    Empirically the Ren'Py corpus exposes inventories as either a swarm of
+    `define item_*` declarations (common in NQTR / DRincs toolkits) or
+    explicit `class Item:` / `class Inventory:` blocks. Both signals are
+    cheap to detect — the parser emits a chunk when the score >= 3.
+    """
+    text = parsed.get("raw", "") if isinstance(parsed.get("raw", ""), str) else ""
+    items = len(_INV_DEFINE_RE.findall(text))
+    classes = len(_INV_CLASS_RE.findall(text))
+    return items + 3 * classes

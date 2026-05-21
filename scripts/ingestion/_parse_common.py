@@ -24,6 +24,11 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 MANIFEST_PATH = REPO_ROOT / "data" / "manifest.json"
 
+import sys as _sys
+if str(REPO_ROOT) not in _sys.path:
+    _sys.path.insert(0, str(REPO_ROOT))
+from scripts.shared.chunk_type import determine_chunk_type
+
 # Heuristic confidence levels mirror the Godot parser's vocabulary.
 CONF_HIGH = "high"
 CONF_MEDIUM = "medium"
@@ -106,7 +111,7 @@ def make_chunk(
     `signals_connected_from_scene` so the JSON schema stays identical across
     engines even when the concept (scene-wired signals) doesn't apply.
     """
-    return {
+    chunk: dict[str, Any] = {
         "source_repo": repo_url,
         "engine": engine,
         "file_paths": file_paths,
@@ -125,6 +130,8 @@ def make_chunk(
         "chunk_kind": chunk_kind,
         "part_index": part_index,
     }
+    chunk["chunk_type"] = determine_chunk_type(chunk)
+    return chunk
 
 
 def write_chunks(chunks: list[dict[str, Any]], out_dir: Path) -> int:

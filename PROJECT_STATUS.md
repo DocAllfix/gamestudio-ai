@@ -213,10 +213,22 @@ Conventions:
   - **7063 chunks** across 5 engines: defold 1720, monogame 1613, love2d 1113, threejs 2260, stride 357
   - Heuristic intenzionalmente debole come da blueprint §02.4.5 ("lavoro pesante" all'LLM in Fase 4)
   - commit: `feat(phase-3): add generic multi-engine parser`
-- [ ] **3.5** — Raggruppamento file correlati in chunk singoli (es. Player sparso su 3 file → 1 chunk concatenato)
-  - commit: `feat(phase-3): merge related files into cohesive chunks`
-- [ ] **3.6** — Heuristic pre-classification + statistiche di copertura per engine/category
-  - commit: `feat(phase-3): heuristic pre-classify chunks and emit coverage report`
+- [~] **3.5** — Raggruppamento file correlati: **skip per design** (rischio merge errati, blueprint senza algoritmo concreto; l'LLM Fase 4 decide se chunk separati formano `full_recipe`)
+- [x] **3.6** — Heuristic pre-classification + statistiche di copertura per engine/category
+  - 5 nuove regole heuristic in `_godot_gd.py` / `_phaser_scene.py` / `_generic_engines.py` per A02/B02/B03/C01/C02
+  - 1 nuovo chunk-kind `inventory` in `_renpy_rpy.py`
+  - commit: `feat(phase-3): heuristic expansion + chunk grooming + chunk_type assignment`
+- [x] **3.7** — **Chunk grooming pre-Fase 4** (`scripts/ingestion/03b_groom_chunks.py`)
+  - 14 755 raw → 11 113 survivors (drop 3 642: 2 961 tiny + 8 empty + 673 dup)
+  - droppati preservati in `data/chunks_dropped/<reason>/` per audit
+  - `data/grooming_report.json` con full breakdown per engine
+- [x] **3.8** — **chunk_type assignment** (`scripts/shared/chunk_type.py`)
+  - 4 050 full_recipe (36.4%) / 5 707 single_mechanic (51.4%) / 1 356 structural_pattern (12.2%)
+  - integrato in `_parse_common.make_chunk` e in `03_parse_godot.py` per re-run futuri
+- [x] **3.9** — **Preflight Fase 4** (`scripts/ingestion/04a_preflight.py`)
+  - 11 113 chunk, 1 schema unico, costo stimato $3.33 (budget $5, headroom 33.3%)
+  - Genre coverage 100% su tutti i 13 generi (blueprint §1.3)
+  - `data/preflight_report.json` — gate READY FOR FASE 4: True
 
 ---
 

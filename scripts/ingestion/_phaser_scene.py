@@ -154,6 +154,17 @@ def classify_scene(scene: dict[str, Any]) -> dict[str, str]:
         return _hit("E_architecture", "E01_project_structure", "medium")
     if has_player:
         return _hit("A_core_gameplay", "A01_player_controller", "medium")
+    # Stage 1 — recover the two categories that were always zero on Phaser.
+    # Phaser state-management lives in tween chains or in 3rd-party FSMs;
+    # collision setup uses Arcade Physics overlap/collider helpers.
+    if "this.physics.add.collider" in blob \
+            or "this.physics.add.overlap" in blob \
+            or "setcollisionbyproperty" in blob \
+            or "setcollisionbetween" in blob:
+        return _hit("B_world_level", "B03_physics_collision", "medium")
+    if "this.tweens.chain" in blob or "scene.start(" in blob \
+            or "statemachine" in blob or "fsm" in blob:
+        return _hit("A_core_gameplay", "A02_state_machine", "medium")
     return _hit("X_uncertain", "X00_uncertain", "low")
 
 

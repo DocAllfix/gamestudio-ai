@@ -156,10 +156,75 @@ def _rule_level(code: str, ext: str | None) -> tuple[str, str, str] | None:
     return None
 
 
+# Stage 1 — preclassification for 5 categories previously zero in the dataset.
+# Medium confidence: the keyword evidence is suggestive, the Fase 4 LLM has
+# final say. Order in HEURISTIC_RULES puts them *after* the 9 high-confidence
+# rules above so a player_controller signal still wins over a generic
+# "current_state" mention.
+
+_STATE_RE = re.compile(
+    r"\b(statemachine|state_machine|current_state|enum\s+state)\b", re.I)
+
+
+def _rule_state_machine(code: str, ext: str | None) -> tuple[str, str, str] | None:
+    cl = code.lower()
+    if _STATE_RE.search(code) or "transition_to(" in cl or "change_state(" in cl:
+        return ("A_core_gameplay", "A02_state_machine", "medium")
+    return None
+
+
+_PROC_KEYWORDS = ("wfc", "wave_function_collapse", "bsp",
+                  "cellular_automata", "perlin", "simplex_noise",
+                  "fastnoise", "drunkard")
+
+
+def _rule_procedural(code: str, ext: str | None) -> tuple[str, str, str] | None:
+    cl = code.lower()
+    if any(k in cl for k in _PROC_KEYWORDS):
+        return ("B_world_level", "B02_procedural_gen", "medium")
+    return None
+
+
+_COLLISION_RE = re.compile(
+    r"\b(collision_layer|collision_mask|set_collision_layer|"
+    r"physics_layer|one_way_collision)\b")
+
+
+def _rule_collision(code: str, ext: str | None) -> tuple[str, str, str] | None:
+    if _COLLISION_RE.search(code):
+        return ("B_world_level", "B03_physics_collision", "medium")
+    return None
+
+
+_PROG_RE = re.compile(
+    r"\b(xp|experience|level_up|skill_tree|"
+    r"quest_state|loot_table|drop_table|gain_xp|add_xp)\b", re.I)
+
+
+def _rule_progression(code: str, ext: str | None) -> tuple[str, str, str] | None:
+    if _PROG_RE.search(code) \
+            and ("var " in code or "func " in code or "const " in code):
+        return ("C_meta_game", "C01_progression", "medium")
+    return None
+
+
+_INV_KEYWORDS = ("inventory", "item_slot", "add_item",
+                 "remove_item", "equipment_slot")
+
+
+def _rule_inventory(code: str, ext: str | None) -> tuple[str, str, str] | None:
+    cl = code.lower()
+    if any(k in cl for k in _INV_KEYWORDS) and "func " in cl:
+        return ("C_meta_game", "C02_inventory", "medium")
+    return None
+
+
 HEURISTIC_RULES = (
     _rule_player_controller, _rule_enemy_ai, _rule_combat,
-    _rule_camera, _rule_ui, _rule_audio,
-    _rule_save_load, _rule_navigation, _rule_level,
+    _rule_camera, _rule_navigation,
+    _rule_ui, _rule_audio, _rule_save_load, _rule_level,
+    _rule_state_machine, _rule_procedural, _rule_collision,
+    _rule_progression, _rule_inventory,
 )
 
 
