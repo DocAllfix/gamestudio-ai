@@ -17,6 +17,10 @@ from typing import Any
 GD_MAX_BYTES = 1_500_000  # safety net: hand-written GDScript never exceeds
 
 EXTENDS_RE     = re.compile(r"^extends\s+([A-Za-z_][\w.]*)", re.M)
+# Godot 4 also allows the inline form `class_name X extends Y` on a single
+# line. Without this fallback ~6.6% of script chunks would lose extends_type.
+EXTENDS_INLINE_RE = re.compile(
+    r"^class_name\s+\w+\s+extends\s+([A-Za-z_][\w.]*)", re.M)
 CLASS_NAME_RE  = re.compile(r"^class_name\s+([A-Za-z_]\w*)", re.M)
 SIGNAL_RE      = re.compile(r"^signal\s+([A-Za-z_]\w*)\s*(\([^)]*\))?", re.M)
 EXPORT_RE      = re.compile(
@@ -57,6 +61,8 @@ def parse_gdscript(path: Path) -> dict[str, Any]:
         }
 
     extends_m = EXTENDS_RE.search(text)
+    if not extends_m:
+        extends_m = EXTENDS_INLINE_RE.search(text)
     class_name_m = CLASS_NAME_RE.search(text)
 
     signals = [
