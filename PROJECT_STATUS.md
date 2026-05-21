@@ -287,14 +287,16 @@ Conventions:
 
 ## FASE 7 — Integration & Comparison Test
 
-- [ ] **7.1** — `lib/knowledge.ts` end-to-end con Supabase (`getReferences()` ritorna risultati reali)
-  - commit: `feat(phase-7): wire knowledge.ts to production supabase`
-- [ ] **7.2** — Script comparison: generazione SENZA KB vs CON KB
-  - commit: `feat(phase-7): add a/b code-generation comparison script`
-- [ ] **7.3** — Valutazione automatica con Claude Sonnet (5 criteri)
-  - commit: `feat(phase-7): score comparison outputs across 5 criteria`
-- [ ] **7.4** — `test_output/COMPARISON_REPORT.md` con risultati numerici
-  - commit: `docs(phase-7): publish comparison report`
+- [x] **7.1** — `lib/knowledge.ts` end-to-end con Supabase: `getReferences()` + `getReferenceParameters()` + `buildReferenceContext()` chiamati live dal comparison test, ritornano risultati reali dalla KB di produzione
+- [x] **7.2** — `scripts/ingestion/08_comparison_test.ts` — A/B generation (no-KB vs KB), generator `gpt-4o` @ temp 0.2, stesso modello su entrambe le path
+- [x] **7.3** — Valutazione automatica con `claude-sonnet-4-6` (Anthropic API diretta), rubrica 0-2 su 5 criteri, output JSON strutturato
+- [x] **7.4** — `test_output/COMPARISON_REPORT.md` generato con tabella score + codici A/B + verdetto
+- [x] **7.5** — **FINDING STRATEGICO** documentato in [docs/FINDING_dataset_boost_coverage.md](docs/FINDING_dataset_boost_coverage.md)
+  - Il Dataset Boost è **proporzionale alla densità di copertura** della nicchia richiesta
+  - Test Godot player controller (224 chunk A01): boost ~zero perché il modello base è già esperto sui pattern canonici
+  - Test Ren'Py inventory (1 chunk C02, in quarantine): boost negativo perché la nicchia è scoperta
+  - Direziona la Fase 2: harvest mirato su engine deboli (Ren'Py/Stride/Defold), retrieval selettivo con gate di similarity, soglia confidence adattiva per-engine
+  - commit: `feat(phase-7): a/b comparison test + dataset-boost coverage finding`
 
 ---
 
