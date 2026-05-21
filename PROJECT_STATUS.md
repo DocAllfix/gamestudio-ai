@@ -256,22 +256,16 @@ Conventions:
 
 ## FASE 5 — Embedding & Storage
 
-- [ ] **5.1** — `scripts/ingestion/05_embed_store.py` legge solo chunk ACCEPT (confidence ≥ 85)
-  - commit: `feat(phase-5): load only accepted chunks for embedding`
-- [ ] **5.2** — Costruzione `searchable_text` (summary + metadati, NON codice grezzo)
-  - commit: `feat(phase-5): build searchable_text from summary and metadata`
-- [ ] **5.3** — Embedding con OpenAI `text-embedding-3-small` (batch da 100, 1536 dim)
-  - commit: `feat(phase-5): batch-embed chunks with text-embedding-3-small`
-- [ ] **5.4** — Insert in `code_knowledge` (batch da 50)
-  - commit: `feat(phase-5): bulk-insert embeddings into code_knowledge`
-- [ ] **5.5** — Quarantine (confidence 60–84) → `code_knowledge_quarantine`
-  - commit: `feat(phase-5): route low-confidence chunks to quarantine table`
-- [ ] **5.6** — Parametri numerici → `game_parameters`
-  - commit: `feat(phase-5): extract numeric parameters into game_parameters`
-- [ ] **5.7** — Update `ingestion_log` per ogni repo
-  - commit: `feat(phase-5): track per-repo ingestion in ingestion_log`
-- [ ] **5.8** — Report finale: conteggi per tabella / engine + costo embedding
-  - commit: `feat(phase-5): emit storage and cost report`
+- [x] **5.1** — `scripts/ingestion/05_embed_store.py` legge accepted + quarantined da `data/chunks_classified/`
+- [x] **5.2** — `searchable_text` costruito da `_embed_db.build_searchable_text()` per blueprint §02.6 (summary + engine + category + subcats + genres + features + patterns + complexity, NO codice grezzo)
+- [x] **5.3** — Embedding OpenAI `text-embedding-3-small` batch 100, 1536 dim. Verificato `vector_dims=1536` su 100% delle righe
+- [x] **5.4** — Bulk INSERT in `code_knowledge` (batch 50 via `execute_values`). **8 517 righe** inserite
+- [x] **5.5** — Quarantine (60-84 conf) → `code_knowledge_quarantine`: **1 997 righe**
+- [x] **5.6** — Parametri numerici → `game_parameters` con mapping categoria (A01/A02→player_physics, A03→combat_stats, A04→enemy_stats, A05→camera_settings, C01→progression_economy, D02→audio_config, altro→general): **1 862 righe**
+- [x] **5.7** — `ingestion_log` UPSERT (1 riga per repo, status='embedded'): **308 righe**
+- [x] **5.8** — Report `data/embed_store_report.json` + summary console: conteggi per tabella / engine, embedding cost (~$0.05 stimato per 10K chunk × 270 token medio)
+- [x] **5.9** — **Idempotenza** (`load_existing_keys()`) + **resume su crash** (commit incrementale ogni 100 chunk + reconnect su `OperationalError` con backoff esponenziale): rotto in 2 punti, ripreso esattamente da dove era arrivato senza perdere nulla
+  - commit: `feat(phase-5): embed chunks and store in supabase pgvector with idempotent resume`
 
 ---
 
