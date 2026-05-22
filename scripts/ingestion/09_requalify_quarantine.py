@@ -152,73 +152,73 @@ def main() -> int:
         model=pconf["model"], base_url=pconf["base_url"],
         provider=args.provider)
 
+    # Phase 1 — fetch the work list (short DB session, no idle).
     with get_connection() as conn:
-        cur = conn.cursor()
-        rows = _fetch(cur, args.source, args.engine, args.category)
-        if args.limit:
-            rows = rows[:args.limit]
-        print(f"Re-qualifying {len(rows)} chunks "
-              f"(source={args.source} engine={args.engine}"
-              f"{' cat=' + args.category if args.category else ''})\n")
+        rows = _fetch(conn.cursor(), args.source, args.engine, args.category)
+    if args.limit:
+        rows = rows[:args.limit]
+    print(f"Re-qualifying {len(rows)} chunks "
+          f"(source={args.source} engine={args.engine}"
+          f"{' cat=' + args.category if args.category else ''})\n")
 
-        moved = 0
-        promoted = 0
-        unchanged = 0
-        cost = 0.0
-        moves: dict[str, int] = {}
-        pending_writes = 0
+    # Phase 2 — classify everything with NO DB connection open. Each LLM
+    # call takes seconds; holding a Supabase pooler connection idle across
+    # hundreds of them gets it dropped server-side, so we collect the
+    # writes in memory and flush them in one short session at the end.
+    moved = 0
+    promoted = 0
+    unchanged = 0
+    cost = 0.0
+    moves: dict[str, int] = {}
+    to_promote: list[tuple[int, dict[str, Any]]] = []
+    to_update: list[tuple[int, dict[str, Any]]] = []
 
-        for row in tqdm(rows, desc="requalify"):
-            chunk = _row_to_chunk(row)
-            result = clf.classify_chunk(chunk)
-            cost += result.cost_usd
-            if not result.ok or not result.classification:
-                unchanged += 1
-                continue
-            cls = result.classification
-            outcome = gate_classification(cls)
-            new_cat = cls["primary_category"]
-            new_conf = cls["confidence_score"]
-            old_cat = row.get("primary_category")
+    for row in tqdm(rows, desc="requalify"):
+        chunk = _row_to_chunk(row)
+        result = clf.classify_chunk(chunk)
+        cost += result.cost_usd
+        if not result.ok or not result.classification:
+            unchanged += 1
+            continue
+        cls = result.classification
+        outcome = gate_classification(cls)
+        new_cat = cls["primary_category"]
+        new_conf = cls["confidence_score"]
+        old_cat = row.get("primary_category")
 
-            wrote = False
-            if args.source == "quarantine":
-                # Promote only if the new pass clears the accept gate AND
-                # lands on a real (non-uncertain) category.
-                if outcome == "accepted" and not new_cat.startswith("X0"):
-                    if args.apply:
-                        _promote(cur, row["id"], cls)
-                        wrote = True
-                    promoted += 1
-                    moves[new_cat] = moves.get(new_cat, 0) + 1
-                else:
-                    unchanged += 1
+        if args.source == "quarantine":
+            if outcome == "accepted" and not new_cat.startswith("X0"):
+                to_promote.append((row["id"], cls))
+                promoted += 1
+                moves[new_cat] = moves.get(new_cat, 0) + 1
             else:
-                # code-knowledge re-tag: move in place only if the category
-                # actually changes, the new pass is confident, and it's a
-                # real category. Otherwise leave the accepted chunk alone.
-                if (new_cat != old_cat and new_conf >= 85
-                        and not new_cat.startswith("X0")):
-                    if args.apply:
-                        _update_category(cur, row["id"], cls)
-                        wrote = True
-                    moved += 1
-                    moves[f"{old_cat}->{new_cat}"] = \
-                        moves.get(f"{old_cat}->{new_cat}", 0) + 1
-                else:
-                    unchanged += 1
+                unchanged += 1
+        else:
+            if (new_cat != old_cat and new_conf >= 85
+                    and not new_cat.startswith("X0")):
+                to_update.append((row["id"], cls))
+                moved += 1
+                moves[f"{old_cat}->{new_cat}"] = \
+                    moves.get(f"{old_cat}->{new_cat}", 0) + 1
+            else:
+                unchanged += 1
 
-            # Commit incrementally so a dropped connection on a long run
-            # never rolls back hundreds of LLM calls. A promoted/re-tagged
-            # chunk no longer matches the source query, so re-runs resume
-            # naturally from where a crash left off.
-            if wrote:
-                pending_writes += 1
-                if pending_writes >= 20:
+    # Phase 3 — flush all writes in one short session, committing in small
+    # batches so a mid-flush drop still persists most of the work.
+    if args.apply and (to_promote or to_update):
+        with get_connection() as conn:
+            cur = conn.cursor()
+            n = 0
+            for qid, cls in to_promote:
+                _promote(cur, qid, cls)
+                n += 1
+                if n % 25 == 0:
                     conn.commit()
-                    pending_writes = 0
-
-        if args.apply and pending_writes:
+            for cid, cls in to_update:
+                _update_category(cur, cid, cls)
+                n += 1
+                if n % 25 == 0:
+                    conn.commit()
             conn.commit()
 
     print("\n" + "=" * 56)
