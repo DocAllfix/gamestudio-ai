@@ -44,6 +44,7 @@ from scripts.ingestion._scrape_helpers import safe_repo_name
 from scripts.ingestion._filter_rules import (
     ENGINE_CODE_EXTS,
     COMMENT_PREFIXES,
+    FORBIDDEN_LICENSE_MARKERS,
     LICENSE_BODY_MARKERS,
     LICENSE_FILENAMES,
     MAX_AUTOLOADS,
@@ -223,6 +224,22 @@ def detect_license(root: Path, manifest_license: str | None) -> str:
     for p in root.iterdir() if root.is_dir() else []:
         if p.is_file() and p.name.lower() in LICENSE_FILENAMES:
             body = read_text(p).lower()
+            # Match the PRIMARY license from the file head. A forbidden marker
+            # only blocks when it governs the project itself, not when it's
+            # one entry in a bundled-dependency list (e.g. LÖVE's license.txt
+            # declares zlib for LOVE then lists GPL deps further down). So we
+            # check forbidden markers against the head only, and let a strong
+            # permissive marker in the head win.
+            head = body[:1500]
+            permissive_in_head = any(
+                m in head
+                for markers in LICENSE_BODY_MARKERS.values()
+                for m in markers
+            )
+            if not permissive_in_head:
+                for lic, markers in FORBIDDEN_LICENSE_MARKERS.items():
+                    if any(m in head for m in markers):
+                        return f"forbidden:{lic}"
             for lic, markers in LICENSE_BODY_MARKERS.items():
                 if any(m in body for m in markers):
                     return lic
@@ -258,7 +275,20 @@ def evaluate(entry: dict[str, Any], verbose: bool) -> dict[str, Any]:
         "plugins_reason": plugins_reason,
         "license": lic,
     }
-    score, passed, reason = score_repo(checks)
+    # "unknown" is acceptable only with out-of-band provenance: an explicit
+    # permissive license in the manifest, or an Itch entry pointing at an
+    # external repo whose LICENSE we can read. A bare unknown is dropped.
+    manifest_lic = (entry.get("license") or "").strip().lower()
+    has_external = "ext" in (entry.get("source") or "")
+    license_verified = (
+        lic != "unknown"
+        or (manifest_lic not in ("", "unknown", "noassertion"))
+        or has_external
+    )
+    score, passed, reason = score_repo(
+        checks,
+        bypass_loc_ceiling=bool(entry.get("bypass_filters")),
+        license_verified=license_verified)
     rec = {
         "repo": ident,
         "engine": engine,

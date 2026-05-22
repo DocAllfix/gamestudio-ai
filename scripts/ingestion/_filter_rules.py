@@ -78,6 +78,11 @@ COMMENT_PREFIXES: dict[str, tuple[str, ...]] = {
 
 MIN_LOC = 300
 MAX_LOC = 30_000
+# Ceiling for bypass_filters entries (official engines / curated mono-repos).
+# Above this a single project dominates the dataset and the parse cost on
+# one repo is not worth it — asa_hito/hm at 162k LOC is the canonical case
+# we still want to reject.
+MAX_LOC_BYPASS = 100_000
 MIN_COMMENT_RATIO = 0.03
 MAX_PLUGINS = 5          # addons/ subfolders (Godot)
 MAX_AUTOLOADS = 10       # [autoload] entries in project.godot (Godot)
@@ -86,6 +91,18 @@ ALLOWED_LICENSES = [
     "MIT", "CC0-1.0", "CC0", "Apache-2.0", "Apache 2.0", "BSD-2-Clause",
     "BSD-3-Clause", "Unlicense", "ISC", "Zlib", "zlib",
 ]
+
+# Copyleft / non-commercial markers that DISQUALIFY a repo even when it is
+# a bypass_filters entry. RAG retrieval reproduces chunks near-verbatim into
+# generated output, so a GPL/AGPL chunk would contaminate the user's game.
+# Checked before the permissive markers below; a hit returns "forbidden:<id>".
+FORBIDDEN_LICENSE_MARKERS: dict[str, list[str]] = {
+    "GPL": ["gnu general public license", "gnu gpl"],
+    "AGPL": ["gnu affero general public license", "affero"],
+    "LGPL": ["gnu lesser general public license", "lesser general public"],
+    "CC-BY-NC": ["attribution-noncommercial", "noncommercial"],
+    "CC-BY-SA": ["attribution-sharealike"],
+}
 
 # Substrings that identify a license inside a LICENSE/COPYING file body.
 LICENSE_BODY_MARKERS: dict[str, list[str]] = {
@@ -107,7 +124,9 @@ LICENSE_FILENAMES = (
 )
 
 
-def score_repo(checks: dict[str, Any]) -> tuple[int, bool, str]:
+def score_repo(checks: dict[str, Any],
+               bypass_loc_ceiling: bool = False,
+               license_verified: bool = True) -> tuple[int, bool, str]:
     """Return (quality_score 1-5, pass, reason_if_failed).
 
     Scoring (BLUEPRINT §2.3 / MASTER prompt):
@@ -117,6 +136,12 @@ def score_repo(checks: dict[str, Any]) -> tuple[int, bool, str]:
       2: one NON-critical check failed (e.g. comment ratio just under 3%)
       1: a CRITICAL check failed -> discard
     Repos with score >= 3 are copied to data/repos_clean/.
+
+    When `bypass_loc_ceiling` is set (entries pre-vetted via
+    bypass_filters: official engines, curated mono-repos, hand-picked
+    notable projects), the upper LOC limit is waived so we harvest the
+    full body of these high-trust sources. The lower bound and the
+    no-code check still apply — an empty or tiny repo is still rejected.
     """
     structure = checks["structure"]
     loc = checks["loc"]
@@ -125,6 +150,15 @@ def score_repo(checks: dict[str, Any]) -> tuple[int, bool, str]:
     plugins_ok = checks["plugins_ok"]
 
     # Critical failures -> score 1, discard.
+    lic = checks.get("license", "")
+    if isinstance(lic, str) and lic.startswith("forbidden:"):
+        return 1, False, f"license_{lic}"
+    # An unknown license is only acceptable when verified out-of-band
+    # (e.g. an Itch entry whose external repo carries a readable LICENSE).
+    # A bare "unknown" with no provenance defaults to all-rights-reserved
+    # and would pollute the dataset, so we drop it.
+    if lic == "unknown" and not license_verified:
+        return 1, False, "license_unknown_unverified"
     if not structure["ok"]:
         return 1, False, f"structure_failed:{structure['reason']}"
     if loc == 0:
@@ -132,7 +166,12 @@ def score_repo(checks: dict[str, Any]) -> tuple[int, bool, str]:
     if not loc_ok:
         if loc < MIN_LOC:
             return 1, False, f"loc_too_small({loc}<{MIN_LOC})"
-        return 1, False, f"loc_too_large({loc}>{MAX_LOC})"
+        # bypass entries widen the ceiling to MAX_LOC_BYPASS but are still
+        # rejected past it — one 162k-LOC project would skew the dataset.
+        if not bypass_loc_ceiling:
+            return 1, False, f"loc_too_large({loc}>{MAX_LOC})"
+        if loc > MAX_LOC_BYPASS:
+            return 1, False, f"loc_too_large_even_bypassed({loc}>{MAX_LOC_BYPASS})"
     if not plugins_ok:
         return 1, False, checks["plugins_reason"]
 
