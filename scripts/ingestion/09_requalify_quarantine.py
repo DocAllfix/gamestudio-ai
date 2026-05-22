@@ -166,6 +166,7 @@ def main() -> int:
         unchanged = 0
         cost = 0.0
         moves: dict[str, int] = {}
+        pending_writes = 0
 
         for row in tqdm(rows, desc="requalify"):
             chunk = _row_to_chunk(row)
@@ -180,12 +181,14 @@ def main() -> int:
             new_conf = cls["confidence_score"]
             old_cat = row.get("primary_category")
 
+            wrote = False
             if args.source == "quarantine":
                 # Promote only if the new pass clears the accept gate AND
                 # lands on a real (non-uncertain) category.
                 if outcome == "accepted" and not new_cat.startswith("X0"):
                     if args.apply:
                         _promote(cur, row["id"], cls)
+                        wrote = True
                     promoted += 1
                     moves[new_cat] = moves.get(new_cat, 0) + 1
                 else:
@@ -198,13 +201,24 @@ def main() -> int:
                         and not new_cat.startswith("X0")):
                     if args.apply:
                         _update_category(cur, row["id"], cls)
+                        wrote = True
                     moved += 1
                     moves[f"{old_cat}->{new_cat}"] = \
                         moves.get(f"{old_cat}->{new_cat}", 0) + 1
                 else:
                     unchanged += 1
 
-        if args.apply:
+            # Commit incrementally so a dropped connection on a long run
+            # never rolls back hundreds of LLM calls. A promoted/re-tagged
+            # chunk no longer matches the source query, so re-runs resume
+            # naturally from where a crash left off.
+            if wrote:
+                pending_writes += 1
+                if pending_writes >= 20:
+                    conn.commit()
+                    pending_writes = 0
+
+        if args.apply and pending_writes:
             conn.commit()
 
     print("\n" + "=" * 56)
