@@ -40,6 +40,30 @@ def safe_name(s: str) -> str:
 
 
 _MANIFEST_URLS: set[str] | None = None
+_FOLDER_TO_URL: dict[str, str] | None = None
+
+
+def _safe_repo_name(url: str) -> str:
+    """Local mirror of _scrape_helpers.safe_repo_name (protocol-agnostic).
+
+    Duplicated here to avoid a cross-module import cycle at the parser
+    layer; must stay byte-identical with the scraper helper.
+    """
+    import re as _re
+    cleaned = url.rstrip("/")
+    cleaned = _re.sub(r"^https?://", "", cleaned)
+    if cleaned.startswith("github.com/"):
+        slug = cleaned.split("github.com/", 1)[-1].replace("/", "__")
+    else:
+        slug = cleaned.replace("/", "__")
+    return _re.sub(r"[^A-Za-z0-9._-]+", "_", slug)
+
+
+def _load_manifest() -> list[dict]:
+    try:
+        return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
 
 
 def _manifest_urls() -> set[str]:
@@ -47,36 +71,61 @@ def _manifest_urls() -> set[str]:
     global _MANIFEST_URLS
     if _MANIFEST_URLS is None:
         try:
-            data = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-            _MANIFEST_URLS = {e["url"] for e in data if e.get("url")}
-        except (OSError, json.JSONDecodeError, KeyError):
+            _MANIFEST_URLS = {e["url"] for e in _load_manifest() if e.get("url")}
+        except KeyError:
             _MANIFEST_URLS = set()
     return _MANIFEST_URLS
 
 
-def reconstruct_repo_url(folder_name: str) -> str:
-    """Map a repos_clean folder name back to its GitHub URL.
+def _folder_to_url() -> dict[str, str]:
+    """Lazy-load a `folder_name -> source_url` map from the manifest, so
+    non-GitHub entries (gitlab.com, itch.io, ...) resolve to their real
+    URL instead of being mis-rebuilt under github.com/. Cached."""
+    global _FOLDER_TO_URL
+    if _FOLDER_TO_URL is None:
+        mapping: dict[str, str] = {}
+        for entry in _load_manifest():
+            url = entry.get("url")
+            if not url:
+                continue
+            mapping[_safe_repo_name(url)] = url
+            # Subdir entries: parent_url is the cloned URL but the folder
+            # for the synthetic child can encode the subdir path.
+            parent = entry.get("parent_url")
+            subdir = entry.get("subdir_path")
+            if parent and subdir:
+                synth_folder = _safe_repo_name(parent) + "__" + _safe_repo_name(subdir)
+                mapping.setdefault(synth_folder, parent)
+        _FOLDER_TO_URL = mapping
+    return _FOLDER_TO_URL
 
-    Folder names encode `owner/repo` as `owner__repo`. Subdir-expansion
-    entries encode `owner/repo/<subdir>` as `owner__repo__subdir`, where the
-    physical clone is the parent `owner/repo`. We first try the simple
-    one-split form and validate it against the manifest; if that misses, we
-    progressively treat trailing `__`-segments as a subdir suffix and retry
-    against the manifest, so the returned URL always points at a real repo.
+
+def reconstruct_repo_url(folder_name: str) -> str:
+    """Map a repos_clean folder name back to its source URL.
+
+    Strategy:
+    1. Look up the folder in a `safe_repo_name(url) -> url` map built from
+       the manifest. Works for any host (github, gitlab, itch, ...).
+    2. Fallback to the legacy GitHub-only reconstruction for folders that
+       predate the manifest map (zero behaviour change on the existing
+       dataset, all entries are reachable via path 1).
     """
+    mapping = _folder_to_url()
+    if folder_name in mapping:
+        return mapping[folder_name]
+
+    # Legacy fallback: GitHub-only reconstruction.
     urls = _manifest_urls()
     simple = "https://github.com/" + folder_name.replace("__", "/", 1)
     if simple in urls or not urls:
         return simple
     parts = folder_name.split("__")
-    # Try owner/repo from the first two segments (subdir case).
     for cut in range(len(parts) - 1, 1, -1):
         candidate = "https://github.com/" + "/".join(
             [parts[0], "".join(parts[1:cut])]
         )
         if candidate in urls:
             return candidate
-    # owner/repo where repo itself contains underscores collapsed: best effort.
     if len(parts) >= 2:
         return "https://github.com/" + parts[0] + "/" + "__".join(parts[1:])
     return simple

@@ -183,6 +183,11 @@ def matches_engine_language(repo: dict[str, Any], engine: str) -> bool:
 
 
 def passes_basic_filters(repo: dict[str, Any], engine: str) -> tuple[bool, str]:
+    # Entries pre-marked as bypass (curated, notable, non-GitHub sources
+    # with license already verified by their dedicated scraper) skip the
+    # GitHub-shaped sanity checks below.
+    if repo.get("bypass_filters"):
+        return True, "bypass"
     if repo.get("fork"):
         return False, "fork"
     if repo.get("archived"):
@@ -263,7 +268,20 @@ def entry_from_repo(repo: dict[str, Any], engine: str) -> dict[str, Any]:
 
 
 def safe_repo_name(url: str) -> str:
-    slug = url.rstrip("/").split("github.com/", 1)[-1].replace("/", "__")
+    """Convert a project URL into a filesystem-safe folder name.
+
+    Protocol-agnostic: works on github.com, gitlab.com, itch.io, codeberg,
+    bitbucket and any future host. GitHub URLs keep the historic shape
+    `<owner>__<repo>` (zero behaviour change for the existing manifest);
+    other hosts prefix with the host fragment to avoid collisions.
+    """
+    cleaned = url.rstrip("/")
+    # Strip protocol so re-runs on http/https are deterministic.
+    cleaned = re.sub(r"^https?://", "", cleaned)
+    if cleaned.startswith("github.com/"):
+        slug = cleaned.split("github.com/", 1)[-1].replace("/", "__")
+    else:
+        slug = cleaned.replace("/", "__")
     return re.sub(r"[^A-Za-z0-9._-]+", "_", slug)
 
 
