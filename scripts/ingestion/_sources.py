@@ -51,6 +51,14 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "phaser io game",
         "topic:phaser3 topic:game",
         "topic:phaser topic:html5-game",
+        # Fase 1ter P1 — target the C03 (dialogue/narrative) and C04
+        # (save/load) cells that are empty for Phaser.
+        "phaser visual novel",
+        "phaser dialogue system",
+        "phaser text adventure",
+        "phaser adventure game",
+        "phaser save load localstorage",
+        "phaser inventory rpg",
     ],
     "renpy": [
         "renpy visual novel",
@@ -101,6 +109,13 @@ SEARCH_QUERIES: dict[str, list[str]] = {
         "monogame puzzle",
         "topic:monogame topic:game",
         "topic:monogame topic:csharp",
+        # Fase 1ter P1 — target the C01 (progression) and C03 (dialogue)
+        # cells that are empty for MonoGame.
+        "monogame jrpg",
+        "monogame dialogue system",
+        "monogame leveling experience system",
+        "monogame inventory rpg",
+        "monogame visual novel",
     ],
     "love2d": [
         "love2d game",
@@ -254,6 +269,9 @@ NOTABLE_REPOS: dict[str, list[tuple[str, str]]] = {
         ("sporadic-labs", "tile-extruder"),
         ("digitsensitive", "phaser3-typescript"),
         ("orange-games", "phaser-input"),
+        # Fase 1ter P1 — RPG/dialogue reference. Size > curator cap but
+        # licensed MIT and load-bearing for the C03/C04 cells.
+        ("SkyAlpha", "luminus-rpg"),
     ],
     "renpy": [
         ("renpy", "renpy"),
@@ -269,6 +287,9 @@ NOTABLE_REPOS: dict[str, list[tuple[str, str]]] = {
         ("FNA-XNA", "FNA"),
         ("mellinoe", "veldrid-samples"),
         ("craftworkgames", "MonoGame.Extended"),
+        # Fase 1ter P1 — full-engine 2D framework, MIT, mid-size. Brings
+        # ECS / dialogue / save patterns that the C01/C03 cells need.
+        ("Martenfur", "Monofoxe"),
     ],
     "love2d": [
         ("Stabyourself", "mari0"),
@@ -295,12 +316,20 @@ CURATED_REPOS: dict[str, list[tuple[str, str]]] = {
         ("godotengine", "godot-demo-projects"),
         ("godotengine", "godot"),
     ],
-    "phaser":   [("phaserjs", "examples")],
+    "phaser":   [
+        ("phaserjs", "examples"),
+        # Fase 1ter P1 — RPG/dialogue/save reference projects.
+        ("photonstorm", "phaser3-examples"),
+    ],
     "renpy": [
         ("renpy", "renpy"),
     ],
     "defold":   [("defold", "defold")],
-    "monogame": [("MonoGame", "MonoGame")],
+    "monogame": [
+        ("MonoGame", "MonoGame"),
+        # Fase 1ter P1 — MonoGame.Extended ships Scene/Tiled/ECS + RPG bits.
+        ("craftworkgames", "MonoGame.Extended"),
+    ],
     "love2d":   [("love2d", "love")],
     "threejs":  [("mrdoob", "three.js")],
     "stride":   [("stride3d", "stride")],
