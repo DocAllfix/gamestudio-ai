@@ -35,6 +35,28 @@ from scripts.shared.classification_schema import CLASSIFICATION_SCHEMA
 DEEPSEEK_INPUT_USD_PER_M = 0.27
 DEEPSEEK_OUTPUT_USD_PER_M = 1.10
 
+# OpenAI gpt-4o-mini pricing (fallback when DeepSeek balance is exhausted).
+OPENAI_MINI_INPUT_USD_PER_M = 0.15
+OPENAI_MINI_OUTPUT_USD_PER_M = 0.60
+
+PROVIDER_PRICING = {
+    "deepseek": (DEEPSEEK_INPUT_USD_PER_M, DEEPSEEK_OUTPUT_USD_PER_M),
+    "openai":   (OPENAI_MINI_INPUT_USD_PER_M, OPENAI_MINI_OUTPUT_USD_PER_M),
+}
+
+PROVIDER_CONFIG = {
+    "deepseek": {
+        "model": "deepseek-chat",
+        "base_url": "https://api.deepseek.com/v1",
+        "env_var": "DEEPSEEK_API_KEY",
+    },
+    "openai": {
+        "model": "gpt-4o-mini",
+        "base_url": "https://api.openai.com/v1",
+        "env_var": "OPENAI_API_KEY",
+    },
+}
+
 # Hard caps per blueprint §02.5 and the LLM call config block in §4 spec.
 CODE_MAX_TOKENS = 3000
 CHARS_PER_TOKEN = 4  # safe upper bound for code (real ratio is ~3.5)
@@ -153,12 +175,13 @@ class UsageTracker:
             self.by_category[category] = self.by_category.get(category, 0) + 1
 
 
-def _calc_cost(usage: Any) -> float:
-    """Compute USD cost from a CompletionUsage object."""
+def _calc_cost(usage: Any, provider: str = "deepseek") -> float:
+    """Compute USD cost from a CompletionUsage object for the provider."""
     pt = getattr(usage, "prompt_tokens", 0) or 0
     ct = getattr(usage, "completion_tokens", 0) or 0
-    return (pt * DEEPSEEK_INPUT_USD_PER_M
-            + ct * DEEPSEEK_OUTPUT_USD_PER_M) / 1_000_000
+    in_rate, out_rate = PROVIDER_PRICING.get(
+        provider, PROVIDER_PRICING["deepseek"])
+    return (pt * in_rate + ct * out_rate) / 1_000_000
 
 
 class _RateLimiter:
@@ -185,17 +208,27 @@ class _RateLimiter:
 
 
 class DeepSeekClassifier:
-    """OpenAI-compatible client for DeepSeek V4 Flash classification."""
+    """OpenAI-compatible client for chunk classification.
+
+    Despite the historical name, this class supports any OpenAI-protocol
+    endpoint via the `provider` argument: 'deepseek' (default, original
+    Fase 4 setup) or 'openai' (gpt-4o-mini fallback when DeepSeek balance
+    is exhausted). Pricing is selected from PROVIDER_PRICING accordingly.
+    """
 
     def __init__(self, api_key: str, model: str = "deepseek-chat",
                  base_url: str = "https://api.deepseek.com/v1",
                  verbose: bool = False,
-                 max_req_per_min: int = DEFAULT_MAX_REQ_PER_MIN) -> None:
+                 max_req_per_min: int = DEFAULT_MAX_REQ_PER_MIN,
+                 provider: str = "deepseek") -> None:
         if not api_key:
-            raise RuntimeError("DEEPSEEK_API_KEY missing in environment.")
+            env = PROVIDER_CONFIG.get(provider, {}).get("env_var",
+                                                       "DEEPSEEK_API_KEY")
+            raise RuntimeError(f"{env} missing in environment.")
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
         self.verbose = verbose
+        self.provider = provider
         self.rate_limiter = _RateLimiter(max_req_per_min)
 
     def _one_call(self, prompt: str) -> tuple[dict[str, Any], Any]:
@@ -234,7 +267,7 @@ class DeepSeekClassifier:
                 data, usage = self._one_call(prompt)
                 pt_acc += getattr(usage, "prompt_tokens", 0) or 0
                 ct_acc += getattr(usage, "completion_tokens", 0) or 0
-                cost_acc += _calc_cost(usage)
+                cost_acc += _calc_cost(usage, self.provider)
 
                 try:
                     jsonschema.validate(data, CLASSIFICATION_SCHEMA)
@@ -250,7 +283,7 @@ class DeepSeekClassifier:
                         prompt + VALIDATION_RETRY_PROMPT_SUFFIX)
                     pt_acc += getattr(usage2, "prompt_tokens", 0) or 0
                     ct_acc += getattr(usage2, "completion_tokens", 0) or 0
-                    cost_acc += _calc_cost(usage2)
+                    cost_acc += _calc_cost(usage2, self.provider)
                     try:
                         jsonschema.validate(data2, CLASSIFICATION_SCHEMA)
                         return ClassifyResult(

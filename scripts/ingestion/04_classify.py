@@ -198,8 +198,13 @@ def run(args: argparse.Namespace) -> int:
     if args.dry_run:
         return dry_run_preview(chunks)
 
+    from scripts.ingestion._classify_llm import PROVIDER_CONFIG  # noqa
+    pconf = PROVIDER_CONFIG[args.provider]
     classifier = DeepSeekClassifier(
-        api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+        api_key=os.getenv(pconf["env_var"], ""),
+        model=pconf["model"],
+        base_url=pconf["base_url"],
+        provider=args.provider,
         verbose=args.verbose,
         max_req_per_min=args.max_req_per_min,
     )
@@ -292,6 +297,11 @@ def main() -> int:
     ap.add_argument("--retry-errors", action="store_true",
                     help="Re-classify only the chunks whose previous status "
                          "is 'error'; leave accepted/quarantined/rejected alone.")
+    ap.add_argument("--provider", choices=("deepseek", "openai"),
+                    default="deepseek",
+                    help="LLM provider for classification. 'openai' uses "
+                         "gpt-4o-mini as fallback when DeepSeek balance "
+                         "is exhausted.")
     ap.add_argument("--cost-cap-usd", type=float, default=10.0,
                     help="Abort the run if running cost crosses this USD "
                          "ceiling (default 10.0; blueprint budget is 5.0).")
