@@ -82,17 +82,54 @@ da 6/8. `rpg` e `visual_novel` da 3 (godot, renpy, defold). `shooter` da 4.
   pratico. Crescere richiederebbe materiale che non esiste pubblicamente o
   fonti non-permissive. **Gap strutturale, non un TODO.**
 
+## Aggiornamento — sessione di chiusura P1+P2
+
+Dopo il finding originale ho provato a chiudere P1 e P2 in maniera definitiva.
+
+### P2 — risolto al 100%
+Implementato `11_apply_caps.py` con cap=250 sulle celle che empiricamente
+crescevano a category-discarica. Rimossi **1 508 chunk boilerplate** totali in
+due passi (1 096 + 412 dopo che il parse li aveva re-immessi via embed_store).
+Lo script è idempotente e va richiamato dopo ogni `05_embed_store.py`.
+**0 fat cells** nel report finale. Tagliati ordinando per `(quality + reuse)`
+crescente + `loc` crescente, quindi i tenuti sono i migliori 250 esempi per
+cella. Backup degli ID rimossi in `data/caps_backup_latest.json`.
+
+### P1 — gap strutturale confermato
+Harvest mirato `phaser+rpg/visual-novel/dialogue/save` + `monogame+jrpg/
+dialogue/inventory` + 2 notable (`SkyAlpha/luminus-rpg` MIT, `Martenfur/Monofoxe`
+MIT). Esito reale:
+- **5 nuovi repo clonati**, 2 entrano in `repos_clean` dopo filter.
+- **+24 chunk phaser** (3 accepted, 12 quarantined, 9 rejected). C03 +1, C02 +0.
+- **+200 chunk monogame** ma **1.5% accept rate** (Monofoxe è low-level
+  framework, classifier non sa categorizzarlo). C01 +0, C03 +0.
+- I 76 chunk phaser in quarantine contengono solo 1×C03 e 1×C02 promuovibili.
+
+**Conclusione**: l'ecosistema OSS Phaser/MonoGame su GitHub non sviluppa
+dialogue/save in modo verificabile. Questi feature in Phaser vengono spesso da
+plugin commerciali (es. rexrainbow/phaser3-rex-plugins è MIT ma 902 MB, fuori
+dai limiti di disco). MonoGame RPG OSS è poverissimo. **Phaser.C03/C04 e
+monogame.C01/C03 sono gap strutturali, come Stride** — non chiudibili senza
+materiale che non esiste in forma OSS+permissiva pubblicabile.
+
+## Stato finale dataset (post sessione P1+P2)
+
+- **Total: 7 503 chunk** (era 9 005 prima del cap E01).
+- **0 fat cells**, **0 chunk GPL/copyleft**, generi coperti: 8/8 con almeno 1
+  engine (vedi heatmap nel coverage_report_phase1ter.json).
+- Tutte le decisioni di curation sono ora **persistenti** (`11_apply_caps.py`
+  + filtro irrobustito).
+
 ## Raccomandazione per Fase 1quater (se si procede)
 
-1. Mini-harvest **phaser C03/C04** + **monogame C01/C03** (P1), stesso pattern
-   di filtro irrobustito di questa fase. Stima +200-400 chunk.
-2. Eventuale **cap per categoria** sulle fat cells E01 per ridurre il rumore di
-   retrieval (decisione di prodotto, non di harvest).
-3. Stride: lasciare a 215 e documentarlo come limite dell'ecosistema.
+1. **Nessuna**. Il dataset è in equilibrio: i gap rimasti sono strutturali
+   dell'ecosistema OSS, non risolvibili con più harvest senza inquinare il
+   dataset con materiale di bassa qualità o licenza incerta.
+2. La prossima fase utile è probabilmente l'**uso del dataset** (RAG retrieval
+   + comparison test) per misurare l'impatto reale sui task di generazione,
+   non l'espansione.
 
-## Costo Fase 1ter
+## Costo Fase 1ter totale
 
-API (classify + re-tag + quarantine, tutto OpenAI gpt-4o-mini, DeepSeek
-esaurito): ~$0.30 utili + ~$0.10 sprecati in 2 run crashati prima del fix
-decoupling = **~$0.40 totali**. Zero nuovi clone multi-GB (vincolo disco
-rispettato).
+~$0.55 di API (~$0.40 prima sessione + ~$0.15 questa: phaser+monogame
+classify+embed). Zero clone multi-GB. Vincolo disco rispettato.
