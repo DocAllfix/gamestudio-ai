@@ -133,3 +133,45 @@ materiale che non esiste in forma OSS+permissiva pubblicabile.
 
 ~$0.55 di API (~$0.40 prima sessione + ~$0.15 questa: phaser+monogame
 classify+embed). Zero clone multi-GB. Vincolo disco rispettato.
+
+---
+
+## Aggiornamento — Fase 1quater (harvest da Gemini Deep Research, 2026-05-23)
+
+Gemini Deep Research (prompt v2, dopo che v1 aveva allucinato URL fasulli)
+ha restituito 40 candidati. Verifica via GitHub API:
+- **27/40 validi** (licenza permissiva confermata, ≤100MB, non-fork, non-archived).
+- **13 scartati**: 8 con licenza dichiarata MIT da Gemini ma in realtà
+  `none`/`NOASSERTION`, 1 GPL-3.0, 2 oversize (Cogito 1.5GB, curse-of-tomb
+  189MB), 1 archived, 1 fork. **Gemini mente sulle licenze — la verifica via
+  API è non negoziabile.**
+- 6 dei 27 erano già nel manifest. **21 repo nuovi** aggiunti a CURATED/NOTABLE.
+
+Pipeline completa sui 21 nuovi (godot 13, phaser 6, love2d 2):
+- **44 chunk accepted** in code_knowledge. Top: spell-cascade (+13 combat/AI),
+  Godotzilla (+14 combat/boss/camera). Spostamenti reali su godot.A01 (+15),
+  A03_combat (+4), A04_enemy_ai (+4), D02_audio (+5) — le nicchie fighting/boss.
+- Molti repo (Sakuga-Engine, i tower_defense, navmesh phaser, Zbyron jrpg)
+  hanno contribuito 0 accepted: il materiale è finito in quarantine/rejected.
+- **I gap zero strutturali NON si sono chiusi**: phaser.C03/C04, monogame.C01/C03,
+  stride.C* restano a 0. Il problema non è la disponibilità di repo ma il
+  fatto che il classifier (gate ≥85) è severo su codice di nicchia.
+
+### Esperimento Sonnet 4.6 sulla quarantine love2d (costo/beneficio NEGATIVO)
+Provato a recuperare la quarantine love2d (221 chunk a confidence ≥70) con
+claude-sonnet-4-6 invece di gpt-4o-mini, ipotizzando che il modello debole
+sbagliasse sul Lua. Risultato: **4 chunk promossi su 221, costo $1.80.**
+Sonnet ha CONFERMATO che 217 chunk erano legittimamente borderline — non
+mis-classificazione del modello debole, ma codice davvero generico/ambiguo.
+**Lezione: Sonnet non vale per recovery batch su quarantine di bassa
+qualità.** Il provider Anthropic resta disponibile (`--provider anthropic`)
+per casi dove serve davvero, ma non è la leva giusta qui.
+
+### Stato finale Fase 1quater
+- **7548 chunk**, 0 fat cells, 0 GPL.
+- Costo iterazione: ~$0.15 (classify gpt-4o-mini godot/phaser/love2d) +
+  $1.80 (esperimento Sonnet) + ~$0.002 embed = **~$2.0**.
+- I gap zero rimasti sono confermati strutturali: non è questione di trovare
+  più repo (Gemini ne ha trovati di validi) ma che (a) quel materiale di
+  nicchia non supera il gate qualità ≥85, e (b) le nicchie più estreme
+  (stealth/jrpg/fighting puri) sono rare in OSS permissivo di qualità.

@@ -315,11 +315,32 @@ CURATED_REPOS: dict[str, list[tuple[str, str]]] = {
     "godot": [
         ("godotengine", "godot-demo-projects"),
         ("godotengine", "godot"),
+        # Fase 1quater — Gemini Deep Research, verified MIT, fill niche gaps.
+        ("Inglo-Games", "StealthDemo"),            # stealth (zero genre)
+        ("NoisyChain", "Sakuga-Engine"),           # fighting (zero genre)
+        ("MiniDigger", "ProjectTD-Godot"),         # tower_defense
+        ("jeremy-miller", "godot-tower-defense"),  # tower_defense
+        ("kiwijuice56", "biocyte-defenders"),      # tower_defense 3D
+        ("ectucker1", "EctGodotUtils"),            # hit_stop
+        ("elgatopanzon", "deus-breakout"),         # hit_stop (ECS)
+        ("yurukusa", "spell-cascade"),             # hit_stop
+        ("Nintorch", "Godotzilla"),                # boss_phase
+        ("itsantonle", "Godot-Mini-Projects"),     # boss_phase
+        ("HermeticOrmus", "claude-code-game-development"),  # boss_phase
+        ("MarekZdun", "godot-audio-manager"),      # footstep_system
+        ("bbbscarter", "event-audio-godot"),       # footstep_system
     ],
     "phaser":   [
         ("phaserjs", "examples"),
         # Fase 1ter P1 — RPG/dialogue/save reference projects.
         ("photonstorm", "phaser3-examples"),
+        # Fase 1quater — Gemini Deep Research, verified MIT/Apache.
+        ("ikraamg", "ForestRPG"),                  # jrpg
+        ("Zbyron", "phaser-rpg-battlesystem"),     # jrpg turn-based
+        ("juwalbose", "phaser3_visualnovelengine"),# C03 dialogue / VN
+        ("mikewesthad", "navmesh"),                # B04 navigation (377 stars)
+        ("Jerenaux", "pathfinding_tutorial"),      # B04 navigation
+        ("RaresAil", "phaser-pathfinding"),        # B04 navigation
     ],
     "renpy": [
         ("renpy", "renpy"),
@@ -330,7 +351,12 @@ CURATED_REPOS: dict[str, list[tuple[str, str]]] = {
         # Fase 1ter P1 — MonoGame.Extended ships Scene/Tiled/ECS + RPG bits.
         ("craftworkgames", "MonoGame.Extended"),
     ],
-    "love2d":   [("love2d", "love")],
+    "love2d":   [
+        ("love2d", "love"),
+        # Fase 1quater — Gemini Deep Research, verified MIT.
+        ("srijan-paul", "shriek"),                 # horror (zero genre)
+        ("ActivexDiamond", "gophwar"),             # tower_defense
+    ],
     "threejs":  [("mrdoob", "three.js")],
     "stride":   [("stride3d", "stride")],
 }
