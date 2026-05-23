@@ -297,11 +297,13 @@ def main() -> int:
     ap.add_argument("--retry-errors", action="store_true",
                     help="Re-classify only the chunks whose previous status "
                          "is 'error'; leave accepted/quarantined/rejected alone.")
-    ap.add_argument("--provider", choices=("deepseek", "openai"),
+    ap.add_argument("--provider", choices=("deepseek", "openai", "anthropic"),
                     default="deepseek",
                     help="LLM provider for classification. 'openai' uses "
                          "gpt-4o-mini as fallback when DeepSeek balance "
-                         "is exhausted.")
+                         "is exhausted; 'anthropic' uses claude-sonnet-4-6 "
+                         "for niche-engine code (Lua/Love2D) that the cheaper "
+                         "models misread as uncertain.")
     ap.add_argument("--cost-cap-usd", type=float, default=10.0,
                     help="Abort the run if running cost crosses this USD "
                          "ceiling (default 10.0; blueprint budget is 5.0).")

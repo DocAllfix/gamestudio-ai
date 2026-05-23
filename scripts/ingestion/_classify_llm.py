@@ -27,6 +27,11 @@ from typing import Any
 import jsonschema
 from openai import APIStatusError, OpenAI, RateLimitError
 
+try:
+    from anthropic import Anthropic
+except ImportError:  # anthropic SDK is optional; only required for provider=anthropic
+    Anthropic = None  # type: ignore[misc, assignment]
+
 from scripts.shared.classification_schema import CLASSIFICATION_SCHEMA
 
 
@@ -39,9 +44,16 @@ DEEPSEEK_OUTPUT_USD_PER_M = 1.10
 OPENAI_MINI_INPUT_USD_PER_M = 0.15
 OPENAI_MINI_OUTPUT_USD_PER_M = 0.60
 
+# Anthropic Claude Sonnet 4.6 pricing. Used when stronger reasoning is needed
+# (Lua/Love2D, niche-engine code that gpt-4o-mini reads as X00_uncertain).
+ANTHROPIC_SONNET_INPUT_USD_PER_M = 3.0
+ANTHROPIC_SONNET_OUTPUT_USD_PER_M = 15.0
+
 PROVIDER_PRICING = {
-    "deepseek": (DEEPSEEK_INPUT_USD_PER_M, DEEPSEEK_OUTPUT_USD_PER_M),
-    "openai":   (OPENAI_MINI_INPUT_USD_PER_M, OPENAI_MINI_OUTPUT_USD_PER_M),
+    "deepseek":  (DEEPSEEK_INPUT_USD_PER_M, DEEPSEEK_OUTPUT_USD_PER_M),
+    "openai":    (OPENAI_MINI_INPUT_USD_PER_M, OPENAI_MINI_OUTPUT_USD_PER_M),
+    "anthropic": (ANTHROPIC_SONNET_INPUT_USD_PER_M,
+                  ANTHROPIC_SONNET_OUTPUT_USD_PER_M),
 }
 
 PROVIDER_CONFIG = {
@@ -54,6 +66,14 @@ PROVIDER_CONFIG = {
         "model": "gpt-4o-mini",
         "base_url": "https://api.openai.com/v1",
         "env_var": "OPENAI_API_KEY",
+    },
+    "anthropic": {
+        # Sonnet 4.6 reads niche-engine code (Lua/Love2D, Defold scripts,
+        # Stride C#) far better than gpt-4o-mini. Use it for re-classify
+        # passes after the cheap pass has thrown things into X00_uncertain.
+        "model": "claude-sonnet-4-6",
+        "base_url": None,  # Anthropic SDK uses its own endpoint
+        "env_var": "ANTHROPIC_API_KEY",
     },
 }
 
@@ -217,7 +237,7 @@ class DeepSeekClassifier:
     """
 
     def __init__(self, api_key: str, model: str = "deepseek-chat",
-                 base_url: str = "https://api.deepseek.com/v1",
+                 base_url: str | None = "https://api.deepseek.com/v1",
                  verbose: bool = False,
                  max_req_per_min: int = DEFAULT_MAX_REQ_PER_MIN,
                  provider: str = "deepseek") -> None:
@@ -225,7 +245,14 @@ class DeepSeekClassifier:
             env = PROVIDER_CONFIG.get(provider, {}).get("env_var",
                                                        "DEEPSEEK_API_KEY")
             raise RuntimeError(f"{env} missing in environment.")
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        if provider == "anthropic":
+            if Anthropic is None:
+                raise RuntimeError(
+                    "provider=anthropic requires the `anthropic` Python SDK. "
+                    "Install with: pip install anthropic")
+            self.client = Anthropic(api_key=api_key)
+        else:
+            self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
         self.verbose = verbose
         self.provider = provider
@@ -234,21 +261,56 @@ class DeepSeekClassifier:
     def _one_call(self, prompt: str) -> tuple[dict[str, Any], Any]:
         """Single round-trip. Raises on transport errors so the caller can
         retry. Returns (parsed_json, usage) on a successful round-trip even
-        if the JSON fails schema validation — the caller validates."""
+        if the JSON fails schema validation — the caller validates.
+
+        Two backends:
+          - openai-compatible (deepseek, openai): chat/completions endpoint
+            with response_format=json_object.
+          - anthropic: messages endpoint with a JSON-only instruction
+            embedded in the prompt. We normalise the usage object to the
+            same shape (prompt_tokens, completion_tokens) so _calc_cost
+            works uniformly.
+        """
         self.rate_limiter.acquire()
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            temperature=0.1,
-            max_tokens=500,
-        )
-        raw = resp.choices[0].message.content or ""
+        if self.provider == "anthropic":
+            resp = self.client.messages.create(
+                model=self.model,
+                max_tokens=600,
+                temperature=0.1,
+                messages=[{
+                    "role": "user",
+                    "content": prompt + (
+                        "\n\nReply with ONLY a single valid JSON object "
+                        "matching the schema. No markdown, no commentary, "
+                        "no code fences. Start the response with { and "
+                        "end with }."),
+                }],
+            )
+            raw = resp.content[0].text if resp.content else ""
+            # Strip optional markdown fence the model sometimes adds anyway.
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+                if raw.rstrip().endswith("```"):
+                    raw = raw.rstrip()[:-3]
+            usage = type("Usage", (), {
+                "prompt_tokens": resp.usage.input_tokens,
+                "completion_tokens": resp.usage.output_tokens,
+            })()
+        else:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+                max_tokens=500,
+            )
+            raw = resp.choices[0].message.content or ""
+            usage = resp.usage
         try:
             data = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise ValueError(f"non-JSON response: {exc}; head={raw[:120]!r}")
-        return data, resp.usage
+        return data, usage
 
     def classify_chunk(self, chunk: dict[str, Any]) -> ClassifyResult:
         """Classify one chunk. Up to 3 transport retries with exponential

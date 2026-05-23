@@ -90,13 +90,29 @@ def _prior_for(file_paths: Any, scene_context: str | None) -> str:
 
 
 def _row_to_chunk(row: dict[str, Any]) -> dict[str, Any]:
-    """Adapt a DB record into the shape build_prompt expects, injecting the
-    Ren'Py domain hint as a high-confidence heuristic_domain."""
+    """Adapt a DB record into the shape build_prompt expects.
+
+    For Ren'Py we inject the "domain not form" hint that fixed the D01_ui
+    mis-tagging. For every other engine we pass the filename prior only and
+    let the model classify freely (a strong model like Sonnet reads
+    Lua/Love2D/Defold/Stride code well on its own; forcing a Ren'Py hint
+    onto it would mislead).
+    """
     prior = _prior_for(row.get("source_file_paths"), row.get("scene_context"))
+    engine = row["engine"]
+    if engine == "renpy":
+        domain = RENPY_DOMAIN_HINT.format(prior=prior)
+        conf = "high"
+    elif prior:
+        domain = prior
+        conf = "high"
+    else:
+        domain = "Determine the domain yourself"
+        conf = "low"
     return {
-        "engine": row["engine"],
-        "heuristic_confidence": "high",
-        "heuristic_domain": RENPY_DOMAIN_HINT.format(prior=prior),
+        "engine": engine,
+        "heuristic_confidence": conf,
+        "heuristic_domain": domain,
         "heuristic_category": row.get("primary_category", "?"),
         "scene_context": row.get("scene_context") or "",
         "extends_type": None,
@@ -132,7 +148,7 @@ def main() -> int:
                     required=True)
     ap.add_argument("--category", help="Only with --source code-knowledge: "
                     "the current category to re-examine (e.g. D01_ui).")
-    ap.add_argument("--provider", choices=("deepseek", "openai"),
+    ap.add_argument("--provider", choices=("deepseek", "openai", "anthropic"),
                     default="openai")
     ap.add_argument("--apply", action="store_true",
                     help="Persist changes. Without it, dry-run only.")
