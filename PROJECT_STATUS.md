@@ -300,6 +300,16 @@ Conventions:
 
 ---
 
+## Database Migrations — applied state
+
+| Migration | File | Applied | Notes |
+|---|---|---|---|
+| 001 | `supabase/migrations/001_knowledge_base.sql` | ✅ | code_knowledge + quarantine + game_parameters + ingestion_log + indexes + RPCs |
+| 002 | `supabase/migrations/002_fix_search_rpc_null_engine.sql` | ✅ | Fix `search_code_knowledge` for null engine filter |
+| 003 | `supabase/migrations/003_asset_library_index.sql` | ✅ **2026-05-24** | Applied via `scripts/ingestion_assets/_apply_migration_003.py`. 7 tables (asset_library_index + quarantine + style_packs + genre_templates + reference_games + audio_mood_library + lora_library) + 3 RPC (match_assets, match_loras, increment_asset_usage) + RLS read-public. License allowlist enforced at CHECK constraint level. Verified via `information_schema.tables`. |
+
+---
+
 ## Riferimenti
 
 - [CLAUDE.md](CLAUDE.md) — regole di workspace (auto-iniettato a ogni sessione e prima della compaction via `.claude/settings.json`)
