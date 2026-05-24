@@ -30,13 +30,22 @@ from scripts.ingestion_assets._fetch_helpers import (
 )
 
 
-PACK_LINK_RE = re.compile(r'href="/assets/([a-z0-9][a-z0-9_-]*)"',
-                          re.IGNORECASE)
+# Kenney serves links as ABSOLUTE URLs (https://kenney.nl/assets/<slug>)
+# with mixed single/double quote attributes. We accept either quote
+# style and either absolute or relative form, but reject `category:`
+# `tag:` `series:` prefixed paths which are taxonomy navigation, not
+# actual asset packs.
+PACK_LINK_RE = re.compile(
+    r"""href=['"](?:https?://kenney\.nl)?/assets/([a-z0-9][a-z0-9_-]*)['"]""",
+    re.IGNORECASE)
 LICENSE_OK_RE = re.compile(r"Creative\s+Commons\s+CC0", re.IGNORECASE)
-TAG_RE = re.compile(r'href="/assets\?q=([^"#]+)"', re.IGNORECASE)
+TAG_RE = re.compile(
+    r"""href=['"](?:https?://kenney\.nl)?/assets/tag:([^'"#?\s]+)['"]""",
+    re.IGNORECASE)
 TITLE_RE = re.compile(r"<h1[^>]*>(.*?)</h1>", re.IGNORECASE | re.DOTALL)
 DOWNLOAD_RE = re.compile(
-    r'href="(/content/sample/[^"]+\.zip)"', re.IGNORECASE)
+    r"""href=['"](?:https?://kenney\.nl)?(/content/sample/[^'"]+\.zip)['"]""",
+    re.IGNORECASE)
 COUNT_RE = re.compile(r"\b(\d[\d,]*)\s*[×x]\b")
 
 # Crude type inference from pack name. Kenney is the only library
@@ -78,10 +87,13 @@ def fetch_kenney(log: logging.Logger, limit: int | None = None) -> int:
         if not html:
             break
         page_slugs = set(PACK_LINK_RE.findall(html)) - seen_slugs
-        # Strip non-pack matches (kenney has /assets/page:N matched too)
+        # Strip taxonomy navigation matches. The regex character
+        # class already excludes ':' so category:/tag:/series: are
+        # rejected at the regex level, but we keep this filter as
+        # belt-and-braces in case Kenney changes URL shapes.
+        BAD = {"page", "category", "series", "tag", "categories"}
         page_slugs = {s for s in page_slugs
-                      if not s.startswith("page") and s != "category"
-                      and s != "series" and s != "tag"}
+                      if s not in BAD and ":" not in s}
         if not page_slugs:
             log.info("Kenney page %d: no new slugs, stopping", page_num)
             break

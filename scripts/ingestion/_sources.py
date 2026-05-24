@@ -329,6 +329,23 @@ CURATED_REPOS: dict[str, list[tuple[str, str]]] = {
         ("HermeticOrmus", "claude-code-game-development"),  # boss_phase
         ("MarekZdun", "godot-audio-manager"),      # footstep_system
         ("bbbscarter", "event-audio-godot"),       # footstep_system
+        # Fase 2 Resource Hunt (2026-05-24) — license verified via gh API.
+        ("EladKarni", "godot4-2d-platformer-template"),    # MIT, coyote/jump-buffer
+        ("GreenCloversGames", "Scalable-Platformer-Template"),  # MIT
+        ("bitbrain", "pandora"),                   # MIT, RPG data addon (T05/T08)
+        ("newold3", "Godot-RPG-Creator"),          # MIT, RPG editor (T05)
+        ("tuananhcn", "Turn-Base-RPG"),            # MIT, turn-based (T05)
+        ("Ziden", "godot-turn-based-rpg"),         # MIT, combat resolver (T05)
+        ("krazyjakee", "DungeonTemplateLibrary-Godot"),  # MIT, BSP dungeon (T08)
+        ("statico", "godot-roguelike-example"),    # MIT, BSP+behavior trees (T08)
+        ("RGonzalezTech", "Friendslop-Template"),  # MIT, multiplayer (T11)
+        ("heroiclabs", "nakama-project-template"), # Apache-2.0, server scaffold (T11)
+        ("code-forge-temple", "local-llm-npc"),    # CC-BY-4.0, Ollama NPC C# (T12)
+        ("nthnn", "noko"),                         # MIT, Ollama plugin GDScript (T12)
+        ("af009", "fuku"),                         # MIT, multi-provider AI (T12)
+        ("glennDittmann", "godot-pixel-art-template"),  # MIT, pixel config (T14)
+        ("MaxiimPetrov", "Divine-Retribution-8-bit-Project"),  # MIT, retro (T14)
+        ("ahopness", "GodotRetro"),                # CC0, 22 retro shaders (T14)
     ],
     "phaser":   [
         ("phaserjs", "examples"),
@@ -341,23 +358,48 @@ CURATED_REPOS: dict[str, list[tuple[str, str]]] = {
         ("mikewesthad", "navmesh"),                # B04 navigation (377 stars)
         ("Jerenaux", "pathfinding_tutorial"),      # B04 navigation
         ("RaresAil", "phaser-pathfinding"),        # B04 navigation
+        # Fase 2 Resource Hunt (2026-05-24) — verified MIT via gh API.
+        ("remarkablegames", "phaser-platformer"),  # MIT, Arcade physics (T04)
     ],
     "renpy": [
         ("renpy", "renpy"),
+        # Fase 2 Resource Hunt — verified MIT via gh API.
+        ("remarkablegames", "renpy-template"),     # MIT, CI workflow (T02)
     ],
-    "defold":   [("defold", "defold")],
+    "defold":   [
+        ("defold", "defold"),
+        # Fase 2 Resource Hunt — verified MIT via gh API.
+        ("Lerg", "match3swipe"),                   # MIT, swipe match-3 (T03)
+    ],
     "monogame": [
         ("MonoGame", "MonoGame"),
         # Fase 1ter P1 — MonoGame.Extended ships Scene/Tiled/ECS + RPG bits.
         ("craftworkgames", "MonoGame.Extended"),
+        # Fase 2 Resource Hunt — verified MIT via gh API.
+        ("endrealm", "Monogame-Platformer-Example"),  # MIT, LDtk parsing (T07)
+        ("jlauener", "MonoPunk"),                  # MIT, pixel-perfect 2D (T07)
+        ("DreamyStranger", "MonoGame-Platformer"), # MIT, OOP+component (T07)
     ],
     "love2d":   [
         ("love2d", "love"),
         # Fase 1quater — Gemini Deep Research, verified MIT.
         ("srijan-paul", "shriek"),                 # horror (zero genre)
         ("ActivexDiamond", "gophwar"),             # tower_defense
+        # Fase 2 Resource Hunt — verified MIT via gh API.
+        ("Cod-e-Codes", "CardGame"),               # MIT, card+AI (T06)
+        ("heisenberg23911", "CardGame"),           # MIT, multi-scene card (T06)
+        ("srijan-paul", "bullet_hell"),            # MIT, ECS bullet hell (T13)
     ],
-    "threejs":  [("mrdoob", "three.js")],
+    "threejs":  [
+        ("mrdoob", "three.js"),
+        # Fase 2 Resource Hunt — verified via gh API, closes G.4 postprocessing.
+        ("pmndrs", "postprocessing"),              # Zlib, EffectComposer (T09)
+        ("N8python", "n8ao"),                      # CC0, SSAO drop-in (T09)
+        ("FarazzShaikh", "THREE-CustomShaderMaterial"),  # MIT, toon/stylized (T09)
+        ("Ameobea", "three-good-godrays"),         # Zlib (file LICENSE), godrays (T09)
+        ("gkjohnson", "three-gpu-pathtracer"),     # MIT, DoF/LUT cinematic (T09)
+        ("squarefeet", "ShaderParticleEngine"),    # MIT, GLSL particles (T09/T13)
+    ],
     "stride":   [("stride3d", "stride")],
 }
 
