@@ -300,6 +300,38 @@ Conventions:
 
 ---
 
+## FASE RAG-2 — Vision moodboard backfill
+
+Closes Buco #4: 10 of 80 `reference_games` rows had no `visual_analysis`
+after the original run hit OpenAI's TPM cap. Re-ran
+`scripts/ingestion_assets/07_vision_moodboard.py --workers 1` (was 2) and
+discovered the actual failure mode was deeper — 8 of the 10 had typo'd
+Steam appids in the seed data, so the Steam appdetails API returned
+`success: False` and the script never reached the Vision call.
+
+- [x] **RAG-2.1** — Diagnosed root cause: Steam API returns `success: False`
+  for unknown appids (it's the API's "not found" signal, not a rate-limit).
+  All 8 valid-URL games were affected.
+- [x] **RAG-2.2** — Verified canonical appids via Steam `storesearch` API and
+  `appdetails` screenshots count
+- [x] **RAG-2.3** — Fixed both layers (so a re-seed doesn't regress):
+  - DB UPDATE on 8 `reference_games.store_url` rows
+  - `scripts/ingestion_assets/_seed_data.py` corrected at source for:
+    Monument Valley (1422510→1927720), Alto's Adventure (440290→2837600,
+    The Alto Collection — Steam's only Alto release), A Dark Room
+    (1029610→2460660), Crow Country (1996610→1996010), GRIDD
+    (559390→553950), Lake (1812120→1118240), Lightmatter (971890→1179290),
+    Mad Father (479660→483980)
+- [x] **RAG-2.4** — Re-ran Vision at $0.018 (≈9% of $0.20 cap): **8/8 success**
+- [x] **RAG-2.5** — Final state
+  - `reference_games.analyzed_at IS NULL` = **2** (Genshin Impact and
+    Paper Mario — placeholder `example.com` URLs by design, never had
+    Steam pages, genuinely unanalyzable)
+  - 78/80 analyzed with well-formed 6-field `visual_analysis` jsonb
+  - commit: `feat(phase-rag-2): backfill reference_games visual_analysis + fix seed Steam appids`
+
+---
+
 ## FASE RAG-1 — License audit & cleanup (pre-Reasoning Engine)
 
 Closes Buco #1 of the 5 pre-RE gaps: 1 426 chunks in `code_knowledge` had
