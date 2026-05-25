@@ -1,0 +1,2877 @@
+{
+  "generated_at": "2026-05-25T13:42:13.458207+00:00",
+  "schema": [
+    "engine — one of {godot, phaser, renpy, defold, monogame, love2d, threejs, stride}",
+    "url — git-clonable URL (github.com or gitlab.com)",
+    "license — best-known license at clone time (may be stale)"
+  ],
+  "ingested_in_supabase": [
+    {
+      "engine": "defold",
+      "url": "https://github.com/Dragosha/defold-light-and-shadows",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Dragosha/defold-sprite-repeat",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Dragosha/defold-things",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/HalfstarDev/matchanovel",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/cosmic-dash-jam-2025",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-adam",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-eva",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-event",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-lang",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-log",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-printer",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-saver",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/defold-tweener",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Insality/panthera",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/VowSoftware/starly",
+      "license": "Zlib"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/aglitchman/defold-ld50-game",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/astrochili/defold-illumination",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/astrochili/defold-kinematic-walker",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/astrochili/defold-operator",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/astrochili/defold-trenchfold",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/astrochili/narrator",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/defcon",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/defnet",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/defold-googleanalytics",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/defold-input",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/defold-orthographic",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/defold-richtext",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/deftest",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/emthree",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/gooey",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/ludobits",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/lumiere",
+      "license": null
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/monarch",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/platypus",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/colyseus/colyseus-defold",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/defold/defold",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/defold/defold-examples",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/defold/examples",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/defold/sample-lights-and-shadows",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/dev-masih/defarmy",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/dev-masih/defgraph",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/heroiclabs/nakama-defold",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/indiesoftby/defold-hyper-trails",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/indiesoftby/defold-pointer-lock",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/indiesoftby/defold-scene3d",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/ludenio/SuperWEIRDGameKit",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/potatojam/defold-ads-wrapper",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/selimanac/defold-tiny-city",
+      "license": null
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/subsoap/defos",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/subsoap/defsave",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/whiteboxdev/library-defold-grid-engine",
+      "license": "Zlib"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/whiteboxdev/library-defold-rendy",
+      "license": "Zlib"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/whiteboxdev/library-defold-tilemap-animator",
+      "license": "Zlib"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/whiteboxdev/library-defold-typewriter",
+      "license": "Zlib"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/1185724109/godot-card-game-frame",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/3ddelano/discord.gd",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/AlexeyBond/godot-constraint-solving",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/AllenDang/model_explorer_godot4",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Ark2000/PankuConsole",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ArshvirGoraya/Godot-Collapsible-Container",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/BananaHolograma/alys",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/BastiaanOlij/RERadialSunRays",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/BatteryAcid/godot-3d-multiplayer-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Brawmario/libsm64-godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Chrisknyfe/boujie_water_shader",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/DesirePathGames/Slay-The-Robot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/DigitallyTailored/Godot-Open-World-Database",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Donitzo/godot-color-dither",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Donitzo/godot-simple-portal-system",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Earewien/godot-traits",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Eneskp3441/Shaker",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/FOSS-Supremacy/OpenLiberty",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ForlornU/TopdownStarter",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GDQuest/godot-steering-ai-framework",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GDQuest/learn-gdscript",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GithubPrankster/gpsx",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GreenCloversGames/Scalable-Platformer-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GuilhermeGSousa/game-base-2D",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/InvadingOctopus/comedot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Project-Builds",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Text-Database",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Universal-Mod-Manager",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Metroidvania-System",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/LexianDEV/FlowKit",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MakovWait/godots",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MewPurPur/GodSVG",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Neroware/GodotRx",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Nordup/godot-path-tracing",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/OctoD/godot-gameplay-systems",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/OpenGameBackend/plugin-godot",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Orama-Interactive/Keychain",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/OrigamiDev-Pete/TODO_Manager",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Outsidetheboxgames/3DS-Game-Maker",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/RGonzalezTech/Friendslop-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Rubonnek/dialogue-engine",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/SinaMajdieh/godot-neural-network",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/SlayHorizon/godot-tiny-mmo",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/SoloByte/godot-polygon2d-fracture",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Structed/godot-playfab",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/TheDuckCow/godot-road-generator",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/TokisanGames/godot-fractal-art",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ToumaKamijou/Yugens-Terrain-Authoring-Toolkit",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/TreacherousDev/Treacherous",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/af009/fuku",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ahopness/GodotRetro",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/albertok/godot-rocket-league",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/anthonyec/godot_little_camera_preview",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/athillion/ProceduralPlanetGodot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/bitbrain/beehave",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/bitbrain/godot-gamejam",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/bitbrain/pandora",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/blast-harbour/Godot-Rollback-Fighter-Demo",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/brantagames/noise-shader",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/bukkbeek/GodotPixelRenderer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/chafmere/Godot4-FPS-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/chun92/card-framework",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/claudehohl/SpatialAudio3D",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/crsolver/goduz",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/cuberact/godot-cuberact-planet-chunked-lod",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/dalexeev/gdscript-preprocessor",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/detomon/wigglebone",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/dialogic-godot/dialogic",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/face-hh/wattesigma",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/fenix-hub/godot-engine.easy-charts",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/geegaz/Multiple-Windows-tutorial",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/godot-extended-libraries/godot-debug-menu-demo",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/godotengine/godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/godotengine/godot-demo-projects",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/godothub/godot-ecs",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/haowg/GODOT-VFX-LIBRARY",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/heroiclabs/nakama-godot",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/issork/gift",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/jerryshell/agarust",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/krazyjakee/DungeonTemplateLibrary-Godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/lihop/godot-xterm",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/lucasbecker-dev/godot-smart-graphics-settings",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/matjlars/godot-multiplayer-input",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/mbrlabs/Lorien",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/moonbench/simple-godot-train",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/murikistudio/simple-gui-transitions",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nathanhoad/godot_dialogue_manager",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nathanhoad/godot_input_helper",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nathanhoad/godot_puzzle_dependencies",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nathanhoad/godot_sound_manager",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nezvers/Godot-GameTemplate",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/noidexe/top-down-action-rpg-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/paddy-exe/GodotVisualShader-Extras",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/peter-kish/gloot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/poingstudios/godot-admob-plugin",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/quiver-dev/tower-defense-godot4",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/rakugoteam/Rakugo-Dialogue-System",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/russmatney/log.gd",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/seaciety/GodotMultiplayerDemo",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/shomykohai/quest-system",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/spheras/godot-sprite-shader-mixer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/statico/godot-roguelike-example",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/thegatesbrowser/godot-multiplayer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/tuananhcn/Turn-Base-RPG",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/uheartbeast/Galaxy-Defiance",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/zijcht/godot-game-settings",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Bananicorn/lvg",
+      "license": "Zlib"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Cod-e-Codes/CardGame",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/GamesRightMeow/playbit",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/GlorifiedPig/Luafinding",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Oval-Tutu/bootstrap-love2d-project",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Oval-Tutu/shove",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Planimeter/game-engine-2d",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/RVAGameJams/learn2love",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/ReFreezed/InputField",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/S1M0N38/love2d.nvim",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/SiENcE/astray",
+      "license": "Zlib"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Stabyourself/mari0",
+      "license": null
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Ulydev/push",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/anton-kl/lua-hot-reload",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/camchenry/Love2D-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/elloramir/love-ase",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/flamendless/Slab",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/flaribbit/love2d-lua-websocket",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/geezmolycos/lizard-pet",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/gly-engine/gly-engine",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/groverburger/g3d",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/gustavostuff/gooi",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/halsten-dev/Luven",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/immortalx74/lovr-ui2d",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/josh-perry/peachy",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/love2d/love",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/mtanksl/LOVELi",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/nasso/lovector",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/picolove/picolove",
+      "license": "Zlib"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rameshvarun/love-console",
+      "license": "ISC"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/lovebpm",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/sacemakesgame/Tiny-Boatball",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/srijan-paul/bullet_hell",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/sysl-dev/SYSL-Text",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/tobiasvl/moon-invaders",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/whyboris/Gravity-Wars",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/wilhantian/catui",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/zzxzzk115/GoldMiner-Rebirth",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Apostolique/Apos.Gui",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Apostolique/Apos.Input",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Apostolique/Apos.Shapes",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Apostolique/Mitten",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/AristurtleDev/monogame-aseprite",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/AvaloniaInside/AvaloniaInside.MonoGame",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/DreamyStranger/MonoGame-Platformer",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Ellpeck/Contentless",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Ellpeck/MLEM",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/EmptyKeys/UI_Engines",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/EnthusiastGuy/MonoGame-Pixel-Planets",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/IrishBruse/LDtkMonogame",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Kosmonaut3d/BloomFilter-for-Monogame-and-XNA",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Martenfur/Nopipeline",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/MonoGame-Extended/MonoGame-Extended-Samples",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/NoxiousPluK/MonoGame.Primitives2D",
+      "license": "Zlib"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Quaver/Wobble",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Ragath/TiledLib.Net",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/RonenNess/GeonBit.UI",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/RudeySH/Shapes2D",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/UnterrainerInformatik/FiniteStateMachine",
+      "license": "Unlicense"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/UnterrainerInformatik/Monogame-Textbox",
+      "license": "Unlicense"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/UnterrainerInformatik/collisiongrid",
+      "license": "Unlicense"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/colyseus/colyseus-unity-sdk",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/craftworkgames/MonoGame.WpfCore",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/discosultan/quake-console",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/endrealm/Monogame-Platformer-Example",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/friflo/Friflo.Engine.ECS-Demos",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/genaray/Arch.Extended",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/ikkentim/opengta2",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/itsBuggingMe/Frent",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/tsMezotic/MonoGame.ImGuiNet",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/twobitcoder101/Flat",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/Autapomorph/dino",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/chongdashu/phaserjs-oakwoods",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/devshareacademy/monster-tamer",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/digitsensitive/phaser3-typescript",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ffx0s/mario-html5",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/geckosio/phaser-on-nodejs",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/kevinshen56714/SkyOffice",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/nkholski/phaser-animated-tiles",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/nkholski/phaser-grid-physics",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/openforge/ionic-phaser-game-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/openforge/openfarm-puzzle-game",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ourcade/flappy-bird-hathora",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/create-game",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/discord-multiplayer-template",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/examples",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-angular",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-nextjs",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-react",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/proyecto26/ion-phaser",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/sporadic-labs/tile-extruder",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/tranchikhang/MedievalWar",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/DRincs-Productions/DS-toolkit",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/DRincs-Productions/NQTR-System",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/NathanGuilhot/yet-another-phone-for-renpy",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/RuolinZheng08/renpy-chess",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/jsfehler/renpy-encyclopaedia",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/jsfehler/renpy-radarchart",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/jtuason/twine_to_renpy",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/renpy/language-renpy",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/Aaron-Bird/rubiks-cube",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/AidanNelson/threejs-webrtc",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/EvanBacon/Expo-Crossy-Road",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/SahilK-027/threejs-gamedev-template",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/Sean-Bradley/StatsVR",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/WesUnwin/three-game-engine",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/akarlsten/cuberun",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/bs-community/skinview3d",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/hmans/composer-suite",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/nikonikoCW/Meteor3DEditor",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/pengfeiw/rubiks-cube",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/pshenok/server-survival",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/viridia/demo-rapier-three",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/vyse12138/minecraft-threejs",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/wwwtyro/Astray",
+      "license": "Unlicense"
+    }
+  ],
+  "zombie_rejected_or_unprocessed": [
+    {
+      "engine": "defold",
+      "url": "https://github.com/Jerakin/editor-script-atlas",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/Lerg/match3swipe",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/britzl/defold-metrics",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/defold/extension-teal",
+      "license": "MIT"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/indiesoftby/defold-dissolve-fx",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/whiteboxdev/example-cellular-automata",
+      "license": "Zlib"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/whiteboxdev/example-diamond-square",
+      "license": "Zlib"
+    },
+    {
+      "engine": "defold",
+      "url": "https://github.com/whiteboxdev/library-defold-colors",
+      "license": "Zlib"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/4d49/scene-library",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ACB-prgm/Godot_GamePad",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/AlecSouthward/state-machine",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/AndreMicheletti/godot-agones-sdk",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/AnidemDex/Godot-DialogPlugin",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Art-Michel/Flowerwall-CRT-shader-for-Godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/BlueBirdBack/godot-cursorrules",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Bozar/OneMoreLevel",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/BraindeadBZH/godot_card_engine",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/CBerry22/3d-Pixel-Art-In-Godot-4",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ClarkThyLord/Voxel-Core",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Dark-Peace/BulletUpHell",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/DevPoodle/compute-shader-plus",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/DigvijaysinhGohil/Godot-Shader-Lib",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/DusanFedorcak/mmo",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/EeroLai/abyssal-walker",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/EladKarni/godot4-2d-platformer-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Ev01/PlatformerController2D",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Federico-Ciuffardi/GodotTouchInputManager",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GD-Sync/GD-Sync",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GarbajYT/godot_updated_fps_controller",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GarrettGunnell/Acerola-Compute",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GlitchedinOrbit/dual-grid-tilemap-system-godot-gdscript",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/GodotNuts/GodotFirebase",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Goutte/godot-addon-animated-shape-2d",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/H2xDev/GodotVMF",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Hairic95/Godot-WebSocket-Multiplayer-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/HarmonyHoney/tiny_crate",
+      "license": "Unlicense"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Inspiaaa/ThemeGen",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Jeh3no/Godot-Simple-FPS-Weapon-System-Asset",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Jibby-Games/Flappy-Race",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Kehom/GodotAddonPack",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Kiamo2/YATI",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Action-Icon",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Auto-Export-Version",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Directory-Watcher",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Gradient-Shift-Shader",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Input-Remap",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Instance-Dock",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Palette-Swap-Shader",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Parallax2D-Preview",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Prefab",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Ref-Serializer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Simple-TODO",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Slider-Label",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Spritesheet-Generator",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Tween-Suite",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/Godot-Universal-Fade",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/KoBeWi/The-Soulhunter",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Kubulambula/Godot-GDShell",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MakovWait/improved_resource_picker",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Maran23/script-ide",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MarcoFazioRandom/Virtual-Joystick-Godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MaxiimPetrov/Divine-Retribution-8-bit-Project",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MenacingMecha/godot-n64-shader-demo",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MenacingMecha/godot-psx-style-demo",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Meta-Ben/DualEditor",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/MrEliptik/shader_experiments",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Oen44/Godot-Inventory",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/PacktPublishing/The-Essential-Guide-to-Creating-Multiplayer-Games-with-Godot-4.0",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/PantheraDigital/Modular-Character-Controller-for-Godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Playgama/bridge-godot-4",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Pyxus/fray",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/QuadCubedStudios/GoDAW",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Relintai/broken_seals",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/SelinaDev/Godot-Roguelike-Tutorial",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/SlashScreen/skelerealms",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/SproutyLabs/SproutyDialogs",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/TheDahoom/FPS-Multiplayer-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/TheWalruzz/godot-questify",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/TinyTakinTeller/TakinGodotTemplate",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/V-Sekai/unidot_importer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Whimfoome/godot-FirstPersonStarter",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/Ziden/godot-turn-based-rpg",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/addmix/godot_aerodynamic_physics",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/alfredbaudisch/Godello",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/alfredbaudisch/GodotPhoenixChannels",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ape1121/Godot-4-Tower-Defense-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/arkology/ShaderV",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/atadenizoktay/godot-click-through-transparent-window",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/awnagel/Godot-Thief-Controller",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/binogure-studio/chart-gd",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/brodcoli/Godot-Small-FPS",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/code-forge-temple/local-llm-npc",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/devloglogan/MultiplayerFPSTutorial",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/devmoreir4/godot-3d-multiplayer-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/don-tnowe/godot-resources-as-sheets-plugin",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/duongvituan/godot-sprite-shader",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/elenakrittik/GodotXML",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ephread/inkgd",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/expressobits/character-controller",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/fenix-hub/godot-engine.github-integration",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/foxssake/netfox",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/fstxz/scene_tools",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/gdquest-demos/godot-2d-builder",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/gdquest-demos/godot-3-beginner-2d-platformer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/gdquest-demos/godot-4-procedural-generation",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/gdquest-demos/godot-design-patterns",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/glennDittmann/godot-pixel-art-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/godot-extended-libraries/godot-debug-menu",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/godot-extended-libraries/godot-next",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/godotengine/godot-syntax-themes",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/gtibo/Godot-Plush-Character",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/guladam/deck_builder_tutorial",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/henriquelalves/SimpleGodotCRTShader",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/heroiclabs/nakama-project-template",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/hiulit/Unofficial-Godot-Engine-Raspberry-Pi",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/insideout-andrew/simple-card-pile-ui",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/ivoyager/planetarium",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/jasonswearingen/TPS-MP",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/jayaarrgh/BookOfShaders-Godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/jess-hammer/2d-pixel-water-shader-godot",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/kanimaru/twitcher",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/koopmyers/tube",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/krzmig/godot-simple-sky-project",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/lampe-games/godot-open-rts",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/leopeltola/Godot-3d-pixelart-demo",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/loudsmilestudios/TetraForce",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nekotogd/Raytracing_Godot4",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/newold3/Godot-RPG-Creator",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nezvers/Godot_2D_action_platformer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nezvers/Godot_goodies",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nklbdev/godot-4-importality",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nonunknown/godot-powerful",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/nthnn/noko",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/passivestar/godot-minimal-theme",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/protongraph/protongraph",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/quentincaffeino/godot-console",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/quiver-dev/tower-defense-tutorial",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/rbarongr/GodotFirstPersonController",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/supabase-community/godot-engine.supabase",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/theshaggydev/the-shaggy-dev-projects",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/theshaggydev/unto-deepest-depths-prototype",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/uheartbeast/3d-dungeon",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/uheartbeast/Heart-Platformer-Godot-4",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/uheartbeast/astar-tilemap",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/uheartbeast/walker-level-gen",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/uralys/fox",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/vnen/godot-tiled-importer",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/wheafun/bread-adventure",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/wimpysworld/little-spy",
+      "license": "MIT"
+    },
+    {
+      "engine": "godot",
+      "url": "https://github.com/zwometer/Godot4MultiplayerMVP",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/1bardesign/batteries",
+      "license": "Zlib"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/1bardesign/ferris",
+      "license": "Zlib"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Aweptimum/Strike",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/CelestialCartographers/Loenn",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/EngineerSmith/AppleCake",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Keyslam-Group/Concord",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Keyslam/LOVE-VSCode-Game-Template",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/MarvelWild/WildWorld",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/MikuAuahDark/lily",
+      "license": "Zlib"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Nabeel20/Badr",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Oval-Tutu/smiti18n",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/Ruin0x11/OpenNefia",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/TrisH0x2A/rhythm",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/automattf/vector.lua",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/bakpakin/tiny-ecs",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/bjornbytes/lovr",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/gustavostuff/katsudo",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/hawkthorne/hawkthorne-journey",
+      "license": null
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/hazzard993/love-typescript-definitions",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/heisenberg23911/CardGame",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/kikito/gamera",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/lume/lume",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/qeffects/helium",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rm-code/love-atom",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/classic",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/coil",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/console",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/json.lua",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/lite",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/lite-colors",
+      "license": null
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/lite-plugins",
+      "license": null
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/log.lua",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/lovebird",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/lume",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/lurker",
+      "license": "MIT"
+    },
+    {
+      "engine": "love2d",
+      "url": "https://github.com/rxi/shash",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Apostolique/Apos.Tweens",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/EcsRx/EcsR3",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/EcsRx/ecsrx",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Ellpeck/GameBundle",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/FNA-XNA/FNA",
+      "license": null
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Felid-Force-Studios/StaticEcs",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Macabresoft/Macabre2D",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Mewnojs/PlantsVsZombies.NET",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/MonoGame-Extended/Monogame-Extended",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/MonoGame/MonoGame.Samples",
+      "license": "NOASSERTION"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/TheBoneJarmer/TiledCS",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/UnterrainerInformatik/GameDevelopmentLinks",
+      "license": "Unlicense"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/Videogamers0/MGUI",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/blendogames/fna_starterkit",
+      "license": "Zlib"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/discosultan/penumbra",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/exomia/framework",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/friflo/Friflo.Engine.ECS",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/genaray/Arch",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/genaray/ZeroAllocJobScheduler",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/isadorasophia/murder",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/jlauener/MonoPunk",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/kreghek/Zilon_Roguelike",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/learn-monogame/learn-monogame.github.io",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/mellinoe/veldrid-samples",
+      "license": null
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/prime31/Nez",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/rds1983/Myra",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/rhythm-game-utilities/rhythm-game-utilities",
+      "license": "MIT"
+    },
+    {
+      "engine": "monogame",
+      "url": "https://github.com/yariker/xfontgen",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/DmytroVasin/bomber",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/Jerenaux/chunks_tutorial",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/Jerenaux/phaserquest",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/MuriloRoque/marthas_rescue_shooter_game",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/PhaserEditor2D/PhaserEditor2D-v3",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/Shirajuki/js-game-rendering-benchmark",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/azerion/phaser-ads",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/azerion/phaser-input",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/code0wl/Multiplayer-Phaser-game",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/cxong/DrunkenViking",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/damian-pastorini/reldens",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/dpogorzelski/phaser_multiplayer_demo",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/egeexyz/jumper",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ganlvtech/phaser-catch-the-cat",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/geckosio/phaser3-multiplayer-game-example",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/geocine/phaser3-rollup-typescript",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/hellodeborahuk/buzzphonics",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/hexus/phaser-arcade-slopes",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/hunters-org/hunter-kit",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/jojoee/blocker",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/jondubois/iogrid",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/josephmbustamante/phaser3-typescript-starter-kit",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/jsfehler/phaser-ui-tools",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/kenamick/game-off-2017",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/kevinshen56714/create-react-phaser3-app",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ourcade/infinite-jumper-template-phaser3",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ourcade/infinite-runner-template-phaser3",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ourcade/pac-man-ghost-ai-phaser3",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ourcade/phaser3-bitecs-getting-started",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ourcade/phaser3-dungeon-crawler-starter",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/ourcade/phaser3-vite-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/pawap90/space-commit",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/custom-build",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/discord-template",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/phaser",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/phaser-box2d",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/phaser-ce",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-react-ts",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-svelte",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-vite",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-vite-ts",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-vue",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-vue-ts",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/phaserjs/template-webpack",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/pierpo/phaser3-simple-rpg",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/pinkkis/phaser-driving",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/proyecto26/Phaser-Kinetic-Scrolling-Plugin",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/remarkablegames/phaser-platformer",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/samme/phaser-parcel",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/samme/phaser-plugin-debug-draw",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/samme/phaser-plugin-game-scale",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/samme/phaser-plugin-inspector",
+      "license": null
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/samme/phaser3-faq",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/wiserim/phaser-raycaster",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/xense/phaser-ui-comps",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/yandeu/phaser-project-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/yandeu/phaser3-typescript-platformer-example",
+      "license": "MIT"
+    },
+    {
+      "engine": "phaser",
+      "url": "https://github.com/yokoworks/Glab-Fruits",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/BCassO/universal-renpy-walkthrough",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/Bronya-Rand/RenPy-Universal-Player",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/Forlos/vn_re",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/MewX/cross-channel_chinese-localization_project",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/Rubiksman78/RenAI-Chat",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/RuolinZheng08/renpy-rhythm",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/Wendy-Nam/RenPy-AutoScriptPlugin",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/cnfatal/rpycdec",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/remarkablegames/renpy-template",
+      "license": "MIT"
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/renpy/renpy",
+      "license": null
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/renpy/steam-deck-guide",
+      "license": null
+    },
+    {
+      "engine": "renpy",
+      "url": "https://github.com/vina-ai/vina",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/Ameobea/three-good-godrays",
+      "license": "Zlib"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/FarazzShaikh/THREE-CustomShaderMaterial",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/N8python/n8ao",
+      "license": "CC0-1.0"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/Snokke/game-boy-challenge",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/gkjohnson/three-gpu-pathtracer",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/hjunhuh/saber",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/jeromeetienne/threex.grass",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/majidmanzarpour/vibe-coding-starter-pack-3d-multiplayer",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/matthias-schuetz/THREE-BasicThirdPersonGame",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/nenjack/pixi-stats",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/nickyvanurk/3d-multiplayer-browser-shooter",
+      "license": "MIT"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/pmndrs/postprocessing",
+      "license": "Zlib"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/rohitg00/k8sgames",
+      "license": "Apache-2.0"
+    },
+    {
+      "engine": "threejs",
+      "url": "https://github.com/squarefeet/ShaderParticleEngine",
+      "license": "MIT"
+    }
+  ]
+}
