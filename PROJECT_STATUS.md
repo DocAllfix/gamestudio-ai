@@ -300,6 +300,40 @@ Conventions:
 
 ---
 
+## FASE RAG-1 — License audit & cleanup (pre-Reasoning Engine)
+
+Closes Buco #1 of the 5 pre-RE gaps: 1 426 chunks in `code_knowledge` had
+`source_license ∈ {NULL, NOASSERTION, unknown}`, which CLAUDE.md forbids in
+the production KB. Re-verified each repo's license via 4 resolvers in trust
+order: local LICENSE body (primary-window only, anti-multi-dep-manifest) →
+GitHub Licenses API → root `package.json` `license` field → raw HTTP for
+GitLab. No LLM in the loop — license detection is deterministic.
+
+- [x] **RAG-1.1** — `scripts/ingestion/_license_resolver.py` (4 pure
+  resolvers + `normalize_license_string` + `canonical_repo_url`)
+- [x] **RAG-1.2** — `scripts/ingestion/12_license_audit.py` with `--dry-run`
+  / `--apply` / `--engine` / `--limit`, decoupled DB sessions (3-stage:
+  read → network → write) to survive Supabase pooler idle drops
+- [x] **RAG-1.3** — Audit applied on prod KB
+  - `relabel: 1 070` (top: `phaserjs/examples` 905 → ISC,
+    `GDQuest/learn-gdscript` 85 → MIT, `godot-demo-projects` sub-projects → MIT)
+  - `quarantine_forbidden: 45` (`qirien/enkindle` 29 GPL-3.0,
+    `EmberGamingStudios/MD-Sudo` 16 AGPL-3.0 — correctly caught)
+  - `quarantine_unresolvable: 311` (Defold engine itself,
+    `Stabyourself/mari0`, `love2d/love` multi-dep manifest, gitlab orphans
+    without LICENSE files)
+- [x] **RAG-1.4** — Post-audit invariants
+  - `code_knowledge` 7588 → **7232** (−356 moved to quarantine)
+  - `code_knowledge_quarantine` 2771 → **3127**
+  - 0 rows with NULL/NOASSERTION/unknown source_license
+  - License distribution: MIT 5866 / ISC 932 / Apache-2.0 255 / CC0-1.0 98 /
+    Unlicense 38 / Zlib 34 / BSD-3-Clause 9 — 100% allowlist
+  - `07_test_queries.py`: **20/20 PASS** (no retrieval regression)
+- [x] **RAG-1.5** — Backup at `data/license_audit_backup_<utc>.json` (gitignored)
+  - commit: `feat(phase-rag-1): license audit + cleanup code_knowledge`
+
+---
+
 ## Database Migrations — applied state
 
 | Migration | File | Applied | Notes |
