@@ -57,14 +57,20 @@ REPOS_RAW_DIR = REPO_ROOT / "data" / "repos_raw"
 LOG_PATH = REPO_ROOT / "scrape_log.txt"
 MANUAL_DOWNLOAD_REPORT = REPO_ROOT / "data" / "itch_manual_downloads.txt"
 
-GITLAB_TOPICS = ("renpy", "visual-novel")
+GITLAB_TOPICS = ("renpy", "visual-novel", "renpy-game", "interactive-fiction")
 
 ITCH_LIST_URL = "https://itch.io/games/made-with-renpy/tag-open-source"
 
-# Tool URLs verified across Perplexity reports 2 + 4. Each one was opened
-# manually and confirmed reachable. The Itch scraper reads the license
-# from each page at runtime; we don't hardcode it here.
+# Tool URLs verified across Perplexity reports 2 + 4 (original 10) and an
+# inventory of three high-prolific Ren'Py tool authors performed 2026-05-25
+# (feniksdev, devilspider, tessw — each profile page enumerated, every
+# product page reachable). Each tool below targets one of the 9 thin
+# Ren'Py categories the coverage report flagged: A05_camera, D03_vfx,
+# B04_navigation, E02_signals_events (the visual-novel equivalents). The
+# Itch scraper reads the license from each page at runtime; we never
+# hardcode it here. License gating happens in harvest_itch().
 ITCH_RESOURCES_URLS = (
+    # Original 10 (Perplexity round 2+4)
     "https://bobcgames.itch.io/bobcstats",
     "https://jsfehler.itch.io/renpy-encyclopaedia",
     "https://dicortesia.itch.io/dressup-minigame-for-renpy",
@@ -75,6 +81,25 @@ ITCH_RESOURCES_URLS = (
     "https://tessw.itch.io/renpy-scene-navigator",
     "https://feniksdev.itch.io/parallax-zoom-viewports-for-renpy",
     "https://rdxvoidzero.itch.io/renpy-adult-visual-novel-framework",
+    # feniksdev — D03 VFX + A05 camera (shaders, transitions, particles)
+    "https://feniksdev.itch.io/immersive-particle-vfx-for-renpy",
+    "https://feniksdev.itch.io/renpy-ripple-transition",
+    "https://feniksdev.itch.io/outline-shader-renpy",
+    "https://feniksdev.itch.io/better-colorize-for-renpy",
+    "https://feniksdev.itch.io/gradients-for-renpy",
+    # devilspider — D03 VFX (more shaders) + D01 UI extras
+    "https://devilspider.itch.io/globe-displayable",
+    "https://devilspider.itch.io/mandelbrot-julia-fractal-shaders",
+    "https://devilspider.itch.io/blur-shader-pack",
+    "https://devilspider.itch.io/crt-monitor-shader",
+    "https://devilspider.itch.io/freeform-bar",
+    "https://devilspider.itch.io/history-search-tool",
+    "https://devilspider.itch.io/radar-chart-displayable",
+    "https://devilspider.itch.io/image-bounds-displayable",
+    # tessw — B04 navigation + D03 animation
+    "https://tessw.itch.io/generate-animation-in-renpy",
+    # jsfehler — E01 framework / E02 signals via GUI replacement
+    "https://jsfehler.itch.io/entroponaut",
 )
 
 # License whitelist used to ACCEPT entries before clone/download. Mirrors

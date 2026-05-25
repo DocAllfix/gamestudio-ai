@@ -300,6 +300,72 @@ Conventions:
 
 ---
 
+## FASE RAG-3 — Ren'Py harvest expansion (partial close)
+
+Targets Buco #2 (9 zero-cells for Ren'Py categories A01-A05 / B02-B04 /
+D03 / E02). Plan called for ≥1000 chunks; actual outcome 436 chunks but
+with **11 categories covered** (was 4). Honest verdict: partial close
+on the category-coverage front, miss on the absolute count.
+
+- [x] **RAG-3.1** — Extended `scripts/ingestion/01b_scrape_renpy_alt.py`:
+  +15 `ITCH_RESOURCES_URLS` (catalog inventory of feniksdev / devilspider
+  / tessw / jsfehler Ren'Py tool authors), +2 `GITLAB_TOPICS`
+  (`renpy-game`, `interactive-fiction` — both empty on GitLab in
+  practice, kept for future-proofing)
+- [x] **RAG-3.2** — Itch harvest run: 47 product URLs inspected, **2
+  clonable** (most CC-BY-4.0 / no-license-tag rejected by the existing
+  license gate). +6 manual-download report items written to
+  `data/itch_manual_downloads.txt`
+- [x] **RAG-3.3** — License-correct outcome: `jsfehler/entroponaut`
+  classified as **GPL-3.0** by `02_filter` (its root LICENSE is
+  GPL-3.0 verbatim), correctly excluded from the KB.
+  `shawna-p/mysterious-messenger` accepted (MIT). Only 1/2 new clones
+  contributed chunks.
+- [x] **RAG-3.4** — Full pipeline on the 1 surviving repo:
+  - `02_filter`: 1 pass score=4
+  - `03_parse_renpy`: 259 chunks
+  - `03b_groom_chunks`: 259 → 252 (7 tiny dropped)
+  - `04_classify --provider openai --workers 4 --cost-cap-usd 1.50`:
+    201 accepted / 46 quarantined / 3 rejected, **$0.088** in 6.8 min
+  - `05_embed_store`: 201 + 46 chunks inserted, $0.0003 embedding cost
+  - `11_apply_caps`: renpy.D01_ui 347 → 250 (cut 97, was over-stuffed
+    because mysterious-messenger is a VN heavy on screen code)
+- [x] **RAG-3.5** — License audit re-run (the new chunks landed with
+  `source_license='unknown'` because the manifest said so — the disk
+  LICENSE was MIT but the ingestion log didn't re-read it): 132 chunks
+  relabeled to MIT. Now 100% allowlist.
+- [x] **RAG-3.6** — Final state
+  - `code_knowledge` total: 7232 → **7336** (+104 net, after the 97-cut
+    cap on D01_ui)
+  - Ren'Py specifically: 496 → **436** chunks (−60 due to the D01_ui cap,
+    but with **11 categories** instead of 4 — including 7 brand-new
+    categories: C04_save_load, C02_inventory, D02_audio, C01_progression,
+    E03_game_flow, A03_combat, B01_level_structure)
+  - All Ren'Py chunks: 100% MIT licensed
+  - `07_test_queries.py`: **20/20 PASS** (zero retrieval regression)
+- [x] **RAG-3.7** — Pre-cleanup disk snapshot for the upcoming 27 GB wipe:
+  `scripts/ingestion/_snapshot_repos_raw.py` + `docs/CLEANUP_LEDGER.md` +
+  `docs/CLEANUP_LEDGER_URLS.json` (573 URLs preserved for future
+  re-clone). Then 27 GB freed: 572 repo dirs + repos_clean/ + repos_sample/
+  + chunks_raw/ + chunks_classified/ + chunks_dropped/ + assets_embedded/
+  + asset_cache/. The 2 FASE-3 keeps (jsfehler__entroponaut +
+  shawna-p__mysterious-messenger) preserved on disk.
+
+**Honest gap vs plan**: target was ≥1000 chunks + ≤3 zero-cells.
+Achieved 436 chunks + 9 zero-cells still at 0 (A01-A02/A04-A05/B02-B04/
+D03/E02 unchanged because mysterious-messenger is a story-focused VN,
+not an action/combat VN). The structural ceiling for Ren'Py code that
+is BOTH (a) MIT/permissive AND (b) demonstrates non-narrative mechanics
+appears genuine — the 6 manual-download items in
+`data/itch_manual_downloads.txt` cover some of those categories but
+require human pickup. Not a blocker for the Reasoning Engine since
+docs/RAG_GAP_DECISIONS.md §G.7 already accepts "VN combat ≈ 0 chunks"
+as an expected baseline.
+
+  - commit: `feat(phase-rag-3): Ren'Py harvest + license re-audit + disk cleanup`
+
+---
+
 ## FASE RAG-2 — Vision moodboard backfill
 
 Closes Buco #4: 10 of 80 `reference_games` rows had no `visual_analysis`
