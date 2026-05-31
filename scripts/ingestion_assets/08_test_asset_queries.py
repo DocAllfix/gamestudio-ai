@@ -73,9 +73,9 @@ def _match_assets(cur, **kw: Any) -> list[tuple]:
             p_style_pack := %(p_style_pack)s::text,
             p_genre := %(p_genre)s::text,
             p_engine := %(p_engine)s::text,
-            p_min_quality := %(p_min_quality)s,
-            p_match_threshold := %(p_match_threshold)s,
-            p_match_count := %(p_match_count)s
+            p_min_quality := %(p_min_quality)s::smallint,
+            p_match_threshold := %(p_match_threshold)s::numeric,
+            p_match_count := %(p_match_count)s::int
         )
     """
     defaults: dict[str, Any] = {
@@ -102,7 +102,7 @@ def _match_loras(cur, **kw: Any) -> list[tuple]:
             p_asset_type := %(p_asset_type)s::text,
             p_genre := %(p_genre)s::text,
             p_base_model_preferred := %(p_base_model_preferred)s::text,
-            p_match_count := %(p_match_count)s
+            p_match_count := %(p_match_count)s::int
         )
     """
     defaults: dict[str, Any] = {

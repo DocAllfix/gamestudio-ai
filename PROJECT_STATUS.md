@@ -300,6 +300,80 @@ Conventions:
 
 ---
 
+## FASE RAG-5 — Asset RPC test suite (Reasoning Engine gate)
+
+Closes Buco #5: RPCs in migration 003 were never tested end-to-end.
+This suite is the GREEN-LIGHT gate before starting the Reasoning
+Engine — PASS >= 8/10 required.
+
+- [x] **RAG-5.1** — `scripts/ingestion_assets/08_test_asset_queries.py`
+  (10 cases: 7 against `match_assets`, 2 against `match_loras`, 1
+  against `increment_asset_usage`)
+- [x] **RAG-5.2** — Discovered 2 real bugs only the suite would catch:
+  - All `match_assets` / `match_loras` calls fail with
+    `UndefinedFunction` from psycopg2 because Python `None` serialises
+    as untyped NULL and PostgreSQL's function dispatcher cannot
+    resolve. Fix: explicit `::text`, `::smallint`, `::numeric`, `::int`
+    casts on every parameter — harmless on real values, necessary on
+    NULLs.
+  - `match_loras` hits `AmbiguousColumn: column reference "rank_score"
+    is ambiguous`. The RETURNS-TABLE column shares its name with the
+    CTE-computed column, and PL/pgSQL exposes function output columns
+    into the body's scope. Fix: migration 004 qualifies every column
+    with the `scored.` CTE alias.
+- [x] **RAG-5.3** — Migration 004 committed BEFORE apply per CLAUDE.md
+  protocol, then applied (schema_migrations reconciled to record 003
+  too so the standard runner picks up cleanly from here).
+- [x] **RAG-5.4** — Final run: **9/10 PASS** on the pre-OGA-full
+  dataset. T02 (`audio_bgm` canary) fails because the OpenGameArt
+  scrape that adds music is still running in background; it will flip
+  to PASS automatically once the ingest pipeline lands.
+- [x] **RAG-5.5** — T10 verifies the EMA formula
+  `new = old * 0.95 + 1.0 * 0.05` on a success path AND rolls the
+  side effect back, so re-runs do not pollute `success_score` with
+  synthetic data.
+  - commit: `feat(phase-rag-5): asset RPC test suite + migration 004`
+
+---
+
+## FASE RAG-4 — OpenGameArt asset scraper
+
+Targets Buco #3 (asset library imbalance: 0 music, only 89 sprite, 35
+tileset). OpenGameArt is the only Tier B source covering free music +
+a large sprite/tileset catalog at permissive licenses.
+
+- [x] **RAG-4.1** — `scripts/ingestion_assets/_lib_opengameart.py`
+  Drupal HTML scraper (no API). Stable selectors verified by direct
+  fetch: `.field-name-field-art-licenses`,
+  `.field-name-field-art-submitter`, `.field-name-field-art-files`,
+  `.field-name-field-art-tags`, `.field-name-body`.
+- [x] **RAG-4.2** — License gating handles OpenGameArt's
+  multi-license OR semantics: assets released as "CC-BY 3.0 OR GPL
+  2.0" are accepted (recorded as CC-BY-4.0; CC-BY-3.0 is promoted
+  since both are commercially permissive). Reject only when no
+  allowed license appears OR when the description body itself
+  contains a forbidden marker (contamination signal beyond OR
+  semantics).
+- [x] **RAG-4.3** — Two bugs caught and fixed in the smoke test:
+  - Multiple `field_art_licenses_tid[]` URL params are interpreted as
+    AND by OGA, returning zero hits. Fix: iterate per-license.
+  - The first `<h2>` on each asset page is the sidebar "User login"
+    widget, not the title. Fix: read from the `og:title` meta or fall
+    back to `<title>` minus the OpenGameArt.org suffix.
+- [x] **RAG-4.4** — Respect `robots.txt`: OGA declares
+  `Crawl-delay: 10` (= 6 rpm hard max). Initial 15 rpm was 2.5x the
+  policy and risked an IP ban — lowered to 6 rpm.
+- [x] **RAG-4.5** — Smoke test (10 sprites, $0.002 classify): 10
+  records in `asset_library_index` all CC-BY-4.0 with
+  `attribution_required=true`. End-to-end pipeline filter → classify
+  → embed → store verified.
+- [ ] **RAG-4.6** — Full scrape running in background (`--limit 1200`,
+  ~3-4h wall, ~600 MB local cache + manifests, $0.10-0.20 classify).
+  Will be classified + embedded + stored in a follow-up commit when
+  it completes.
+
+---
+
 ## FASE RAG-3 — Ren'Py harvest expansion (partial close)
 
 Targets Buco #2 (9 zero-cells for Ren'Py categories A01-A05 / B02-B04 /
@@ -438,7 +512,8 @@ GitLab. No LLM in the loop — license detection is deterministic.
 |---|---|---|---|
 | 001 | `supabase/migrations/001_knowledge_base.sql` | ✅ | code_knowledge + quarantine + game_parameters + ingestion_log + indexes + RPCs |
 | 002 | `supabase/migrations/002_fix_search_rpc_null_engine.sql` | ✅ | Fix `search_code_knowledge` for null engine filter |
-| 003 | `supabase/migrations/003_asset_library_index.sql` | ✅ **2026-05-24** | Applied via `scripts/ingestion_assets/_apply_migration_003.py`. 7 tables (asset_library_index + quarantine + style_packs + genre_templates + reference_games + audio_mood_library + lora_library) + 3 RPC (match_assets, match_loras, increment_asset_usage) + RLS read-public. License allowlist enforced at CHECK constraint level. Verified via `information_schema.tables`. |
+| 003 | `supabase/migrations/003_asset_library_index.sql` | ✅ **2026-05-24** | Applied via `scripts/ingestion_assets/_apply_migration_003.py`. 7 tables (asset_library_index + quarantine + style_packs + genre_templates + reference_games + audio_mood_library + lora_library) + 3 RPC (match_assets, match_loras, increment_asset_usage) + RLS read-public. License allowlist enforced at CHECK constraint level. Verified via `information_schema.tables`. Tracker reconciled with manual INSERT into `schema_migrations` on 2026-05-31 so future migrations apply cleanly via the standard runner. |
+| 004 | `supabase/migrations/004_fix_match_loras_ambiguous_rank_score.sql` | ✅ **2026-05-31** | Fix discovered by FASE RAG-5 test T08: PL/pgSQL function exposes its RETURNS-TABLE column `rank_score` into the body scope, which collided with the CTE column of the same name and produced AmbiguousColumn. Qualifies every column with the `scored.` CTE alias. Additive, idempotent. |
 
 ---
 
