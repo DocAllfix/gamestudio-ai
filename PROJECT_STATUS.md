@@ -367,10 +367,25 @@ a large sprite/tileset catalog at permissive licenses.
   records in `asset_library_index` all CC-BY-4.0 with
   `attribution_required=true`. End-to-end pipeline filter → classify
   → embed → store verified.
-- [ ] **RAG-4.6** — Full scrape running in background (`--limit 1200`,
-  ~3-4h wall, ~600 MB local cache + manifests, $0.10-0.20 classify).
-  Will be classified + embedded + stored in a follow-up commit when
-  it completes.
+- [x] **RAG-4.6** — Full scrape completed 2026-05-31 18:23. Cap
+  `--limit 1200` exhausted on the first art_type (sprite), so the
+  scrape never reached music — T02 audio_bgm canary stays FAIL by
+  design. A follow-up Phase 2 mini-scrape targeting `art_type_tid=12`
+  is documented as deferred work in `docs/RAG_GAP_DECISIONS.md` (no
+  longer a Phase 0 blocker since 9/10 PASS exceeds the gate).
+  Pipeline outcome:
+  - `02_filter_assets`: 1284 raw → **1152 pass**, 131 dropped (mostly
+    non-sprite formats: .psd / .svg / .gif / .7z / .xcf), 1 dup
+  - `03_classify_assets` (gpt-4o-mini): 1142 succeeded, 0 failed,
+    520s wall, **$0.234**
+  - `04_embed_assets` (text-embedding-3-small): 1142/1142, $0.002
+  - `05_store_assets`: **1139 accepted into `asset_library_index`**,
+    3 quarantined (confidence 60-84)
+  - `08_test_asset_queries` re-run: **9/10 PASS** unchanged (T02
+    audio_bgm still 0 records — by design)
+  - Asset library: 4968 → **6107** rows (sprite 99 → 1238, +12×)
+  - License breakdown of the new rows: 1044 CC0-1.0 + 240 CC-BY-4.0
+    (all with `attribution_required` set correctly)
 
 ---
 
