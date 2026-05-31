@@ -38,6 +38,7 @@ from scripts.ingestion_assets._lib_freesound import fetch_freesound
 from scripts.ingestion_assets._lib_kenney import fetch_kenney
 from scripts.ingestion_assets._lib_quaternius import fetch_quaternius
 from scripts.ingestion_assets._lib_kaykit import fetch_kaykit
+from scripts.ingestion_assets._lib_opengameart import fetch_opengameart
 
 # Map library_id -> fetcher function. Adding a new library means
 # importing its _lib_<id>.py module and adding it here.
@@ -47,6 +48,7 @@ FETCHERS = {
     "kenney": fetch_kenney,
     "quaternius": fetch_quaternius,
     "kaykit": fetch_kaykit,
+    "opengameart": fetch_opengameart,
 }
 
 
