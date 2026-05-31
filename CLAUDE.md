@@ -66,99 +66,147 @@ Rules:
 The same protocol applies to RLS policies and RPC functions: they live in
 migrations, never authored ad-hoc in the Dashboard.
 
-═══ CURRENT MISSION: PHASE 1 — RAG KNOWLEDGE BASE ═══
-What We're Building Right Now
-A vector database (Supabase pgvector) containing dissected, classified, and
-embedded code from the best open-source game projects across 8 engines.
-This is the "Dataset Boost" — the foundation that makes every AI-generated
-game dramatically better.
-The Pipeline
-GitHub Scrape → Quality Filter → Engine-Specific Parse → LLM Classify → Embed → Store
-Reference Documents
+═══ CURRENT MISSION: PHASE 2 — 4-WAY PARALLEL PRODUCT DEV ═══
 
-docs/SUPREME_RAG_BLUEPRINT.md — Full technical blueprint (taxonomy, schema, pipeline)
-docs/MASTER_EXECUTION_PLAN.md — Operational plan (anti-hallucination, prompts, phases)
-docs/pietra_v4.md — The foundational vision document for the entire product
+Phase 1 is DONE. The RAG knowledge base lives on Supabase: 7300+
+code_knowledge chunks (100% allowlist licenses after the RAG-1 audit),
+~5000 asset_library_index rows (CC0/CC-BY-4.0/OFL-1.1 only), 30 style
+packs, 14 genre templates, 12 audio moods, 80 reference games with
+visual analysis, 40 verified LoRAs — all seeded by migrations 001-004.
 
-Directory Structure (Current Phase)
-game-studio-ai/
-├── CLAUDE.md                          ← you are here
-├── .env                               ← API keys (never commit)
-├── .gitignore
-├── package.json                       ← minimal, for TS scripts
-├── tsconfig.json
-├── requirements.txt                   ← Python deps for ingestion scripts
-│
-├── docs/
-│   ├── pietra_v4.md
-│   ├── SUPREME_RAG_BLUEPRINT.md
-│   └── MASTER_EXECUTION_PLAN.md
-│
-├── supabase/
-│   └── migrations/
-│       └── 001_knowledge_base.sql     ← pgvector schema
-│
-├── scripts/
-│   └── ingestion/
-│       ├── 01_scrape.py               ← GitHub + awesome lists scraper
-│       ├── 02_filter.py               ← Quality gate (structural checks)
-│       ├── 03_parse_godot.py          ← Godot .tscn/.gd parser
-│       ├── 03_parse_phaser.py         ← Phaser scene parser
-│       ├── 03_parse_renpy.py          ← Ren'Py .rpy parser
-│       ├── 03_parse_generic.py        ← Defold/MonoGame/LÖVE/Three.js/Stride
-│       ├── 04_classify.py             ← LLM classification (2-step + confidence gate)
-│       ├── 05_embed_store.py          ← Embedding generation + Supabase insert
-│       ├── 06_validate.py             ← Post-ingestion sanity checks
-│       └── 07_test_queries.py         ← Query test suite
-│
-├── lib/
-│   ├── knowledge.ts                   ← getReferences() + getReferenceParameters()
-│   └── types.ts                       ← Shared TypeScript types
-│
-├── data/                              ← LOCAL ONLY, gitignored
-│   ├── repos_raw/                     ← Cloned repos (Phase 1)
-│   ├── repos_clean/                   ← Filtered repos (Phase 2)
-│   ├── chunks_raw/                    ← Parsed chunks (Phase 3)
-│   ├── chunks_classified/             ← LLM-classified chunks (Phase 4)
-│   └── manifest.json                  ← Master repo manifest
-│
-└── test_output/                       ← Comparison test results
-    ├── without_kb.gd
-    └── with_kb.gd
-Key Constraints
+Phase 2 builds the actual product on top, split across FOUR parallel
+workstreams that develop in isolated branches and converge through a
+strict merge order. The full playbook lives in:
 
-Godot 4 ONLY: filter pushed:>=2025-01-01 on GitHub to exclude Godot 3 syntax. Additionally verify config_version=5 in project.godot.
-MIT/CC0/Apache/BSD/Zlib licenses ONLY: no GPL, no proprietary, no unknown
-Max 100MB per repo: skip large repos with binary assets
-Confidence gate: chunks with LLM confidence < 85 go to quarantine, not main table
-Structured Output only: all LLM classification must use JSON Schema with enum constraints
+  docs/CONCURRENT_DEVELOPMENT_MANIFESTO.md       (architectural strategy)
+  docs/SUPREME_CONCURRENT_EXECUTION_PLAN.md      (per-sub-phase prompts + checklists)
 
-Supabase Project
+The 4 Workstreams
 
-URL: read from NEXT_PUBLIC_SUPABASE_URL env var
-Service key: read from SUPABASE_SERVICE_ROLE_KEY env var
-pgvector extension must be enabled before running migrations
+  W1 — Reasoning + Orchestrator   ws/w1-reasoning-orchestrator
+       lib/reasoning/             D.1 Intent .. D.6 Evaluation
+       lib/orchestrator/          Hermes 3-level-memory loop
+       lib/episodic-memory/       Voyager EMA per (user, skill)
+       lib/game-plan-versioning/  RFC 6902 diff backend
 
-LLM APIs Used in This Phase
+  W2 — Tools + LLM router         ws/w2-tools-llm
+       lib/tools/                 48 specialised tools by category
+       lib/llm/                   OpenRouter + Helicone wrapper
+       lib/asset-resolver/        D.5 match_assets + generative fallback
+       lib/style-inference/       Vision + librosa → style_pack pick
 
-DeepSeek V4 Flash (via OpenRouter or direct): classification of chunks
-OpenAI text-embedding-3-small: embedding generation (1536 dimensions)
-Both accessed through env vars: OPENROUTER_API_KEY, OPENAI_API_KEY
+  W3 — Runtime + Sandbox          ws/w3-runtime-engines
+       lib/runtime/engines/       8 EngineAdapter implementations
+       lib/runtime/sandbox/       E2B wrapper
+       lib/runtime/assembler/     Build + R2 zip pipeline
+       lib/runtime/publishers/    itch.io packager
+       lib/runtime/smoke-test/    Headless per-engine smoke tests
+       lib/runtime/playtest-runner/  Executes W1 Playtester script in sandbox
 
-═══ FUTURE STATE: PHASE 2 — GAME STUDIO AI PRODUCT ═══
-What Comes After the Knowledge Base
-Once the RAG is populated and tested, this same repository will grow into:
+  W4 — Frontend + Auth + Billing  ws/w4-frontend-billing
+       app/                       Next.js 14 App Router
+       components/                shadcn + feature components
+       lib/billing/               Stripe wrapper + tier sync
+       lib/analytics/             PostHog client + server
+       lib/auth/                  Clerk helpers
+       lib/notifications/         Resend + Knock + Loops + Crisp + Dub.co
+       lib/multitenancy/          Clerk org + RLS (Phase 2 of Phase 2)
+       lib/versioning-ui/         Game Plan diff timeline (Phase 2 of Phase 2)
+       lib/hitl/                  Pause/review modals
+       lib/byoa/                  Asset upload + Vision analyze
+       lib/onboarding/            First-time tutorial flow
 
-Hermes Agent Orchestrator (lib/orchestrator.ts) — pattern from Nous Research
-48 AI Tools (lib/tools/) — code gen, sprite gen, audio gen, assemblers, QA
-Game Reasoning Engine — Game Plan + Game Graph before any generation
-Next.js Frontend — Creator Mode → Studio Mode → Code Mode
-Multi-engine support — Godot, Phaser, Ren'Py, Defold, MonoGame, LÖVE, Three.js, Stride
-Full BaaS stack — Clerk, Supabase, Trigger.dev, R2, E2B, OpenRouter, Helicone, PostHog, Vercel
+Foundation (READ-ONLY for all 4 workstreams during parallelism)
 
-How the KB Connects to the Product
-Every tool in lib/tools/ will call getReferences() from lib/knowledge.ts
-BEFORE generating any code. The KB is the invisible foundation that makes
-the AI output professional-grade instead of amateur.
-DO NOT build any product features during Phase 1.
-Focus exclusively on the Knowledge Base pipeline. The product code comes in Phase 2.
+  lib/contracts/                  Canonical Zod schemas (the boundary)
+  lib/_mocks/                     Shape-correct mocks used until merge
+  lib/knowledge.ts, lib/types.ts  KB client (Phase 1)
+  scripts/shared/**               Phase 1 shared utilities
+  scripts/ingestion/**            Phase 1 ingestion pipeline (frozen)
+  scripts/ingestion_assets/**     Phase 1 asset ingestion (frozen)
+  supabase/migrations/00[1-5]_*.sql  Applied schema (immutable)
+  CLAUDE.md, package.json, tsconfig.json, requirements.txt, .env.example
+
+Cross-Workstream BaaS Perimeter (consume the SDK, never duplicate)
+
+  Clerk          W4 auth (NEVER write JWT signing or session stores)
+  Supabase       Everyone (DB + pgvector + RPC + RLS)
+  Trigger.dev    W1 + W3 long jobs (NEVER write worker / queue)
+  Cloudflare R2  W3 .zip storage (NEVER write upload server)
+  E2B            W3 sandbox (NEVER write container runtime)
+  OpenRouter     W2 LLM gateway (NEVER write provider failover)
+  Helicone       W2 LLM observability proxy
+  Replicate      W2 sprite + 3D generation
+  Suno API       W2 BGM generation
+  ElevenLabs     W2 SFX + voice
+  Meshy.ai       W2 3D character / prop generation
+  Upstash Redis  W2 rate limiting
+  PostHog        W4 analytics + feature flags
+  Resend         W4 transactional email
+  Loops          W4 marketing email
+  Knock          W4 in-app notifications
+  Crisp          W4 live chat
+  Dub.co         W4 link analytics
+  Stripe         W4 billing
+  Sentry         W4 error tracking (Phase 2 of Phase 2)
+  Vercel         W4 deployment
+
+If a task asks you to "write a JWT validator" → STOP, that's Clerk.
+If a task asks you to "write a worker for a queue" → STOP, that's Trigger.dev.
+Implementing a BaaS in custom code is immediate tech debt — every
+duplication ships incorrect.
+
+Rules That Apply To EVERY Workstream
+
+1. Never modify lib/contracts/** during parallelism. Open a
+   "contract proposal" GitHub issue, wait for the other 3 to agree,
+   land the change on main as a dedicated commit, then everyone
+   rebases.
+
+2. Never edit cross-cutting files (CLAUDE.md, package.json,
+   tsconfig.json, requirements.txt, .env.example, .gitignore,
+   scripts/shared/**, supabase/migrations/00[1-5]_*.sql,
+   lib/knowledge.ts, lib/types.ts) without coordinating with the
+   other 3 workstreams.
+
+3. New migrations: claim a number with a GitHub issue
+   "Wn claims migration 0XX" before writing the SQL file. Commit
+   the file BEFORE applying. Update PROJECT_STATUS.md with the
+   applied state after the user confirms apply.
+
+4. Each workstream commits ONLY on its own branch and pulls
+   `git pull origin main --rebase` every morning to stay synced.
+
+5. Mocks consumed: when a workstream needs a feature another is
+   still building, import from `@/lib/_mocks/<dominio>.mock`. All
+   mocks Zod-validate against the contract, so a divergent mock
+   surfaces at test time, not at merge.
+
+6. Merge order is immutable: W2 → W3 → W1 → W4. Each merge replaces
+   the matching mock imports with the real implementation in a
+   dedicated commit before the workstream's PR.
+
+7. Structured logging is mandatory: every workstream writes
+   `data/standup/W<N>-YYYY-MM-DD.jsonl` for every meaningful action
+   (start / done / error / cost / latency). The daily 5-line
+   markdown summary goes to `docs/standup/YYYY-MM-DD_w<N>.md`.
+
+8. The Code Quality Rules and Anti-Hallucination Protocol at the
+   top of this file apply unchanged in Phase 2.
+
+LLM APIs Used in Phase 2
+
+Same key set as Phase 1 plus the W2-specific generative providers.
+Every API call goes through `lib/llm/router.ts` (W2-owned) which
+applies cost cap, retry, and structured-output Zod validation. Direct
+SDK calls outside the router are an anti-pattern — they bypass the
+budget tracker and the Helicone trace.
+
+NEVER WORK ON PHASE 1 ARTIFACTS
+
+Phase 1 is frozen. The scripts under scripts/ingestion/ and
+scripts/ingestion_assets/ shipped, the chunks are in Supabase. Any
+"let me re-classify" or "let me add another scraper" instinct should
+be killed — Phase 1 expansion is documented in
+docs/RAG_GAP_DECISIONS.md and was intentionally closed. New product
+work goes on a Workstream branch and consumes the existing RAG.
