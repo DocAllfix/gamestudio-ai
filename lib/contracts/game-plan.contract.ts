@@ -36,23 +36,26 @@ export const EngineEnum = z.enum([
 ]);
 export type Engine = z.infer<typeof EngineEnum>;
 
-/** The 14 day-1 genres documented in PIETRA_v5 §A.2 / blueprint v2 N.3.
- * Seeded into `genre_templates` table by migration 005. */
+/** The 14 day-1 genres seeded into `genre_templates` by migration 003
+ * (already applied). Verified 2026-05-31 against the live Supabase
+ * remote via `SELECT genre FROM genre_templates ORDER BY genre`.
+ * Source of truth: the seeded DB rows. Migration 005 references these
+ * by string FK, so this enum mirrors the DB exactly. */
 export const GenreEnum = z.enum([
-    "platformer_2d",
-    "metroidvania",
-    "puzzle_platformer",
-    "top_down_action_rpg",
-    "jrpg",
-    "card_battler",
-    "bullet_hell",
-    "tower_defense",
-    "visual_novel",
-    "narrative_adventure",
-    "roguelike",
     "browser_arcade",
-    "incremental_clicker",
-    "endless_runner",
+    "bullet_hell",
+    "card_game",
+    "hardcore_platformer",
+    "jrpg",
+    "metroidvania",
+    "mobile_puzzle",
+    "multiplayer_arena",
+    "retro_8bit",
+    "roguelike",
+    "social_sim",
+    "stride_action",
+    "threejs_showcase",
+    "visual_novel",
 ]);
 export type Genre = z.infer<typeof GenreEnum>;
 

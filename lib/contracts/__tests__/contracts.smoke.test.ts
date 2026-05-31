@@ -193,10 +193,10 @@ describe("game-plan contract", () => {
         project_id: "00000000-0000-4000-8000-000000000000",
         meta: {
             title: "Test Game",
-            genre: "platformer_2d" as const,
+            genre: "hardcore_platformer" as const,
             engine: "godot" as const,
             style_pack_id: "pixel-art-dark",
-            template_origin: "platformer_2d_godot",
+            template_origin: "hardcore_platformer_godot",
             target_duration_minutes: 30,
             difficulty: "balanced" as const,
         },
