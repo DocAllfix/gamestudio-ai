@@ -169,7 +169,10 @@ CATALOG: tuple[AssetLibrary, ...] = (
                      "background", "concept_art", "model_3d",
                      "texture", "audio_sfx", "audio_bgm", "font"),
         scrape_strategy="html_listing",
-        rate_limit_rpm=15,
+        # OpenGameArt /robots.txt declares Crawl-delay: 10 (= 6 rpm max).
+        # 15 rpm was scraping at 2.5x the site's stated rate and risked
+        # an IP ban. 6 rpm respects the policy.
+        rate_limit_rpm=6,
         requires_auth=False,
         env_var=None,
         estimated_total=50_000,
