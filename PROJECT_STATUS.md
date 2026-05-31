@@ -1,12 +1,73 @@
 # Game Studio AI — Project Status
 
 Operational tracker for the pre-alpha pipeline. Phases and sub-phases mirror
-[docs/MASTER_EXECUTION_PLAN.md](docs/MASTER_EXECUTION_PLAN.md) §03.
+[docs/MASTER_EXECUTION_PLAN.md](docs/MASTER_EXECUTION_PLAN.md) §03 (Phase 1)
+and [docs/SUPREME_CONCURRENT_EXECUTION_PLAN.md](docs/SUPREME_CONCURRENT_EXECUTION_PLAN.md)
+(Phase 2).
 
 Conventions:
-- Tick a sub-phase only when its checklist in MASTER_EXECUTION_PLAN passes.
+- Tick a sub-phase only when its checklist in the matching plan passes.
 - Commit message format: `feat(phase-N): <description>` or `fix(phase-N): ...`.
 - Never skip ahead — every phase has hard verification gates.
+
+---
+
+## FASE 0 (Phase 2) — Contract Phase (prep on feat/phase-0-contracts)
+
+Pre-merge groundwork for the 4-way parallel split. All committed on
+`feat/phase-0-contracts`; will land on `main` once OGA scrape +
+RAG-4 pipeline closes and the merge protocol runs.
+
+- [x] **0.1** — 6 canonical Zod contracts in `lib/contracts/` covering
+  Game Plan, Game Graph, Reasoning Engine, Tool Registry, Assembly
+  Pipeline, Evaluation Metrics. 31 smoke tests PASS. (commit `59201bf`)
+- [x] **0.2** — Concurrent Development Manifesto v2 architectural plan
+  saved as `docs/CONCURRENT_DEVELOPMENT_MANIFESTO.md`. (commit `be87f5c`)
+- [x] **0.3** — Supreme Concurrent Execution Plan operational handbook
+  (49 sub-phases across 4 workstreams with copy-paste prompts +
+  checklists + BaaS integration + logging directives + Playwright MCP
+  for §07) saved as `docs/SUPREME_CONCURRENT_EXECUTION_PLAN.md`.
+  (commit `0f066c1`)
+- [x] **0.4** — Migration `005_product_schema.sql` drafted (8 product
+  tables + 8 RLS policies + 5 RPCs + grants). Contract `GenreEnum`
+  realigned to the 14 genres actually seeded by migration 003.
+  (commit `3799558`) — NOT YET APPLIED on remote, awaiting Phase 0
+  step E after the branch merge.
+- [x] **0.5** — 5 mocks in `lib/_mocks/` (tools, llm, orchestrator,
+  runtime, baas) with 14 smoke tests PASS. Every mock Zod-validates
+  inputs and shape-conforms its outputs to the canonical contract.
+  (commit `4a93252`)
+- [x] **0.6** — Workstream directory scaffolding under `lib/` + `app/` +
+  `components/`. 23 READMEs explaining ownership / branch / Supreme
+  Plan section / contracts / BaaS / logging — one per workstream
+  directory. `docs/standup/` template for the daily 5-line markdown
+  notes. (commit `79301c1`)
+- [x] **0.7** — `.env.example` expanded from 14 Phase-1 keys to 39
+  keys covering every Phase 2 BaaS, grouped by workstream owner.
+  (commit `73215e0`)
+- [x] **0.8** — `CLAUDE.md` governance section refreshed for Phase 2:
+  4 workstreams + 22 BaaS perimeter + 8 cross-workstream rules. Code
+  Quality / Anti-Hallucination / Migration Sync protocols at the top
+  stay intact. (commit `e12bc00`)
+
+Total Phase 0 prep: 8 commits, 0 errors `tsc --noEmit`, 45/45 PASS on
+the test suite.
+
+Remaining steps (gated on OGA scrape completion):
+- [ ] Pre-merge: run RAG-4 pipeline (filter + classify + embed + store
+  on the 1200 OGA assets), verify
+  `python scripts/ingestion_assets/08_test_asset_queries.py` returns
+  10/10 PASS (T02 audio_bgm canary).
+- [ ] Step A: merge `feat/phase-2-asset-library` + `feat/phase-0-contracts`
+  → `master`, rename `master` → `main`, GitHub default branch update.
+- [ ] Step B: cleanup of obsolete docs (GEMINI v1/v2 prompts,
+  LORA_LIBRARY_EXPANDED, BLUEPRINT v1, CLEANUP_LEDGER, dry_run_full).
+- [ ] Step E: `python scripts/apply_migrations.py` applies 005 on the
+  Supabase remote; verify 8 new tables + 5 RPCs via
+  `information_schema.tables` + `pg_proc`.
+- [ ] Step G: `git tag v0.0.0-contracts` + create 4 workstream branches
+  from the tag + push + GitHub branch protection rules on `main`
+  (require PR + 1 review + status checks + linear history).
 
 ---
 
