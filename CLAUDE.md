@@ -1,4 +1,7 @@
-CLAUDE.md — Game Studio AI Workspace
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ═══ SYSTEM INSTRUCTIONS ═══
 Identity
 This workspace is Game Studio AI — an AI-powered platform that democratizes
@@ -114,6 +117,55 @@ Rules:
 
 The same protocol applies to RLS policies and RPC functions: they live in
 migrations, never authored ad-hoc in the Dashboard.
+
+═══ DEVELOPER REFERENCE ═══
+
+## Commands
+
+The product is TypeScript (ESM, strict). The ingestion pipeline is Python 3.11+.
+
+```bash
+# TypeScript
+npm run typecheck                 # tsc --noEmit (no build step; tsx/ts-node run sources directly)
+npm test                          # vitest run — all lib/**/__tests__/**/*.test.ts
+npm run test:watch                # vitest watch mode
+npx vitest run lib/contracts/__tests__/contracts.smoke.test.ts   # single test FILE
+npx vitest run -t "rejects an empty object"                       # single test by NAME
+npx tsx scripts/smoke_ts_client.ts                                # run a TS script ad-hoc
+
+# Python ingestion / DB (Phase 1, frozen — see governance below)
+pip install -r requirements.txt
+python scripts/apply_migrations.py --dry-run    # list pending migrations, touch nothing
+python scripts/apply_migrations.py              # apply pending migrations in a transaction
+python scripts/ingestion/<NN>_step.py --dry-run # every script supports --dry-run (mandatory)
+```
+
+There is no lint script and no dev server yet (`app/` is an empty Next.js scaffold). `npm run typecheck` + `npm test` are the verification gates.
+
+## Critical conventions
+
+- **ESM `.js` import suffix.** `tsconfig` is `ES2022`/`module: ES2022`. TS sources import sibling modules with a `.js` extension even though the file is `.ts` (e.g. `import { CodeReference } from "./types.js"`). Match this — omitting `.js` breaks at runtime.
+- **Run TS, don't build it.** Use `tsx`/`ts-node`; `outDir: dist` exists but the workflow executes sources directly.
+- **Vitest only discovers `lib/**/__tests__/**/*.test.ts`** (see [vitest.config.ts](vitest.config.ts)). Tests for a module live in a `__tests__/` folder beside it.
+- **Python scripts run from `scripts/`** as the import root (`from shared.db import ...`, `from ingestion._sources import ...`). Run them as `python scripts/<dir>/<file>.py` from repo root; the bare-module imports resolve because each package is under `scripts/`.
+
+## Architecture (the parts that span files)
+
+**Two-stage system.** Phase 1 (done, frozen) is a Python pipeline that scraped real game source + assets, classified them with LLMs under strict JSON-Schema/enum constraints, embedded them, and stored them in Supabase + pgvector. Phase 2 (current) builds the TypeScript product that *consumes* that knowledge base via RAG. The full strategy lives in [docs/SUPREME_RAG_BLUEPRINT.md](docs/SUPREME_RAG_BLUEPRINT.md) and [docs/CONCURRENT_DEVELOPMENT_MANIFESTO.md](docs/CONCURRENT_DEVELOPMENT_MANIFESTO.md).
+
+**The KB client is the seam between the two stages.** [lib/knowledge.ts](lib/knowledge.ts) is how all Phase-2 code touches Phase-1 data: `getReferences()` / `getReferenceParameters()` call Supabase RPCs (`search_code_knowledge`, `get_reference_parameters`) that do filtered pgvector search; `buildReferenceContext()` formats the hits into prompt grounding. Two non-obvious rules baked in: (1) **graceful degradation** — on any Supabase/OpenAI failure these return `[]` instead of throwing, so a tool degrades to unboosted output rather than crashing the flow; (2) embedding uses `text-embedding-3-small`, and search falls back to filter-only when the embedding fails. Return shapes are defined once in [lib/types.ts](lib/types.ts), mirroring the RPC signatures in [supabase/migrations/001_knowledge_base.sql](supabase/migrations/001_knowledge_base.sql).
+
+**Contracts are the parallelism boundary.** Phase 2 is split into 4 workstreams (W1–W4) developed on isolated branches and merged in a fixed order (W2→W3→W1→W4 — see governance below). The only thing they share is [lib/contracts/](lib/contracts/): six canonical Zod schemas (game-plan, game-graph, reasoning-engine, tool-registry, assembly-pipeline, evaluation-metrics). Everything that crosses a workstream boundary must round-trip through these schemas. **Treat `lib/contracts/` as read-only during parallel work** — changing it requires the contract-proposal process described below. The `GamePlan` schema is the spine: W1 emits it (including an `execution_dag`), W2 tools consume it node-by-node, W3 builds from it. Enums (`engine`, `genre`) are pinned to catalog rows seeded by the applied migrations, not free-form strings.
+
+**Mocks let a workstream depend on another's unbuilt feature.** [lib/_mocks/](lib/_mocks/) holds shape-correct mocks (tools, llm, orchestrator, runtime, baas) that Zod-validate against the contracts. Import `@/lib/_mocks/<domain>.mock` until the real implementation merges; because the mock validates against the contract, a divergence surfaces at test time, not at merge. Each `lib/<feature>/README.md` records that directory's owning workstream, branch, Supreme-Plan section, and contracts.
+
+**The DB is the source of truth via migrations only.** [supabase/migrations/](supabase/migrations/) (NNN_*.sql, zero-padded, monotonic, immutable once applied) is authoritative; `001`–`005` are applied and frozen. [scripts/apply_migrations.py](scripts/apply_migrations.py) records applied versions in `public.schema_migrations` and runs each file in one transaction. Schema changes are *additive* new migration files — never edit an applied one, never change remote schema via the Dashboard. Two Postgres access paths: the Supabase JS/REST client (RPC/RLS, used by `lib/`) and a direct `psycopg2` connection via [scripts/shared/db.py](scripts/shared/db.py) (DDL/service-role, used by migrations). RPCs and RLS policies live in migrations, never authored ad-hoc.
+
+**Phase-1 ingestion shape** (frozen — for reading, not editing): [scripts/ingestion/](scripts/ingestion/) is a numbered pipeline (`01_scrape` → `02_filter` → `03_parse_<engine>` → `04_classify` → `05_embed_store` → `06_validate` …) with per-engine parsers (`_godot_*`, `_phaser_*`, `_renpy_*`) and `_`-prefixed helpers. [scripts/ingestion_assets/](scripts/ingestion_assets/) mirrors this for CC0/CC-BY assets. Cross-cutting logic (taxonomy, classification schema, confidence gate, validators) is in [scripts/shared/](scripts/shared/).
+
+## Env
+
+Copy `.env.example` → `.env`. Keys are grouped by owning workstream. The KB client needs `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`; the migration runner needs the `SUPABASE_DB_*` set (direct Postgres). Phase-2 LLM calls go through OpenRouter (`OPENROUTER_API_KEY`) with an Azure OpenAI fallback path. Read all secrets from `process.env` / `os.environ`; the KB client throws on missing required vars at first use.
 
 ═══ CURRENT MISSION: PHASE 2 — 4-WAY PARALLEL PRODUCT DEV ═══
 

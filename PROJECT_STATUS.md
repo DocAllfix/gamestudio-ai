@@ -618,12 +618,18 @@ GitLab. No LLM in the loop — license detection is deterministic.
 | 002 | `supabase/migrations/002_fix_search_rpc_null_engine.sql` | ✅ | Fix `search_code_knowledge` for null engine filter |
 | 003 | `supabase/migrations/003_asset_library_index.sql` | ✅ **2026-05-24** | Applied via `scripts/ingestion_assets/_apply_migration_003.py`. 7 tables (asset_library_index + quarantine + style_packs + genre_templates + reference_games + audio_mood_library + lora_library) + 3 RPC (match_assets, match_loras, increment_asset_usage) + RLS read-public. License allowlist enforced at CHECK constraint level. Verified via `information_schema.tables`. Tracker reconciled with manual INSERT into `schema_migrations` on 2026-05-31 so future migrations apply cleanly via the standard runner. |
 | 004 | `supabase/migrations/004_fix_match_loras_ambiguous_rank_score.sql` | ✅ **2026-05-31** | Fix discovered by FASE RAG-5 test T08: PL/pgSQL function exposes its RETURNS-TABLE column `rank_score` into the body scope, which collided with the CTE column of the same name and produced AmbiguousColumn. Qualifies every column with the `scored.` CTE alias. Additive, idempotent. |
+| 006 | `supabase/migrations/006_add_fork_event.sql` | ✅ **2026-06-03** | FASE 0 contract proposal G.0. Adds `'fork'` to the `usage_events.event_name` CHECK constraint (flywheel/viral loop, WOW §5). Additive, idempotent. Mirrors `UsageEventSchema` in billing.contract.ts. Applied via `scripts/apply_migrations.py`; recorded in `schema_migrations`; `'fork'` confirmed accepted by the CHECK (test INSERT rolled back). |
 
 ---
 
 ## Riferimenti
 
 - [CLAUDE.md](CLAUDE.md) — regole di workspace (auto-iniettato a ogni sessione e prima della compaction via `.claude/settings.json`)
+- [docs/COMPETITIVE_LANDSCAPE_2026.md](docs/COMPETITIVE_LANDSCAPE_2026.md) — mappa competitiva reale giugno 2026 + posizionamento difendibile (supera i dati competitivi di pietra v4 §1-TER e v5 §D)
+- [docs/WOW_CONTRACT.md](docs/WOW_CONTRACT.md) — criteri verificabili dell'MVP day-1 (5 motori, soglie wow, scope, flywheel, modello economico bootstrap-safe)
+- [docs/KB_STATE.md](docs/KB_STATE.md) — **fonte numerica unica** della KB, auto-generata da `scripts/kb_state_report.py` (rigenera quando la KB cambia; i doc storici divergono, il DB è la verità)
+- [docs/EXECUTION_ARCHITECTURE.md](docs/EXECUTION_ARCHITECTURE.md) — bill-of-materials esagonale del day-1 (ogni tool/API/porta → workstream → fase), guida credenziali per workflow, contract proposal Fase 0 (babylon/webExport/porte generative). Base per il piano di esecuzione.
+- [EXECUTION_PLAN_PROMPTS.md](EXECUTION_PLAN_PROMPTS.md) — piano di esecuzione operativo: 23 blocchi (FASE 0 + W1/W2/W3/W4 + Gate), ognuno con prompt auto-contenuto, criteri DONE binari, output di fase. Da incollare agli agenti di sviluppo.
 - [docs/SUPREME_RAG_BLUEPRINT.md](docs/SUPREME_RAG_BLUEPRINT.md) — taxonomy, schema, pipeline
 - [docs/MASTER_EXECUTION_PLAN.md](docs/MASTER_EXECUTION_PLAN.md) — sezione §03 (questa roadmap), §01 (anti-allucinazione), §04 (ignition prompts)
 - [docs/pietra_v4 (1).md](docs/pietra_v4%20%281%29.md) — vision document

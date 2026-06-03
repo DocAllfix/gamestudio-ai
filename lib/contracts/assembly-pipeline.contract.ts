@@ -57,6 +57,23 @@ export interface BuildArtifact {
     metadata: Record<string, unknown>;
 }
 
+/** Browser-playable bundle produced by `webExport()`. Distinct from the
+ * downloadable .zip of `package()`: this is the HTML/WASM/JS bundle served
+ * from R2 and embedded in the feed's sandboxed iframe (W4). For natively-web
+ * engines (phaser, threejs, babylon) it is near-identity to the build; for
+ * godot/defold it is the WASM export. `mobile_apk_url` is non-null only for
+ * Defold (.apk native, day-1). */
+export interface WebBuildArtifact {
+    /** R2 URL of the embeddable bundle (iframe src). */
+    iframe_url: string;
+    /** Bundle size in bytes — surfaced in the UI / cost of serving the feed. */
+    bundle_size_bytes: number;
+    /** Whether the bundle is a plain browser page or an installable PWA. */
+    target: "browser" | "pwa";
+    /** R2 URL of the native Android .apk (Defold day-1); null otherwise. */
+    mobile_apk_url: string | null;
+}
+
 export interface EngineAdapter {
     /** Stable engine id matching the EngineEnum entry. */
     readonly engine: z.infer<typeof EngineEnum>;
@@ -81,6 +98,11 @@ export interface EngineAdapter {
     smokeTest(sandbox: SandboxHandle): Promise<SmokeTestResult>;
     /** Zip the build output and upload to R2. */
     package(sandbox: SandboxHandle): Promise<BuildArtifact>;
+    /** Produce a browser-playable bundle (HTML/WASM/JS) served from R2,
+     * embeddable in the feed's sandboxed iframe. For phaser/threejs/babylon
+     * ≈ identity to the build; for godot/defold = WASM export. Sets
+     * `mobile_apk_url` for Defold (.apk native). */
+    webExport(sandbox: SandboxHandle): Promise<WebBuildArtifact>;
 }
 
 // ---- Assembler call envelope ---------------------------------------------

@@ -118,6 +118,7 @@ export const UsageEventSchema = z.object({
         "game_exported_steam",
         "upgrade_clicked",
         "downgrade_clicked",
+        "fork",
     ]),
     metadata: z.record(z.unknown()).default({}),
     /** Helps stitch PostHog and Helicone telemetry across the same run. */
