@@ -5,46 +5,27 @@
  *
  * Replace at merge time per Supreme Plan §07.
  */
-import { z } from "zod";
+/** The request/response schemas are owned by the real router
+ * (lib/llm/router.ts) and re-exported here so the mock can never drift
+ * from the implementation: changing the router shape changes the mock
+ * shape automatically. */
+export {
+    ModelIdEnum,
+    LlmCompleteRequestSchema,
+    LlmCompleteResponseSchema,
+} from "../llm/router.js";
+export type {
+    ModelId,
+    LlmCompleteRequest,
+    LlmCompleteResponse,
+} from "../llm/router.js";
 
-/** Models the router supports. Mirror what `lib/llm/router.ts` will
- * accept. Adding a new id here without updating the real router will
- * fail the contract check at merge time. */
-export const ModelIdEnum = z.enum([
-    "deepseek-chat", // default cheap
-    "deepseek-reasoner",
-    "claude-sonnet-4-7",
-    "claude-haiku-4-5",
-    "gpt-4o-mini",
-    "gpt-4o",
-    "gemini-2.5-flash",
-]);
-export type ModelId = z.infer<typeof ModelIdEnum>;
-
-export const LlmCompleteRequestSchema = z.object({
-    model: ModelIdEnum,
-    system: z.string().optional(),
-    user: z.string().min(1),
-    response_schema: z.unknown().optional(),
-    max_tokens: z.number().int().min(1).max(64000).default(2048),
-    temperature: z.number().min(0).max(2).default(0.2),
-    trace_id: z.string().min(1),
-});
-export type LlmCompleteRequest = z.infer<typeof LlmCompleteRequestSchema>;
-
-export const LlmCompleteResponseSchema = z.object({
-    trace_id: z.string().min(1),
-    model: ModelIdEnum,
-    /** When `response_schema` was provided, this is the parsed object;
-     * otherwise raw text. */
-    output: z.unknown(),
-    cost_usd: z.number().min(0),
-    latency_ms: z.number().int().min(0),
-    tokens_in: z.number().int().min(0),
-    tokens_out: z.number().int().min(0),
-    cache_hit: z.boolean(),
-});
-export type LlmCompleteResponse = z.infer<typeof LlmCompleteResponseSchema>;
+import {
+    LlmCompleteRequestSchema,
+    LlmCompleteResponseSchema,
+    type LlmCompleteRequest,
+    type LlmCompleteResponse,
+} from "../llm/router.js";
 
 /** Mock router complete call. Validates request, returns a shape-
  * conformant stub. */
