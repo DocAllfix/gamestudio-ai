@@ -20,7 +20,13 @@ import {
 
 /** Single-call mock dispatcher. Validates the invocation, returns a
  * canned succeeded result. Caller should pretend the output came
- * from a real tool — it is shape-correct and Zod-validated. */
+ * from a real tool — it is shape-correct and Zod-validated.
+ *
+ * This stays a PURE stub (no network/LLM/DB): the real [2-W2] tools live
+ * in `lib/tools/<category>/.../index.ts` and are wired through
+ * `lib/tools/registry.ts`. At merge time (§07) consumers import the
+ * registry directly; until then this mock keeps the contract surface
+ * available to W1/W3/W4 without side effects. */
 export async function invokeTool(
     invocation: ToolInvocation,
 ): Promise<ToolExecutionResult> {
