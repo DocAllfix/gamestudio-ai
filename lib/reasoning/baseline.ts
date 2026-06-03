@@ -15,6 +15,22 @@
  */
 import type { Engine, Genre, GamePlan } from "../contracts/game-plan.contract.js";
 
+/** The day-1 code-gen tool id per engine (from ToolIdEnum in
+ * tool-registry.contract.ts). The baseline DAG's single node dispatches
+ * this; the Orchestrator refuses unknown tool ids, so it must be a real
+ * ToolId. */
+const ENGINE_CODE_GEN_TOOL: Record<Engine, string> = {
+    godot: "code_gen_godot_gdscript",
+    phaser: "code_gen_phaser_js",
+    renpy: "code_gen_renpy_python",
+    defold: "code_gen_defold_lua",
+    monogame: "code_gen_monogame_csharp",
+    love2d: "code_gen_love2d_lua",
+    threejs: "code_gen_threejs_ts",
+    stride: "code_gen_stride_csharp",
+    babylon: "code_gen_babylon_ts",
+};
+
 /** Default engine per genre, used when the user does not pin one. */
 const GENRE_DEFAULT_ENGINE: Record<Genre, Engine> = {
     browser_arcade: "phaser",
@@ -88,7 +104,7 @@ export function templateSkeleton(
             nodes: [
                 {
                     id: "player-controller",
-                    tool_id: "code_gen_player_controller",
+                    tool_id: ENGINE_CODE_GEN_TOOL[engine],
                     input: { mechanic: "player_controller", engine },
                     depends_on: [],
                 },
