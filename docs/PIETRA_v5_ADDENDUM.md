@@ -1,5 +1,11 @@
 # PIETRA FONDATIVA v5 — ADDENDUM TECNICO
 
+> ⚠️ **NOTA (2026-06-03)**: §D (moat table) e i dati competitivi di questo
+> documento sono **superati**. Per la mappa competitiva e il posizionamento
+> aggiornati e verificati vedi [`COMPETITIVE_LANDSCAPE_2026.md`](COMPETITIVE_LANDSCAPE_2026.md).
+> Per i criteri di lancio day-1 e il modello economico corretto vedi
+> [`WOW_CONTRACT.md`](WOW_CONTRACT.md). Il resto (visione, §A-C, §E-I) resta valido.
+
 **Versione**: 5.0 ADDENDUM (estende Pietra v4)
 **Data**: 2026-05-24
 **Status**: pre-sviluppo, post Fase 2 Resource Hunt

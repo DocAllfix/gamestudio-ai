@@ -1,6 +1,11 @@
 # PIETRA FONDATIVA DEFINITIVA v4.0
 ## Game Studio AI — La piattaforma che democratizza lo sviluppo di videogiochi
 
+> ⚠️ **NOTA (2026-06-03)**: §1-TER (dati di mercato / competitor) è **superato**.
+> Per la mappa competitiva reale di giugno 2026 vedi
+> [`COMPETITIVE_LANDSCAPE_2026.md`](COMPETITIVE_LANDSCAPE_2026.md). Il resto del
+> documento (visione, architettura, tool, stack) resta il riferimento fondativo.
+
 **Versione**: 4.0 FINALE  
 **Data**: 18 maggio 2026  
 **Input**: 8 documenti fondativi + Serverless Blueprint + Coverage Analysis + Gap Resolution + Ricerca Empirica + Roblox Legal Analysis  
