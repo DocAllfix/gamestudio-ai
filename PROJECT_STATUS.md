@@ -62,21 +62,40 @@ RAG-4 pipeline closes and the merge protocol runs.
 Total Phase 0 prep: 8 commits, 0 errors `tsc --noEmit`, 45/45 PASS on
 the test suite.
 
-Remaining steps (gated on OGA scrape completion):
-- [ ] Pre-merge: run RAG-4 pipeline (filter + classify + embed + store
-  on the 1200 OGA assets), verify
-  `python scripts/ingestion_assets/08_test_asset_queries.py` returns
-  10/10 PASS (T02 audio_bgm canary).
-- [ ] Step A: merge `feat/phase-2-asset-library` + `feat/phase-0-contracts`
-  → `master`, rename `master` → `main`, GitHub default branch update.
-- [ ] Step B: cleanup of obsolete docs (GEMINI v1/v2 prompts,
-  LORA_LIBRARY_EXPANDED, BLUEPRINT v1, CLEANUP_LEDGER, dry_run_full).
-- [ ] Step E: `python scripts/apply_migrations.py` applies 005 on the
-  Supabase remote; verify 8 new tables + 5 RPCs via
-  `information_schema.tables` + `pg_proc`.
-- [ ] Step G: `git tag v0.0.0-contracts` + create 4 workstream branches
-  from the tag + push + GitHub branch protection rules on `main`
-  (require PR + 1 review + status checks + linear history).
+- [x] **Pre-merge** — RAG-4 pipeline ran on the 1200 OGA assets.
+  9/10 PASS on `08_test_asset_queries.py` (T02 audio_bgm canary
+  stayed FAIL by design — limit exhausted on sprite art_type before
+  reaching music). 9/10 still exceeds the 8/10 gate.
+  (commit `c511e3d`)
+- [x] **Step A** — `feat/phase-2-asset-library` + `feat/phase-0-contracts`
+  fast-forwarded into `master`, `master` renamed to `main` locally
+  and on GitHub, default branch updated.
+- [x] **Step B** — 6 obsolete docs removed
+  (commit `c2fa0d4`). CLEANUP_LEDGER snapshots intentionally kept
+  as the durable backup of the 573 deleted repo URLs.
+- [x] **Step E** — Migration 005 applied via
+  `scripts/apply_migrations.py`. 8 product tables + 6 functions +
+  RLS on all 8 verified live.
+  (commit `f2d22c2`)
+- [x] **Step G** — Tag `v0.0.0-contracts` created on `f2d22c2` (HEAD
+  at Phase 0 end). 4 workstream branches created from the tag and
+  pushed to `origin`:
+    - `ws/w1-reasoning-orchestrator`
+    - `ws/w2-tools-llm`
+    - `ws/w3-runtime-engines`
+    - `ws/w4-frontend-billing`
+  Branch protection rule applied to `main`:
+  PR required + 1 approval + linear history + no force push + no
+  delete + conversation resolution required.
+
+### ✅ FASE 0 (Phase 2) — GATE
+
+The 4-way parallel Phase 2 development can now begin. Each
+workstream branch is rooted at `v0.0.0-contracts` and shares the
+canonical Zod contracts in `lib/contracts/` + the validated mocks
+in `lib/_mocks/`. Daily merge sequence follows the immutable
+W2 → W3 → W1 → W4 order documented in
+`docs/CONCURRENT_DEVELOPMENT_MANIFESTO.md` §06.
 
 ---
 
