@@ -31,8 +31,17 @@ RAG-4 pipeline closes and the merge protocol runs.
 - [x] **0.4** — Migration `005_product_schema.sql` drafted (8 product
   tables + 8 RLS policies + 5 RPCs + grants). Contract `GenreEnum`
   realigned to the 14 genres actually seeded by migration 003.
-  (commit `3799558`) — NOT YET APPLIED on remote, awaiting Phase 0
-  step E after the branch merge.
+  (commit `3799558` drafted, applied 2026-06-03)
+- [x] **0.4-apply** — Migration 005 applied via
+  `scripts/apply_migrations.py`. Verified on Supabase:
+  - 8/8 product tables present (`users`, `projects`,
+    `game_plan_versions`, `tool_executions`, `usage_events`,
+    `episodic_memory`, `build_artifacts`, `hitl_pauses`)
+  - 6/6 functions live (`record_tool_execution`, `check_quota`,
+    `increment_quota_usage`, `update_episodic_memory`,
+    `apply_game_plan_diff`, `current_clerk_user_id` helper)
+  - RLS enabled on all 8 product tables
+  - `schema_migrations` row inserted with applied_at = 2026-06-03
 - [x] **0.5** — 5 mocks in `lib/_mocks/` (tools, llm, orchestrator,
   runtime, baas) with 14 smoke tests PASS. Every mock Zod-validates
   inputs and shape-conforms its outputs to the canonical contract.
