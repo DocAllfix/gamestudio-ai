@@ -34,44 +34,9 @@ import { designPlanner } from "../reasoning/design.js";
 import { consistencyManager } from "../reasoning/consistency.js";
 import { balanceController } from "../reasoning/balance.js";
 import { executionOrchestrator } from "../reasoning/execution.js";
+import { evaluationAgent } from "../reasoning/evaluation.js";
 
 type Iteration = HermesPlanResponse["iterations"][number];
-type SmokeReport = Awaited<
-    ReturnType<typeof executionOrchestrator.materialize>
->["smoke_test_report"];
-
-/** Inline D.6 stub ([4-W1] seam): a smoke pass becomes the
- * soft_lock_count + smoke_test_pass_rate verdicts. Replaced by the real
- * EvaluationAgent.evaluate when [4-W1] lands. */
-function stubEvaluate(
-    plan: GamePlan,
-    softLockCount: number,
-    smoke: SmokeReport,
-): EvaluationReport {
-    const smokePassRate =
-        smoke.runs.filter((r) => r.passed).length / smoke.runs.length;
-    const verdicts: EvaluationReport["verdicts"] = [
-        {
-            metric: "soft_lock_count",
-            value: softLockCount,
-            threshold: 0,
-            passed: softLockCount <= 0,
-            notes: "from D.3 consistency gate",
-        },
-        {
-            metric: "smoke_test_pass_rate",
-            value: smokePassRate,
-            threshold: 0.95,
-            passed: smokePassRate >= 0.95,
-            notes: "from D.5 smoke test (stub D.6 — replaced in [4-W1])",
-        },
-    ];
-    return {
-        plan_version: `v${plan.plan_version}`,
-        verdicts,
-        overall_passed: verdicts.every((v) => v.passed),
-    };
-}
 
 function failedReport(plan: GamePlan, softLockCount: number): EvaluationReport {
     return {
@@ -162,9 +127,28 @@ export const hermesOrchestrator: HermesOrchestrator = {
         memory = execution.memory;
         push("execution", `nodes=${execution.node_results.length}`);
 
-        // D.6 Evaluation — stub until [4-W1].
-        const report = stubEvaluate(plan, softLockCount, execution.smoke_test_report);
+        // D.6 Evaluation — the final smoke gate. Cost/time totals from
+        // D.5 feed the cost/time verdicts; the smoke report is threaded
+        // through so D.6 measures the same build D.5 produced.
+        const evaluation = await evaluationAgent.evaluate(
+            {
+                plan,
+                build_artifact_id: execution.build_artifact_id,
+                num_playtests: 10,
+                memory,
+            },
+            {
+                smokeReport: execution.smoke_test_report,
+                generation_cost_usd: execution.total_cost_usd,
+                generation_time_seconds: execution.total_latency_ms / 1000,
+            },
+        );
+        memory = evaluation.memory;
+        const report = evaluation.report;
         push("evaluation", `overall_passed=${report.overall_passed}`);
+        if (evaluation.refinement_request !== null) {
+            push("refinement", evaluation.refinement_request.slice(0, 500));
+        }
 
         return {
             project_id: projectId,
