@@ -624,6 +624,11 @@ GitLab. No LLM in the loop — license detection is deterministic.
 ## Riferimenti
 
 - [CLAUDE.md](CLAUDE.md) — regole di workspace (auto-iniettato a ogni sessione e prima della compaction via `.claude/settings.json`)
+- [docs/COMPETITIVE_LANDSCAPE_2026.md](docs/COMPETITIVE_LANDSCAPE_2026.md) — mappa competitiva reale giugno 2026 + posizionamento difendibile (supera i dati competitivi di pietra v4 §1-TER e v5 §D)
+- [docs/WOW_CONTRACT.md](docs/WOW_CONTRACT.md) — criteri verificabili dell'MVP day-1 (5 motori, soglie wow, scope, flywheel, modello economico bootstrap-safe)
+- [docs/KB_STATE.md](docs/KB_STATE.md) — **fonte numerica unica** della KB, auto-generata da `scripts/kb_state_report.py` (rigenera quando la KB cambia; i doc storici divergono, il DB è la verità)
+- [docs/EXECUTION_ARCHITECTURE.md](docs/EXECUTION_ARCHITECTURE.md) — bill-of-materials esagonale del day-1 (ogni tool/API/porta → workstream → fase), guida credenziali per workflow, contract proposal Fase 0 (babylon/webExport/porte generative). Base per il piano di esecuzione.
+- [EXECUTION_PLAN_PROMPTS.md](EXECUTION_PLAN_PROMPTS.md) — piano di esecuzione operativo: 23 blocchi (FASE 0 + W1/W2/W3/W4 + Gate), ognuno con prompt auto-contenuto, criteri DONE binari, output di fase. Da incollare agli agenti di sviluppo.
 - [docs/SUPREME_RAG_BLUEPRINT.md](docs/SUPREME_RAG_BLUEPRINT.md) — taxonomy, schema, pipeline
 - [docs/MASTER_EXECUTION_PLAN.md](docs/MASTER_EXECUTION_PLAN.md) — sezione §03 (questa roadmap), §01 (anti-allucinazione), §04 (ignition prompts)
 - [docs/pietra_v4 (1).md](docs/pietra_v4%20%281%29.md) — vision document
