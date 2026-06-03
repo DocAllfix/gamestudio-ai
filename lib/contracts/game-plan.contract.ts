@@ -33,6 +33,7 @@ export const EngineEnum = z.enum([
     "love2d",
     "threejs",
     "stride",
+    "babylon",
 ]);
 export type Engine = z.infer<typeof EngineEnum>;
 

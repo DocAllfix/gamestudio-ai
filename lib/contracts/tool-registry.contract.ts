@@ -76,6 +76,7 @@ export const ToolIdEnum = z.enum([
     "code_gen_love2d_lua",
     "code_gen_threejs_ts",
     "code_gen_stride_csharp",
+    "code_gen_babylon_ts",
     // sprite (2D art)
     "sprite_gen",
     "tileset_gen",
@@ -115,6 +116,7 @@ export const ToolIdEnum = z.enum([
     "love2d_assembler",
     "threejs_assembler",
     "stride_assembler",
+    "babylon_assembler",
     "itch_packager",
     "store_page_gen",
     // extras
