@@ -22,6 +22,11 @@ import spriteGen from "./sprite/index.js";
 import byoaAnalyzer from "./extras/byoa-analyzer/index.js";
 import codeValidator from "./qa/code-validator/index.js";
 import projectValidator from "./qa/project-validator/index.js";
+import levelLayout2d from "./level/level_layout_2d/index.js";
+import tilemapPopulate from "./level/tilemap_populate/index.js";
+import entityPlacement from "./level/entity_placement/index.js";
+import levelLayout3d from "./level/level_layout_3d/index.js";
+import heightmapGen from "./level/heightmap_gen/index.js";
 
 type AnyHandler = (invocation: ToolInvocation) => Promise<ToolExecutionResult>;
 
@@ -37,6 +42,11 @@ export const REGISTRY: Partial<Record<ToolId, AnyHandler>> = {
     byoa_analyzer: byoaAnalyzer.handler as AnyHandler,
     code_validator: codeValidator.handler as AnyHandler,
     project_validator: projectValidator.handler as AnyHandler,
+    level_layout_2d: levelLayout2d.handler as AnyHandler,
+    tilemap_populate: tilemapPopulate.handler as AnyHandler,
+    entity_placement: entityPlacement.handler as AnyHandler,
+    level_layout_3d: levelLayout3d.handler as AnyHandler,
+    heightmap_gen: heightmapGen.handler as AnyHandler,
 };
 
 export function isImplemented(toolId: ToolId): boolean {

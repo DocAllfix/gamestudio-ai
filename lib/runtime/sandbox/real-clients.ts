@@ -46,7 +46,17 @@ export function createE2bClient(): E2bClient {
         },
         async writeFile(sandbox, path, content) {
             const sbx = (sandbox as unknown as { _sdk: Sandbox })._sdk;
-            await sbx.files.write(path, content);
+            // The e2b SDK accepts string | ArrayBuffer | Blob | ReadableStream,
+            // not Node Buffer. Pass strings through; convert Buffer to a view
+            // over its underlying ArrayBuffer.
+            const payload: string | ArrayBuffer =
+                typeof content === "string"
+                    ? content
+                    : content.buffer.slice(
+                          content.byteOffset,
+                          content.byteOffset + content.byteLength,
+                      ) as ArrayBuffer;
+            await sbx.files.write(path, payload);
         },
     };
 }

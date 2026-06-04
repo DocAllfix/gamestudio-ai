@@ -81,7 +81,11 @@ Ancorati alle costanti già definite in
 basso costo); **3D da asset CC0** (Quaternius/KayKit/Poly Haven indicizzati +
 `match_assets` su `asset_type='model_3d'` + style pack C01-C08 — *content
 assembly da catalogo*, NON generazione); catena code_gen + sprite-2D +
-assembler; D.3 soft-lock + D.6 smoke test; `game_parameters` game-feel; browser
+assembler; **generazione mappe/livelli 2D E 3D verificata** (`level_layout_2d`,
+`tilemap_populate`, `entity_placement`, `level_layout_3d`, `heightmap_gen` —
+in-process, gratis: rot.js + simplex-noise + autotiling bitmask + A* reachability
+come moat; tile da catalogo CC0 + autotiling, FLUX solo su paywall) [day-1, scelta
+2026-06-04]; D.3 soft-lock + D.6 smoke test; `game_parameters` game-feel; browser
 play + **mobile PWA + .apk native via Defold**; feed play-in-place; badge/fork;
 Tip Jar.
 
@@ -105,10 +109,14 @@ abbiamo validato il differenziatore di Fase 2 con pochi dollari.
 
 Multiplayer Nakama (verifica più dura: 2+ client sincronizzati); .apk Godot
 (richiede template pre-baked + emulatore headless — indurire prima di
-promettere); Marble come feature-utente (Order Form); `level_layout_3d` /
-`heightmap_gen`; Playtester Agent completo; gli altri 3 motori (renpy /
-monogame / love2d / stride); Studio/Code Mode; i 48 tool completi; store nativi
-(Play / App Store).
+promettere); Marble come feature-utente (Order Form); Playtester Agent completo;
+gli altri 3 motori (renpy / monogame / love2d / stride); Studio/Code Mode; i 48
+tool completi; store nativi (Play / App Store).
+
+> **Nota 2026-06-04**: `level_layout_3d` / `heightmap_gen` SPOSTATI a day-1 (vedi
+> DENTRO-FREE) per decisione utente. La generazione 3D procedurale (terreno via
+> simplex-noise) è in-process e gratis; il 3D *generativo AI* (Meshy/TRELLIS.2)
+> resta paywall. Design completo: piano map-gen + docs/MAP_GEN (se presente).
 
 ### Razionale del taglio
 

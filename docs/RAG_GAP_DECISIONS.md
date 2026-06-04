@@ -255,3 +255,27 @@ Anche con queste compensazioni, il post-launch deve misurare:
   splendidi ma 902MB → richiede negoziato license. Out of scope.
 - **Self-host del classifier**: per ridurre costi di harvest futuri.
   Considerare in Fase 2.
+
+---
+
+## 8. Tileset 2D — espansione futura [aggiunto 2026-06-04]
+
+Il DB ha solo **35 tileset** (vs 1238 sprite, 554 model_3d, 19 animation_3d —
+fonte: KB_STATE.md). Pochi per coprire tutti i generi 2D nel **Free tier**, dove
+il generativo è gated (l'utente Free usa solo CC0). Per i tier PAY non è un
+problema: `tilemap_populate` + FLUX (Replicate, già configurato) genera tile
+on-demand nello stile richiesto coi nostri LoRA.
+
+**Decisione: NON harvestare ora.** Riaprirebbe Fase 1 (frozen) ed è fuori dal
+percorso critico (merge/swap/primo-test). Da affrontare come mini-"Fase 1ter"
+mirato DOPO che `level_layout_2d`/`tilemap_populate` sono implementati e sappiamo
+quali generi/stili gli utenti usano davvero (evita di harvestare tileset
+sbagliati).
+
+**Fonti CC0 candidate** (allowlist: CC0/CC-BY-4.0/OFL-1.1):
+- **Kenney.nl** — il riferimento per tileset CC0 di qualità, già usato per asset
+- **OpenGameArt** — CC0/CC-BY/OFL, ampio ma da filtrare licenze
+- **Itch.io** (asset pack CC0)
+
+**Effort stimato:** scraper mirato + classificazione + 1 migration additiva (NNN)
+per inserire i nuovi tileset in `asset_library_index`. Non urgente.
