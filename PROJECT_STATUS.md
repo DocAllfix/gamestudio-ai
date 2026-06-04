@@ -12,6 +12,41 @@ Conventions:
 
 ---
 
+## ⭐ STATO CONVERGENZA — Phase 2 merge (2026-06-04)
+
+**Tutti e 4 i workstream MERGIATI su `main`.** Ordine W2→W3→W1→W4 rispettato.
+Gate finale verde: `tsc --noEmit` pulito · `vitest` 274 passed / 1 skipped ·
+`next build` 13 route. Tutto LOCALE (nessun push). Vedi `docs/MERGE_RUNBOOK.md`.
+
+| Step | Commit | Stato |
+|------|--------|-------|
+| W2 tools + LLM router | `06ac230` | ✅ |
+| W3 runtime + engines | `1d50853` | ✅ |
+| W1 reasoning + Hermes | `30c7b07` + `95c624c` (swap) | ✅ |
+| W4 frontend + billing | `7644855` | ✅ |
+| package.json consolidato | `3d3dead` | ✅ |
+
+**Swap mock→reale: 1 fatto, 2 rimandati a Ondata-1** (per progetto, non bug):
+- ✅ **LLM**: `intent.ts` usa il router W2 reale (swap pulito).
+- ⏳ **Tools**: `execution.ts` ancora su `tools.mock`. Il `dispatch` reale di W2
+  Zod-valida input che le fixture di test di W1 non soddisfano (mock troppo
+  permissivo). **W1 deve allineare le fixture** prima dello swap. TODO nel codice.
+- ⏳ **Runtime**: `execution.ts`/`evaluation.ts`/`runtime-client.ts` su
+  `runtime.mock`. Lo swap a `assemble` reale (W3) richiede SDK E2B/R2 +
+  credenziali. Ponte pronto: `lib/runtime/runtime-build.ts`; client reali pronti
+  come template: `lib/runtime/sandbox/real-clients.ts.template` (attivazione in
+  header). TODO nel codice.
+
+**Prossimi passi (Ondata-1, quando ci sono le credenziali):**
+1. Aprire account Blocco 1 (Clerk, OpenRouter, E2B, R2) — vedi `docs/CREDENTIALS`.
+2. Compilare `.env` dalle chiavi.
+3. Attivare `real-clients.ts.template` → `npm install e2b @aws-sdk/client-s3 @aws-sdk/s3-request-presigner`.
+4. Allineare le fixture di test W1 ai veri schemi Zod dei tool → swap tools.
+5. Wire `createRealDeps()` nel ponte → swap runtime.
+6. GATE di lancio: run reali in E2B (5 motori × 3-5 generi).
+
+---
+
 ## FASE 0 (Phase 2) — Contract Phase (prep on feat/phase-0-contracts)
 
 Pre-merge groundwork for the 4-way parallel split. All committed on
