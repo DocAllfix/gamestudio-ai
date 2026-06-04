@@ -21,22 +21,21 @@ export function StepOutput({ response, onReset }: Props) {
   const plan = response.final_plan;
   const report = response.final_report;
 
-  // iframe_url comes from WebBuildArtifact.iframe_url (W3 contract, [dipende da v0.1.0-contracts]).
-  // With the mock we show a placeholder; bound to the field, not the value.
+  // iframe_url from WebBuildArtifact.iframe_url (W3 contract) — bound to field
   const iframeUrl = (plan as unknown as { iframe_url?: string }).iframe_url ?? null;
   const downloadUrl = (plan as unknown as { bundle_url?: string }).bundle_url ?? null;
 
   return (
     <div className="flex flex-col gap-6" data-testid="step-output">
       <div>
-        <h2 className="text-2xl font-bold">{plan.meta.title}</h2>
-        <p className="mt-1 text-sm text-white/50">
+        <h2 className="font-display text-2xl font-bold text-text">{plan.meta.title}</h2>
+        <p className="mt-1 text-sm text-text-muted">
           {plan.meta.engine} · {plan.meta.genre.replace(/_/g, " ")} ·{" "}
           {plan.meta.difficulty}
         </p>
       </div>
 
-      {/* Evaluation badges — bound to final_report.verdicts fields */}
+      {/* Verdict badges — bound to final_report.verdicts fields */}
       <div className="flex flex-wrap gap-2" data-testid="verdict-badges">
         {report.verdicts.map((v: MetricVerdict) => (
           <span
@@ -45,23 +44,19 @@ export function StepOutput({ response, onReset }: Props) {
             className={cn(
               "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
               v.passed
-                ? "bg-green-500/10 text-green-400"
-                : "bg-red-500/10 text-red-400",
+                ? "bg-success/10 text-success"
+                : "bg-danger/10 text-danger",
             )}
           >
-            {v.passed ? (
-              <CheckCircle2 size={11} />
-            ) : (
-              <XCircle size={11} />
-            )}
+            {v.passed ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
             {v.metric.replace(/_/g, " ")}
           </span>
         ))}
       </div>
 
-      {/* Game player iframe — sandboxed */}
+      {/* Game player — sandboxed iframe */}
       <div
-        className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-black"
+        className="aspect-video w-full overflow-hidden rounded-xl border border-surface-2 bg-ink"
         data-testid="game-player"
       >
         {iframeUrl ? (
@@ -72,10 +67,12 @@ export function StepOutput({ response, onReset }: Props) {
             title={plan.meta.title}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-white/30">
-            Game player — will load{" "}
-            <code className="ml-1 text-[#A78BFA]">iframe_url</code> from
-            WebBuildArtifact once W3 ships
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-text-muted">
+            <span className="font-display text-forge text-xl">▶</span>
+            <span>
+              Player — caricherà{" "}
+              <code className="text-spark">iframe_url</code> da WebBuildArtifact una volta che W3 è live
+            </span>
           </div>
         )}
       </div>
@@ -87,7 +84,7 @@ export function StepOutput({ response, onReset }: Props) {
             href={downloadUrl}
             download
             data-testid="download-btn"
-            className="flex items-center gap-2 rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium hover:border-white/40"
+            className="flex items-center gap-2 rounded-lg border border-surface-2 px-4 py-2.5 text-sm font-medium text-text hover:border-text-muted transition-colors"
           >
             <Download size={14} />
             Download .zip
@@ -98,30 +95,30 @@ export function StepOutput({ response, onReset }: Props) {
           type="button"
           data-testid="open-studio-btn"
           disabled
-          title="Studio Mode — Phase 2"
-          className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-white/30"
+          title="Studio Mode — F2"
+          className="flex items-center gap-2 rounded-lg border border-surface-2 px-4 py-2.5 text-sm font-medium text-text-muted"
         >
           <ExternalLink size={14} />
-          Open in Studio
-          <span className="rounded bg-white/10 px-1 py-0.5 text-[10px]">F2</span>
+          Apri in Studio
+          <span className="rounded bg-surface-2 px-1 py-0.5 text-[10px]">F2</span>
         </button>
 
         <button
           type="button"
           data-testid="create-another-btn"
           onClick={onReset}
-          className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2.5 text-sm font-medium hover:bg-white/15"
+          className="flex items-center gap-2 rounded-lg bg-forge px-4 py-2.5 text-sm font-semibold text-ink hover:bg-spark transition-colors"
         >
           <RotateCcw size={14} />
-          Create another
+          Forgia un altro
         </button>
       </div>
 
-      {/* Cost + time summary — bound to response fields */}
-      <p className="text-xs text-white/30">
-        Generated in {Math.round(response.total_latency_ms / 1000)}s ·
-        cost ${response.total_cost_usd.toFixed(2)} ·
-        {response.overall_passed ? " all checks passed" : " some checks failed"}
+      {/* Cost + time summary */}
+      <p className="text-xs text-text-muted">
+        Generato in {Math.round(response.total_latency_ms / 1000)}s ·
+        costo ${response.total_cost_usd.toFixed(2)} ·
+        {response.overall_passed ? " tutti i check passati ✓" : " alcuni check falliti"}
       </p>
     </div>
   );

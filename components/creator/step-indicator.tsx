@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Brief", "Engine", "Plan", "Generating", "Output"] as const;
+const STEPS = ["Brief", "Motore", "Piano", "Forgiando", "Output"] as const;
 
 interface Props {
   current: number; // 1-indexed
@@ -17,10 +17,10 @@ export function StepIndicator({ current }: Props) {
           <div key={label} className="flex items-center gap-1">
             <div
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold",
-                done && "bg-[#7C3AED] text-white",
-                active && "border-2 border-[#7C3AED] text-[#A78BFA]",
-                !done && !active && "border border-white/20 text-white/30",
+                "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold font-display",
+                done && "bg-forge text-ink",
+                active && "border-2 border-forge text-forge",
+                !done && !active && "border border-surface-2 text-text-muted",
               )}
             >
               {done ? "✓" : stepNum}
@@ -28,7 +28,7 @@ export function StepIndicator({ current }: Props) {
             <span
               className={cn(
                 "hidden text-xs sm:inline",
-                active ? "text-white/80" : "text-white/30",
+                active ? "text-text" : "text-text-muted",
               )}
             >
               {label}
@@ -37,7 +37,7 @@ export function StepIndicator({ current }: Props) {
               <div
                 className={cn(
                   "mx-1 h-px w-4",
-                  done ? "bg-[#7C3AED]" : "bg-white/10",
+                  done ? "bg-forge" : "bg-surface-2",
                 )}
               />
             )}

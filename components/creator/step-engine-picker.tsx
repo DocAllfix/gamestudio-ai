@@ -2,42 +2,40 @@
 
 import { cn } from "@/lib/utils";
 
-// The 5 day-1 engines — display metadata only. Engine values bind to
-// the EngineEnum in game-plan.contract.ts; never hardcode logic on them.
 const ENGINES = [
   {
     id: "godot",
     label: "Godot",
-    tagline: "2D + 3D generalist",
-    detail: "Strong KB (2551 chunks). Best for platformers, RPGs, metroidvania.",
+    tagline: "2D + 3D generalista",
+    detail: "KB solida (2551 chunk). Ottimo per platformer, RPG, metroidvania.",
     recommended: true,
   },
   {
     id: "phaser",
     label: "Phaser",
-    tagline: "Instant browser",
-    detail: "Native JS/HTML5. Fastest build, best for arcade & puzzle.",
+    tagline: "Browser istantaneo",
+    detail: "JS/HTML5 nativo. Build velocissima. Arcade & puzzle.",
     recommended: false,
   },
   {
     id: "threejs",
     label: "Three.js",
     tagline: "3D showcase",
-    detail: "WebGL native. Best for 3D experiences and visual showcases.",
+    detail: "WebGL nativo. Esperienze 3D e showcase visivi.",
     recommended: false,
   },
   {
     id: "babylon",
     label: "Babylon.js",
-    tagline: "3D physics games",
-    detail: "Built-in physics & GUI. NullEngine for server-side verification.",
+    tagline: "3D con fisica",
+    detail: "Fisica + GUI integrati. NullEngine per verifica server-side.",
     recommended: false,
   },
   {
     id: "defold",
     label: "Defold",
     tagline: "Mobile-first (.apk)",
-    detail: "Native Android .apk + PWA. Best for mobile-first games.",
+    detail: "Android .apk nativo + PWA. Ottimo per giochi mobile.",
     recommended: false,
   },
 ] as const;
@@ -51,9 +49,11 @@ export function StepEnginePicker({ onNext, onBack }: Props) {
   return (
     <div className="flex flex-col gap-6" data-testid="step-engine-picker">
       <div>
-        <h2 className="text-2xl font-bold">Choose your engine</h2>
-        <p className="mt-1 text-sm text-white/50">
-          Hermes will recommend the best fit. You can override it here.
+        <h2 className="font-display text-2xl font-bold text-text">
+          Scegli il motore
+        </h2>
+        <p className="mt-1 text-sm text-text-muted">
+          Hermes suggerisce il migliore. Puoi scegliere tu.
         </p>
       </div>
 
@@ -65,22 +65,24 @@ export function StepEnginePicker({ onNext, onBack }: Props) {
             data-testid={`engine-${engine.id}`}
             onClick={() => onNext(engine.id)}
             className={cn(
-              "relative flex flex-col gap-1 rounded-xl border p-4 text-left transition-colors hover:border-[#7C3AED]/60 hover:bg-[#7C3AED]/10",
+              "relative flex flex-col gap-1 rounded-xl border p-4 text-left transition-colors hover:border-forge/60 hover:bg-forge/5",
               engine.recommended
-                ? "border-[#7C3AED]/40 bg-[#7C3AED]/5"
-                : "border-white/10 bg-white/5",
+                ? "border-forge/40 bg-forge/5"
+                : "border-surface-2 bg-surface",
             )}
           >
             {engine.recommended && (
-              <span className="absolute right-3 top-3 rounded-full bg-[#7C3AED] px-2 py-0.5 text-[10px] font-semibold text-white">
-                Recommended
+              <span className="absolute right-3 top-3 rounded-full bg-forge px-2 py-0.5 text-[10px] font-semibold text-ink">
+                Consigliato
               </span>
             )}
-            <span className="text-base font-semibold">{engine.label}</span>
-            <span className="text-xs font-medium text-[#A78BFA]">
+            <span className="font-display text-base font-semibold text-text">
+              {engine.label}
+            </span>
+            <span className="text-xs font-medium text-spark">
               {engine.tagline}
             </span>
-            <span className="mt-1 text-xs text-white/40">{engine.detail}</span>
+            <span className="mt-1 text-xs text-text-muted">{engine.detail}</span>
           </button>
         ))}
       </div>
@@ -88,9 +90,9 @@ export function StepEnginePicker({ onNext, onBack }: Props) {
       <button
         type="button"
         onClick={onBack}
-        className="self-start text-sm text-white/40 hover:text-white/60"
+        className="self-start text-sm text-text-muted hover:text-text"
       >
-        ← Back
+        ← Indietro
       </button>
     </div>
   );

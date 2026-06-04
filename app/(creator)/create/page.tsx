@@ -23,7 +23,7 @@ export default function CreatePage() {
       {creator.error && (
         <div
           data-testid="error-banner"
-          className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+          className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
         >
           {creator.error}
         </div>

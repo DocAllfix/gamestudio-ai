@@ -4,10 +4,11 @@ export default function CreatorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="border-b border-white/10 px-6 py-3">
-        <span className="text-sm font-semibold">
-          Game Studio <span className="text-[#7C3AED]">AI</span>
+    <div className="min-h-screen bg-ink text-text">
+      {/* Minimal top nav — brand mark only, no distractions in creator flow */}
+      <div className="border-b border-surface-2 px-6 py-3">
+        <span className="font-display text-sm font-bold">
+          Game<span className="text-forge">Smith</span>
         </span>
       </div>
       <div className="px-6 py-4">{children}</div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Upload, X } from "lucide-react";
+import { Zap, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const GENRE_PRESETS = [
@@ -19,8 +19,6 @@ interface Props {
 export function StepWelcome({ onNext }: Props) {
   const [prompt, setPrompt] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  // In production BYOA uploads go to storage and return URLs.
-  // With mocks we store data-URLs in state so the UI works end-to-end.
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   function handleChip(preset: string) {
@@ -46,9 +44,11 @@ export function StepWelcome({ onNext }: Props) {
   return (
     <div className="flex flex-col gap-6" data-testid="step-welcome">
       <div>
-        <h2 className="text-2xl font-bold">Describe your game</h2>
-        <p className="mt-1 text-sm text-white/50">
-          One sentence is enough. Add moodboard images for a stronger style match.
+        <h2 className="font-display text-2xl font-bold text-text">
+          Descrivi il tuo gioco
+        </h2>
+        <p className="mt-1 text-sm text-text-muted">
+          Una frase basta. Aggiungi immagini moodboard per uno stile più preciso.
         </p>
       </div>
 
@@ -62,8 +62,8 @@ export function StepWelcome({ onNext }: Props) {
             className={cn(
               "rounded-full border px-3 py-1 text-xs transition-colors",
               selected === g
-                ? "border-[#7C3AED] bg-[#7C3AED]/20 text-[#A78BFA]"
-                : "border-white/20 text-white/50 hover:border-white/40",
+                ? "border-forge bg-forge/10 text-forge"
+                : "border-surface-2 text-text-muted hover:border-text-muted hover:text-text",
             )}
           >
             {g}
@@ -76,16 +76,16 @@ export function StepWelcome({ onNext }: Props) {
         data-testid="prompt-input"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="A hardcore platformer where the world flips upside-down every 10 seconds..."
+        placeholder="Un platformer hardcore dove il mondo si capovolge ogni 10 secondi..."
         rows={4}
-        className="w-full resize-none rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/30 focus:border-[#7C3AED] focus:outline-none"
+        className="w-full resize-none rounded-lg border border-surface-2 bg-surface p-3 text-sm text-text placeholder:text-text-muted focus:border-forge focus:outline-none"
       />
 
       {/* BYOA upload */}
       <div>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-white/50 hover:text-white/70">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-text-muted hover:text-text">
           <Upload size={14} />
-          Add moodboard images (optional, up to 3)
+          Aggiungi immagini moodboard (opzionale, max 3)
           <input
             type="file"
             accept="image/*"
@@ -110,7 +110,7 @@ export function StepWelcome({ onNext }: Props) {
                   onClick={() =>
                     setImageUrls((prev) => prev.filter((_, j) => j !== i))
                   }
-                  className="absolute -right-1 -top-1 rounded-full bg-black/80 p-0.5"
+                  className="absolute -right-1 -top-1 rounded-full bg-ink/80 p-0.5"
                 >
                   <X size={10} />
                 </button>
@@ -125,10 +125,10 @@ export function StepWelcome({ onNext }: Props) {
         data-testid="next-step-1"
         disabled={prompt.trim().length < 3}
         onClick={() => onNext(prompt.trim(), imageUrls)}
-        className="flex items-center gap-2 self-start rounded-lg bg-[#7C3AED] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-[#6D28D9]"
+        className="flex items-center gap-2 self-start rounded-lg bg-forge px-5 py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:bg-spark transition-colors"
       >
-        <Sparkles size={14} />
-        Continue
+        <Zap size={14} />
+        Forgia il gioco
       </button>
     </div>
   );

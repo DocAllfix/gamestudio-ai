@@ -1,10 +1,28 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap");
 
 @theme {
-  --color-brand: #7C3AED;
-  --color-brand-foreground: #FFFFFF;
-  --color-sidebar-bg: #0F0F0F;
-  --color-sidebar-border: #1E1E1E;
-  --color-surface: #141414;
-  --color-surface-raised: #1A1A1A;
+  /* GameSmith brand palette — "Forgia su fondo scuro" */
+  --color-ink:        #0E0F12;
+  --color-surface:    #1A1C20;
+  --color-surface-2:  #26282E;
+  --color-forge:      #F5582B;
+  --color-spark:      #FFB020;
+  --color-text:       #F5F3F0;
+  --color-text-muted: #9A968E;
+  --color-success:    #3DD68C;
+  --color-danger:     #FF4D4D;
+
+  /* Font families */
+  --font-display: "Chakra Petch", sans-serif;
+  --font-sans:    "Geist", "GeistVariable", system-ui, sans-serif;
+  --font-mono:    "Geist Mono", "GeistMonoVariable", monospace;
 }
+
+html {
+  background-color: #0E0F12;
+  color: #F5F3F0;
+  font-family: var(--font-sans);
+}
+
+/* Geist is shipped with Next.js — inject via next/font or fallback to system */
