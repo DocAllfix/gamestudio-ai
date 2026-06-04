@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #7C3AED;
+  --color-brand-foreground: #FFFFFF;
+  --color-sidebar-bg: #0F0F0F;
+  --color-sidebar-border: #1E1E1E;
+  --color-surface: #141414;
+  --color-surface-raised: #1A1A1A;
+}
