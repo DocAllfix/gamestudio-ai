@@ -18,6 +18,10 @@ dry_run_full.txt
 node_modules/
 dist/
 
+# Next.js
+.next/
+next-env.d.ts
+
 # Python
 __pycache__/
 *.pyc
