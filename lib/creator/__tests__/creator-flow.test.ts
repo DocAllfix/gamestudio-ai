@@ -9,6 +9,35 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import type { GenerateInput, GenerateResult } from "../../../app/(creator)/create/actions.js";
+
+// runHermesPlan now delegates to the real W1 Hermes (LLM + tools + E2B). This is
+// a W4 UI-binding test, so mock the orchestrator with a deterministic, offline
+// stub response — we assert the UI binds to its fields, not the real planning.
+vi.mock("../../orchestrator/hermes-client.js", () => ({
+  runHermesPlan: vi.fn(async (req: { project_id: string | null; forced_engine?: string }) => {
+    const engine = req.forced_engine ?? "godot";
+    const projectId = req.project_id ?? "11111111-1111-1111-1111-111111111111";
+    return {
+      project_id: projectId,
+      final_plan: {
+        plan_version: 1,
+        project_id: projectId,
+        meta: { title: "Test Game", genre: "hardcore_platformer", engine, style_pack_id: "A01", template_origin: "t", target_duration_minutes: 30, difficulty: "balanced" },
+        world_graph: { nodes: [{ id: "start", display_name: "Start", requires: [], grants: [], tags: [] }], edges: [], entry_node_id: "start", starting_inventory: [] },
+        pacing_curve: [{ progress: 0, stress: 0.2 }],
+        rules: {},
+        asset_bindings: [],
+        execution_dag: { nodes: [{ id: "player", tool_id: `code_gen_${engine}_gdscript`, input: {}, depends_on: [] }] },
+      },
+      final_report: { plan_version: "v1", verdicts: [{ metric: "soft_lock_count", value: 0, threshold: 0, passed: true, notes: "ok" }], overall_passed: true },
+      iterations: [{ iteration: 0, phase: "intent", summary: "ok", cost_usd: 0, latency_ms: 1 }],
+      overall_passed: true,
+      total_cost_usd: 0,
+      total_latency_ms: 1,
+    };
+  }),
+}));
+
 import { runHermesPlan, type HermesPlanResponse } from "../../orchestrator/hermes-client.js";
 
 // Minimal re-implementation of useCreator state machine for unit testing
