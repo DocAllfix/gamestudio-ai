@@ -29,7 +29,7 @@ import {
     type Genre,
     GenreEnum,
 } from "../contracts/game-plan.contract.js";
-import { complete } from "../_mocks/llm.mock.js";
+import { complete } from "../llm/router.js";
 import { defaultEngineFor, templateSkeleton } from "./baseline.js";
 
 /** Keyword → genre cues, checked in order. First match wins. Kept tiny:

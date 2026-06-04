@@ -50,3 +50,14 @@ export async function dispatch(invocation: ToolInvocation): Promise<ToolExecutio
     }
     return handler(invocation);
 }
+
+/**
+ * Batch dispatch — drop-in replacement for the merge-time `invokeToolBatch`
+ * that W1's ExecutionOrchestrator consumed from `lib/_mocks/tools.mock`.
+ * Same shape as the mock (Promise.all over the real `dispatch`).
+ */
+export async function invokeToolBatch(
+    invocations: readonly ToolInvocation[],
+): Promise<ToolExecutionResult[]> {
+    return Promise.all(invocations.map((inv) => dispatch(inv)));
+}

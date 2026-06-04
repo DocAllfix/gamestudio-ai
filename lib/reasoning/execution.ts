@@ -31,6 +31,10 @@ import {
     type ToolInvocation,
 } from "../contracts/tool-registry.contract.js";
 import { type SmokeTestReport } from "../contracts/evaluation-metrics.contract.js";
+// TODO(merge/ondata-1): swap to real W2 tools (lib/tools/registry invokeToolBatch)
+// + real W3 runtime (lib/runtime/runtime-build). Blocked: W1's execution tests
+// feed inputs the real Zod-validated tools reject (mock was too permissive) —
+// W1 must align test fixtures to the real tool schemas first. See MERGE_RUNBOOK §4.
 import { invokeToolBatch } from "../_mocks/tools.mock.js";
 import { runtimeBuild } from "../_mocks/runtime.mock.js";
 

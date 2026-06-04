@@ -39,6 +39,8 @@ import {
 } from "../contracts/evaluation-metrics.contract.js";
 import { type GamePlan } from "../contracts/game-plan.contract.js";
 import { consistencyManager } from "./consistency.js";
+// TODO(merge/ondata-1): swap to real W3 runtime (lib/runtime/runtime-build.ts).
+// Requires E2B/R2 SDKs + credentials — kept on mock. See docs/MERGE_RUNBOOK.md §4.
 import { runtimeBuild } from "../_mocks/runtime.mock.js";
 
 type Verdict = EvaluationReport["verdicts"][number];
