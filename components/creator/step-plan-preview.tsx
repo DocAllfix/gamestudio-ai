@@ -23,17 +23,17 @@ export function StepPlanPreview({ response, onGenerate, onBack, loading }: Props
     <div className="flex flex-col gap-6" data-testid="step-plan-preview">
       <div>
         <h2 className="font-display text-2xl font-bold text-text">
-          Piano di generazione
+          Generation plan
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Hermes ha progettato questo piano per il tuo gioco. Revisionalo prima di forgiare.
+          Hermes designed this plan for your game. Review it before forging.
         </p>
       </div>
 
       {!plan && (
         <div className="flex items-center gap-2 text-sm text-text-muted">
           <Loader2 size={14} className="animate-spin text-forge" />
-          Caricamento piano…
+          Loading plan…
         </div>
       )}
 
@@ -43,10 +43,10 @@ export function StepPlanPreview({ response, onGenerate, onBack, loading }: Props
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {(
               [
-                ["Motore", plan.meta.engine],
-                ["Genere", plan.meta.genre.replace(/_/g, " ")],
-                ["Costo est.", estimatedCost],
-                ["Tempo est.", estimatedTime],
+                ["Engine", plan.meta.engine],
+                ["Genre", plan.meta.genre.replace(/_/g, " ")],
+                ["Est. cost", estimatedCost],
+                ["Est. time", estimatedTime],
               ] as [string, string][]
             ).map(([label, value]) => (
               <div
@@ -66,7 +66,7 @@ export function StepPlanPreview({ response, onGenerate, onBack, loading }: Props
           {/* Execution DAG nodes */}
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
-              Task ({nodes.length})
+              Tasks ({nodes.length})
             </h3>
             <div className="flex flex-col gap-1.5" data-testid="dag-nodes">
               {nodes.map((node) => (
@@ -80,7 +80,7 @@ export function StepPlanPreview({ response, onGenerate, onBack, loading }: Props
                   <span className="text-xs text-text-muted">{node.tool_id}</span>
                   {node.depends_on.length > 0 && (
                     <span className="text-[10px] text-text-muted/60">
-                      dopo {node.depends_on.join(", ")}
+                      after {node.depends_on.join(", ")}
                     </span>
                   )}
                 </div>
@@ -96,7 +96,7 @@ export function StepPlanPreview({ response, onGenerate, onBack, loading }: Props
           onClick={onBack}
           className="text-sm text-text-muted hover:text-text"
         >
-          ← Indietro
+          ← Back
         </button>
         <button
           type="button"
@@ -106,7 +106,7 @@ export function StepPlanPreview({ response, onGenerate, onBack, loading }: Props
           className="flex items-center gap-2 rounded-lg bg-forge px-5 py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:bg-spark transition-colors"
         >
           {loading && <Loader2 size={14} className="animate-spin" />}
-          Forgia il gioco
+          Forge the game
         </button>
       </div>
     </div>

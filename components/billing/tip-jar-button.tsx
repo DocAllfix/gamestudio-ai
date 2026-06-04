@@ -27,7 +27,7 @@ export function TipJarButton() {
     <div className="flex flex-col gap-2" data-testid="tip-jar">
       <p className="text-xs text-text-muted flex items-center gap-1">
         <Heart size={11} className="text-danger" />
-        Tip Jar — supporta GameSmith
+        Tip Jar — support GameSmith
       </p>
       <div className="flex gap-2">
         {TIP_AMOUNTS_USD.map((amt) => (

@@ -6,36 +6,36 @@ const ENGINES = [
   {
     id: "godot",
     label: "Godot",
-    tagline: "2D + 3D generalista",
-    detail: "KB solida (2551 chunk). Ottimo per platformer, RPG, metroidvania.",
+    tagline: "2D + 3D all-rounder",
+    detail: "Solid KB (2551 chunks). Great for platformers, RPGs, metroidvanias.",
     recommended: true,
   },
   {
     id: "phaser",
     label: "Phaser",
-    tagline: "Browser istantaneo",
-    detail: "JS/HTML5 nativo. Build velocissima. Arcade & puzzle.",
+    tagline: "Instant browser",
+    detail: "Native JS/HTML5. Blazing-fast builds. Arcade & puzzle.",
     recommended: false,
   },
   {
     id: "threejs",
     label: "Three.js",
     tagline: "3D showcase",
-    detail: "WebGL nativo. Esperienze 3D e showcase visivi.",
+    detail: "Native WebGL. 3D experiences and visual showcases.",
     recommended: false,
   },
   {
     id: "babylon",
     label: "Babylon.js",
-    tagline: "3D con fisica",
-    detail: "Fisica + GUI integrati. NullEngine per verifica server-side.",
+    tagline: "3D with physics",
+    detail: "Built-in physics + GUI. NullEngine for server-side checks.",
     recommended: false,
   },
   {
     id: "defold",
     label: "Defold",
     tagline: "Mobile-first (.apk)",
-    detail: "Android .apk nativo + PWA. Ottimo per giochi mobile.",
+    detail: "Native Android .apk + PWA. Great for mobile games.",
     recommended: false,
   },
 ] as const;
@@ -50,10 +50,10 @@ export function StepEnginePicker({ onNext, onBack }: Props) {
     <div className="flex flex-col gap-6" data-testid="step-engine-picker">
       <div>
         <h2 className="font-display text-2xl font-bold text-text">
-          Scegli il motore
+          Choose your engine
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Hermes suggerisce il migliore. Puoi scegliere tu.
+          Hermes suggests the best fit. The call is yours.
         </p>
       </div>
 
@@ -73,7 +73,7 @@ export function StepEnginePicker({ onNext, onBack }: Props) {
           >
             {engine.recommended && (
               <span className="absolute right-3 top-3 rounded-full bg-forge px-2 py-0.5 text-[10px] font-semibold text-ink">
-                Consigliato
+                Recommended
               </span>
             )}
             <span className="font-display text-base font-semibold text-text">
@@ -92,7 +92,7 @@ export function StepEnginePicker({ onNext, onBack }: Props) {
         onClick={onBack}
         className="self-start text-sm text-text-muted hover:text-text"
       >
-        ← Indietro
+        ← Back
       </button>
     </div>
   );

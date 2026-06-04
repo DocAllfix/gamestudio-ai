@@ -14,9 +14,9 @@ const chakraPetch = Chakra_Petch({
 });
 
 export const metadata: Metadata = {
-  title: "GameSmith — Forgia giochi veri",
+  title: "GameSmith — Forge real games",
   description:
-    "Un gioco vero, che giri e possiedi. Su 5 motori, browser e mobile. In 10 minuti.",
+    "A real game that runs and that you own. On 5 engines, browser and mobile. In 10 minutes.",
 };
 
 export default function RootLayout({

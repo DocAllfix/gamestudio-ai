@@ -3,12 +3,12 @@ import { cn } from "@/lib/utils";
 import type { MetricVerdict } from "@/lib/contracts/evaluation-metrics.contract";
 
 const METRIC_LABELS: Record<string, string> = {
-  aesthetic_coherence: "Stile coerente",
-  soft_lock_count: "0 soft-lock",
-  stress_curve_rmse: "Bilanciamento",
-  smoke_test_pass_rate: "Gira",
-  generation_cost_usd: "Costo",
-  generation_time_seconds: "Tempo",
+  aesthetic_coherence: "Coherent style",
+  soft_lock_count: "0 soft-locks",
+  stress_curve_rmse: "Balanced",
+  smoke_test_pass_rate: "Runs",
+  generation_cost_usd: "Cost",
+  generation_time_seconds: "Time",
 };
 
 interface Props {

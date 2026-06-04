@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "GameSmith — Forgia giochi veri",
+    name: "GameSmith — Forge real games",
     short_name: "GameSmith",
     description:
-      "Un gioco vero, che giri e possiedi. Su 5 motori, browser e mobile.",
+      "A real game that runs and that you own. On 5 engines, browser and mobile.",
     start_url: "/",
     display: "standalone",
     background_color: "#0E0F12",

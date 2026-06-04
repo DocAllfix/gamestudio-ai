@@ -27,7 +27,7 @@ export default function FeedPage() {
             Feed
           </h1>
           <p className="mt-1 text-sm text-text-muted">
-            Giochi forgiati dalla community — tap per giocare subito.
+            Games forged by the community. Tap to play instantly.
           </p>
         </div>
 

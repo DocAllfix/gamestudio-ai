@@ -45,10 +45,10 @@ export function StepWelcome({ onNext }: Props) {
     <div className="flex flex-col gap-6" data-testid="step-welcome">
       <div>
         <h2 className="font-display text-2xl font-bold text-text">
-          Descrivi il tuo gioco
+          Describe your game
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Una frase basta. Aggiungi immagini moodboard per uno stile più preciso.
+          One sentence is enough. Add moodboard images for a sharper style.
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export function StepWelcome({ onNext }: Props) {
       <div>
         <label className="flex cursor-pointer items-center gap-2 text-sm text-text-muted hover:text-text">
           <Upload size={14} />
-          Aggiungi immagini moodboard (opzionale, max 3)
+          Add moodboard images (optional, max 3)
           <input
             type="file"
             accept="image/*"
@@ -128,7 +128,7 @@ export function StepWelcome({ onNext }: Props) {
         className="flex items-center gap-2 self-start rounded-lg bg-forge px-5 py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:bg-spark transition-colors"
       >
         <Zap size={14} />
-        Forgia il gioco
+        Forge the game
       </button>
     </div>
   );

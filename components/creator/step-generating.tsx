@@ -87,12 +87,12 @@ export function StepGenerating({ response, onDone }: Props) {
     <div className="flex flex-col gap-6" data-testid="step-generating">
       <div>
         <h2 className="font-display text-2xl font-bold text-text">
-          {done ? "Gioco pronto." : "Forgiando…"}
+          {done ? "Game ready." : "Forging…"}
         </h2>
         <p className="mt-1 text-sm text-text-muted">
           {done
-            ? `Completato in ${Math.round(totalLatency / 1000)}s · $${totalCost.toFixed(2)}`
-            : "Hermes sta eseguendo il piano. Ogni task completa in ordine."}
+            ? `Done in ${Math.round(totalLatency / 1000)}s · $${totalCost.toFixed(2)}`
+            : "Hermes is running the plan. Each task completes in order."}
         </p>
       </div>
 

@@ -14,12 +14,12 @@ interface Props {
 const PAID_TIERS = (["creator", "pro", "studio"] as const) satisfies Exclude<UserTier, "free">[];
 
 const REASON_LABELS: Record<string, string> = {
-  monthly_games_exhausted: "Hai raggiunto il limite mensile di giochi.",
-  per_game_cost_exceeded: "Questo gioco supera il budget per la tua fascia.",
-  tier_disallows_commercial: "L'uso commerciale richiede Creator o superiore.",
-  tier_disallows_tool: "Questo strumento richiede un piano superiore.",
-  payment_method_failed: "Metodo di pagamento non valido.",
-  account_suspended: "Account sospeso.",
+  monthly_games_exhausted: "You've hit your monthly game limit.",
+  per_game_cost_exceeded: "This game exceeds the budget for your tier.",
+  tier_disallows_commercial: "Commercial use requires Creator or higher.",
+  tier_disallows_tool: "This tool requires a higher plan.",
+  payment_method_failed: "Invalid payment method.",
+  account_suspended: "Account suspended.",
 };
 
 export function UpgradeModal({ reason, onClose }: Props) {
@@ -49,7 +49,7 @@ export function UpgradeModal({ reason, onClose }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="font-display text-xl font-bold text-text">
-              Sblocca la tua forgia
+              Unlock your forge
             </h2>
             {reasonLabel && (
               <p className="mt-1 text-sm text-text-muted">{reasonLabel}</p>
@@ -79,23 +79,23 @@ export function UpgradeModal({ reason, onClose }: Props) {
               >
                 {isPopular && (
                   <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-forge px-2.5 py-0.5 text-[10px] font-bold text-ink">
-                    Più popolare
+                    Most popular
                   </span>
                 )}
                 <div className="font-display font-bold text-text">{def.display_name}</div>
                 <div className="font-display text-2xl font-bold text-forge">
                   ${def.monthly_price_usd}
-                  <span className="font-sans text-xs font-normal text-text-muted">/mese</span>
+                  <span className="font-sans text-xs font-normal text-text-muted">/mo</span>
                 </div>
                 <ul className="mt-1 space-y-1 text-xs text-text-muted">
                   <li>
                     {def.games_per_month === "unlimited"
-                      ? "∞ giochi/mese"
-                      : `${def.games_per_month} giochi/mese`}
+                      ? "∞ games/mo"
+                      : `${def.games_per_month} games/mo`}
                   </li>
-                  <li>Budget ${def.max_cost_usd_per_game}/gioco</li>
-                  {def.commercial_use && <li>Uso commerciale ✓</li>}
-                  {def.priority_queue && <li>Coda prioritaria ✓</li>}
+                  <li>${def.max_cost_usd_per_game} budget/game</li>
+                  {def.commercial_use && <li>Commercial use ✓</li>}
+                  {def.priority_queue && <li>Priority queue ✓</li>}
                 </ul>
                 <button
                   type="button"
@@ -108,7 +108,7 @@ export function UpgradeModal({ reason, onClose }: Props) {
                   ) : (
                     <>
                       <Zap size={12} />
-                      Scegli {def.display_name}
+                      Choose {def.display_name}
                     </>
                   )}
                 </button>

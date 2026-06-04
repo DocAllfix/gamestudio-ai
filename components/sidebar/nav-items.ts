@@ -8,10 +8,10 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Crea", href: "/create", icon: Zap },
+  { label: "Create", href: "/create", icon: Zap },
   { label: "Feed", href: "/feed", icon: Rss },
-  { label: "Progetti", href: "/projects", icon: Gamepad2 },
-  { label: "Asset", href: "/assets", icon: Layers },
+  { label: "Projects", href: "/projects", icon: Gamepad2 },
+  { label: "Assets", href: "/assets", icon: Layers },
   { label: "Analytics", href: "/analytics", icon: BarChart2 },
-  { label: "Impostazioni", href: "/settings", icon: Settings },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];

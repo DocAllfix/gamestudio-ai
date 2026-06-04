@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Brief", "Motore", "Piano", "Forgiando", "Output"] as const;
+const STEPS = ["Brief", "Engine", "Plan", "Forging", "Output"] as const;
 
 interface Props {
   current: number; // 1-indexed

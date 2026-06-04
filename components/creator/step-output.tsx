@@ -99,7 +99,7 @@ export function StepOutput({ response, onReset }: Props) {
           className="flex items-center gap-2 rounded-lg border border-surface-2 px-4 py-2.5 text-sm font-medium text-text-muted"
         >
           <ExternalLink size={14} />
-          Apri in Studio
+          Open in Studio
           <span className="rounded bg-surface-2 px-1 py-0.5 text-[10px]">F2</span>
         </button>
 
@@ -110,15 +110,15 @@ export function StepOutput({ response, onReset }: Props) {
           className="flex items-center gap-2 rounded-lg bg-forge px-4 py-2.5 text-sm font-semibold text-ink hover:bg-spark transition-colors"
         >
           <RotateCcw size={14} />
-          Forgia un altro
+          Forge another
         </button>
       </div>
 
       {/* Cost + time summary */}
       <p className="text-xs text-text-muted">
-        Generato in {Math.round(response.total_latency_ms / 1000)}s ·
-        costo ${response.total_cost_usd.toFixed(2)} ·
-        {response.overall_passed ? " tutti i check passati ✓" : " alcuni check falliti"}
+        Generated in {Math.round(response.total_latency_ms / 1000)}s ·
+        cost ${response.total_cost_usd.toFixed(2)} ·
+        {response.overall_passed ? " all checks passed ✓" : " some checks failed"}
       </p>
     </div>
   );
