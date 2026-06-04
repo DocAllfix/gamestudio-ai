@@ -1,5 +1,8 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap");
+
+/* Fonts (Chakra Petch, Geist, Geist Mono) are loaded via next/font/google in
+   app/layout.tsx and exposed as --font-display / --font-sans / --font-mono.
+   No CSS @import needed — next/font self-hosts them (faster, no layout shift). */
 
 @theme {
   /* GameSmith brand palette — "Forgia su fondo scuro" */
