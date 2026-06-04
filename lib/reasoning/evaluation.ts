@@ -41,7 +41,17 @@ import { type GamePlan } from "../contracts/game-plan.contract.js";
 import { consistencyManager } from "./consistency.js";
 // TODO(merge/ondata-1): swap to real W3 runtime (lib/runtime/runtime-build.ts).
 // Requires E2B/R2 SDKs + credentials — kept on mock. See docs/MERGE_RUNBOOK.md §4.
-import { runtimeBuild } from "../_mocks/runtime.mock.js";
+import type { AssemblerInput, AssemblerOutput } from "../contracts/assembly-pipeline.contract.js";
+
+// Real W3 Assembler by default (lazy import → SDKs load only on a real build).
+// Tests always pass options.smokeReport, so this path isn't hit offline.
+async function runtimeBuild(input: AssemblerInput): Promise<AssemblerOutput> {
+    const [{ runtimeBuild: build }, { createRealDeps }] = await Promise.all([
+        import("../runtime/runtime-build.js"),
+        import("../runtime/sandbox/real-clients.js"),
+    ]);
+    return build(input, createRealDeps());
+}
 
 type Verdict = EvaluationReport["verdicts"][number];
 

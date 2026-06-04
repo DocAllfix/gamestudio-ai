@@ -5,7 +5,7 @@
  * node, statuses in the contract enum, dependency order respected
  * (a node runs only after every depends_on has produced a result).
  */
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import {
     ExecutionOrchestratorOutputSchema,
@@ -14,7 +14,20 @@ import {
 } from "../../contracts/reasoning-engine.contract.js";
 import { type GamePlan } from "../../contracts/game-plan.contract.js";
 import { templateSkeleton } from "../baseline.js";
-import { executionOrchestrator } from "../execution.js";
+import { executionOrchestrator, setRuntimeBuild } from "../execution.js";
+
+// Keep the runtime build offline: inject a network-free fake (the real default
+// would call E2B). Mirrors the shape the old runtime.mock returned.
+beforeAll(() => {
+    setRuntimeBuild(async (input) => ({
+        artifact_id: "33333333-3333-3333-3333-333333333333",
+        download_url: "https://test.example/artifact.zip",
+        size_bytes: 1024,
+        build_log: `[test build] engine=${input.engine}`,
+        total_duration_ms: 0,
+        smoke_test: { ran: true, passed: true, crash_reason: null, duration_ms: 0 },
+    }));
+});
 
 const memory = HermesMemorySchema.parse({});
 const PROJECT_ID = "22222222-2222-2222-2222-222222222222";

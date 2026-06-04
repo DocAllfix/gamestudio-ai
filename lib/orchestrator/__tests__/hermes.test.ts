@@ -7,13 +7,27 @@
  * must equal the response project_id; the iteration log records the
  * phases taken.
  */
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import {
     HermesPlanResponseSchema,
     type HermesPlanRequest,
 } from "../../contracts/reasoning-engine.contract.js";
 import { hermesOrchestrator } from "../hermes.js";
+import { setRuntimeBuild } from "../../reasoning/execution.js";
+
+// The Hermes loop reaches D.5 materialize → the runtime build seam. Inject a
+// network-free fake so the loop stays offline (the real default calls E2B).
+beforeAll(() => {
+    setRuntimeBuild(async (input) => ({
+        artifact_id: "44444444-4444-4444-4444-444444444444",
+        download_url: "https://test.example/artifact.zip",
+        size_bytes: 1024,
+        build_log: `[test build] engine=${input.engine}`,
+        total_duration_ms: 0,
+        smoke_test: { ran: true, passed: true, crash_reason: null, duration_ms: 0 },
+    }));
+});
 
 function request(overrides: Partial<HermesPlanRequest> = {}): HermesPlanRequest {
     return {

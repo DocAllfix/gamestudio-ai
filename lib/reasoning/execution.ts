@@ -36,7 +36,28 @@ import { type SmokeTestReport } from "../contracts/evaluation-metrics.contract.j
 // feed inputs the real Zod-validated tools reject (mock was too permissive) —
 // W1 must align test fixtures to the real tool schemas first. See MERGE_RUNBOOK §4.
 import { invokeToolBatch } from "../_mocks/tools.mock.js";
-import { runtimeBuild } from "../_mocks/runtime.mock.js";
+import type { AssemblerInput, AssemblerOutput } from "../contracts/assembly-pipeline.contract.js";
+
+/**
+ * Runtime build seam. Default = the REAL W3 Assembler (lib/runtime/runtime-build
+ * → assemble in E2B). The contract fixes materialize()'s signature, so we keep
+ * this as a module-level injectable instead of a method param: production runs
+ * the real build (lazy import so the E2B/aws SDKs load only when a build runs),
+ * tests call setRuntimeBuild() to inject a network-free fake. */
+type RuntimeBuildFn = (input: AssemblerInput) => Promise<AssemblerOutput>;
+
+let runtimeBuildFn: RuntimeBuildFn = async (input) => {
+    const [{ runtimeBuild }, { createRealDeps }] = await Promise.all([
+        import("../runtime/runtime-build.js"),
+        import("../runtime/sandbox/real-clients.js"),
+    ]);
+    return runtimeBuild(input, createRealDeps());
+};
+
+/** Inject a custom build implementation (tests use this to stay offline). */
+export function setRuntimeBuild(fn: RuntimeBuildFn): void {
+    runtimeBuildFn = fn;
+}
 
 type NodeResult = ExecutionOrchestratorOutput["node_results"][number];
 
@@ -141,7 +162,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
         }
 
         // Hand the (succeeded) tool outputs to the Assembler build seam.
-        const build = await runtimeBuild({
+        const build = await runtimeBuildFn({
             project_id: plan.project_id,
             plan_version: plan.plan_version,
             engine: plan.meta.engine,
