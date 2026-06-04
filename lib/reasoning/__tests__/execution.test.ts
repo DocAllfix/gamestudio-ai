@@ -14,11 +14,25 @@ import {
 } from "../../contracts/reasoning-engine.contract.js";
 import { type GamePlan } from "../../contracts/game-plan.contract.js";
 import { templateSkeleton } from "../baseline.js";
-import { executionOrchestrator, setRuntimeBuild } from "../execution.js";
+import { executionOrchestrator, setRuntimeBuild, setInvokeToolBatch } from "../execution.js";
 
-// Keep the runtime build offline: inject a network-free fake (the real default
-// would call E2B). Mirrors the shape the old runtime.mock returned.
+// Keep tools + runtime offline: inject network-free fakes (the real defaults
+// would call the LLM router / E2B). Tools return a succeeded result per node.
 beforeAll(() => {
+    setInvokeToolBatch(async (invocations) =>
+        invocations.map((inv) => ({
+            tool_id: inv.tool_id,
+            node_id: inv.node_id,
+            trace_id: inv.trace_id,
+            status: "succeeded" as const,
+            output: { stub: true },
+            cost_usd: 0,
+            latency_ms: 0,
+            qa_log: [],
+            error_message: null,
+            created_at: new Date().toISOString(),
+        })),
+    );
     setRuntimeBuild(async (input) => ({
         artifact_id: "33333333-3333-3333-3333-333333333333",
         download_url: "https://test.example/artifact.zip",

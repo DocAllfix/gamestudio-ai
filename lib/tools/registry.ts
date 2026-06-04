@@ -8,6 +8,7 @@
  */
 import {
     type ToolExecutionResult,
+    ToolExecutionResultSchema,
     type ToolId,
     type ToolInvocation,
 } from "../contracts/tool-registry.contract.js";
@@ -62,12 +63,51 @@ export async function dispatch(invocation: ToolInvocation): Promise<ToolExecutio
 }
 
 /**
- * Batch dispatch — drop-in replacement for the merge-time `invokeToolBatch`
- * that W1's ExecutionOrchestrator consumed from `lib/_mocks/tools.mock`.
- * Same shape as the mock (Promise.all over the real `dispatch`).
+ * Graceful dispatch for the orchestrator: a node whose tool isn't implemented
+ * yet (e.g. audio/assembler tools still pending) or whose handler throws does
+ * NOT crash the whole plan — it returns a failed/rejected ToolExecutionResult so
+ * the DAG can continue and D.6 can judge the outcome. Real, implemented tools
+ * run and Zod-validate their inputs normally (the anti-slop guarantee stands).
+ */
+async function dispatchSafe(invocation: ToolInvocation): Promise<ToolExecutionResult> {
+    const base = {
+        tool_id: invocation.tool_id,
+        node_id: invocation.node_id,
+        trace_id: invocation.trace_id,
+        cost_usd: 0,
+        latency_ms: 0,
+        created_at: new Date().toISOString(),
+    };
+    if (!isImplemented(invocation.tool_id)) {
+        return ToolExecutionResultSchema.parse({
+            ...base,
+            status: "failed",
+            output: null,
+            qa_log: [{ check: "tool_implemented", passed: false, detail: `${invocation.tool_id} not yet implemented` }],
+            error_message: `Tool not implemented: ${invocation.tool_id}`,
+        });
+    }
+    try {
+        return await dispatch(invocation);
+    } catch (error) {
+        console.error({ context: "registry.dispatchSafe", tool_id: invocation.tool_id, node_id: invocation.node_id, error });
+        return ToolExecutionResultSchema.parse({
+            ...base,
+            status: "failed",
+            output: null,
+            qa_log: [{ check: "dispatch", passed: false, detail: String(error instanceof Error ? error.message : error) }],
+            error_message: String(error instanceof Error ? error.message : error),
+        });
+    }
+}
+
+/**
+ * Batch dispatch — the merge-time `invokeToolBatch` W1's ExecutionOrchestrator
+ * consumed from `lib/_mocks/tools.mock`. Uses dispatchSafe so one unimplemented
+ * or failing node degrades to a failed result instead of crashing the batch.
  */
 export async function invokeToolBatch(
     invocations: readonly ToolInvocation[],
 ): Promise<ToolExecutionResult[]> {
-    return Promise.all(invocations.map((inv) => dispatch(inv)));
+    return Promise.all(invocations.map((inv) => dispatchSafe(inv)));
 }

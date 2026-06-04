@@ -31,12 +31,25 @@ import {
     type ToolInvocation,
 } from "../contracts/tool-registry.contract.js";
 import { type SmokeTestReport } from "../contracts/evaluation-metrics.contract.js";
-// TODO(merge/ondata-1): swap to real W2 tools (lib/tools/registry invokeToolBatch)
-// + real W3 runtime (lib/runtime/runtime-build). Blocked: W1's execution tests
-// feed inputs the real Zod-validated tools reject (mock was too permissive) —
-// W1 must align test fixtures to the real tool schemas first. See MERGE_RUNBOOK §4.
-import { invokeToolBatch } from "../_mocks/tools.mock.js";
 import type { AssemblerInput, AssemblerOutput } from "../contracts/assembly-pipeline.contract.js";
+
+/**
+ * Tool batch seam. Default = the REAL W2 tools via the registry (dispatchSafe:
+ * an unimplemented or failing node degrades to a failed result, the DAG
+ * continues, D.6 judges; implemented tools run and Zod-validate their inputs).
+ * Lazy import so the registry's heavy deps load only at runtime; tests inject a
+ * network-free fake via setInvokeToolBatch. */
+type InvokeToolBatchFn = (invocations: readonly ToolInvocation[]) => Promise<ToolExecutionResult[]>;
+
+let invokeToolBatchFn: InvokeToolBatchFn = async (invocations) => {
+    const { invokeToolBatch } = await import("../tools/registry.js");
+    return invokeToolBatch(invocations);
+};
+
+/** Inject a custom tool-batch implementation (tests use this to stay offline). */
+export function setInvokeToolBatch(fn: InvokeToolBatchFn): void {
+    invokeToolBatchFn = fn;
+}
 
 /**
  * Runtime build seam. Default = the REAL W3 Assembler (lib/runtime/runtime-build
@@ -142,7 +155,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             }));
 
             const results = invocations.length > 0
-                ? await invokeToolBatch(invocations)
+                ? await invokeToolBatchFn(invocations)
                 : [];
 
             for (const result of results) {

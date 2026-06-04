@@ -14,11 +14,25 @@ import {
     type HermesPlanRequest,
 } from "../../contracts/reasoning-engine.contract.js";
 import { hermesOrchestrator } from "../hermes.js";
-import { setRuntimeBuild } from "../../reasoning/execution.js";
+import { setRuntimeBuild, setInvokeToolBatch } from "../../reasoning/execution.js";
 
-// The Hermes loop reaches D.5 materialize → the runtime build seam. Inject a
-// network-free fake so the loop stays offline (the real default calls E2B).
+// The Hermes loop reaches D.5 materialize → tools + runtime seams. Inject
+// network-free fakes so the loop stays offline (real defaults call LLM / E2B).
 beforeAll(() => {
+    setInvokeToolBatch(async (invocations) =>
+        invocations.map((inv) => ({
+            tool_id: inv.tool_id,
+            node_id: inv.node_id,
+            trace_id: inv.trace_id,
+            status: "succeeded" as const,
+            output: { stub: true },
+            cost_usd: 0,
+            latency_ms: 0,
+            qa_log: [],
+            error_message: null,
+            created_at: new Date().toISOString(),
+        })),
+    );
     setRuntimeBuild(async (input) => ({
         artifact_id: "44444444-4444-4444-4444-444444444444",
         download_url: "https://test.example/artifact.zip",
