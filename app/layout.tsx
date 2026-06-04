@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono, Chakra_Petch } from "next/font/google";
 import { PwaRegister } from "@/components/pwa-register";
+import { PostHogProvider } from "@/lib/analytics/posthog-provider";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -31,7 +32,7 @@ export default function RootLayout({
       >
         <body className="bg-ink text-text antialiased font-sans">
           <PwaRegister />
-          {children}
+          <PostHogProvider>{children}</PostHogProvider>
         </body>
       </html>
     </ClerkProvider>
