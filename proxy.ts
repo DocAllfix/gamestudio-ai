@@ -5,6 +5,9 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks/clerk",
+  // External webhooks: no Clerk session, self-protected by signature
+  // verification (svix / Stripe). Must bypass auth.protect() or billing breaks.
+  "/api/stripe/webhook",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

@@ -40,15 +40,24 @@ export async function forkProject(
     return { ok: false, error: "User record not found" };
   }
 
-  // Load source project
+  // Load source project (incl. owner + status for the authorization check).
   const { data: source, error: srcErr } = await db
     .from("projects")
-    .select("title, engine, genre, latest_game_plan")
+    .select("title, engine, genre, latest_game_plan, user_id, status")
     .eq("id", input.sourceProjectId)
     .single();
 
   if (srcErr || !source) {
     return { ok: false, error: "Source project not found" };
+  }
+
+  // Authorization: only a PUBLISHED project, or one the caller already owns, can
+  // be forked. The admin client bypasses RLS, so this check is the gate that
+  // prevents forking another user's private/draft project (and its game plan).
+  const isOwner = source.user_id === forkingUser.id;
+  const isPublished = source.status === "published";
+  if (!isOwner && !isPublished) {
+    return { ok: false, error: "Project not available for forking" };
   }
 
   // Insert forked project owned by the forking user

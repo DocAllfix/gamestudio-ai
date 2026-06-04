@@ -39,6 +39,19 @@ export async function trackUsageEvent(
     return { ok: false, error: "User record not found" };
   }
 
+  // Validate the project exists before recording an event against it. Without
+  // this, a caller could forge events (e.g. game_completed) for arbitrary
+  // project ids, polluting the flywheel success_score and feed ranking.
+  const { data: project, error: projErr } = await db
+    .from("projects")
+    .select("id")
+    .eq("id", input.project_id)
+    .single();
+
+  if (projErr || !project) {
+    return { ok: false, error: "Project not found" };
+  }
+
   const { data, error } = await db
     .from("usage_events")
     .insert({
