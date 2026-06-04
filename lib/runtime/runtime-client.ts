@@ -17,6 +17,14 @@ export interface FeedBuild {
   iframe_url: string;
   bundle_size_bytes: number;
   target: "browser" | "pwa";
+  /** Static cover image (shown by default + as the hover-preview fallback). */
+  cover_url?: string;
+  /** Muted, short, low-res gameplay clip for viewport-aware hover preview.
+   * Produced by the runtime during the smoke-test (W3, future). When absent
+   * the card just shows cover_url. */
+  preview_clip_url?: string;
+  /** Display name of the creator (for the "by X" credit, Higgsfield-style). */
+  author?: string;
 }
 
 /** Returns a short list of mock builds for the feed while W3 is unbuilt. */
