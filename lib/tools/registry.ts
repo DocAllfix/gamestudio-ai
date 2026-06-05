@@ -28,6 +28,7 @@ import tilemapPopulate from "./level/tilemap_populate/index.js";
 import entityPlacement from "./level/entity_placement/index.js";
 import levelLayout3d from "./level/level_layout_3d/index.js";
 import heightmapGen from "./level/heightmap_gen/index.js";
+import { bgmGenTool, sfxGenTool, voiceGenTool } from "./audio/tool.js";
 
 type AnyHandler = (invocation: ToolInvocation) => Promise<ToolExecutionResult>;
 
@@ -48,6 +49,9 @@ export const REGISTRY: Partial<Record<ToolId, AnyHandler>> = {
     entity_placement: entityPlacement.handler as AnyHandler,
     level_layout_3d: levelLayout3d.handler as AnyHandler,
     heightmap_gen: heightmapGen.handler as AnyHandler,
+    bgm_gen: bgmGenTool.handler as AnyHandler,
+    sfx_gen: sfxGenTool.handler as AnyHandler,
+    voice_gen: voiceGenTool.handler as AnyHandler,
 };
 
 export function isImplemented(toolId: ToolId): boolean {
