@@ -102,7 +102,7 @@ export function buildExecutionDag(args: {
     nodes.push({ id: "terrain-heightmap", tool_id: "heightmap_gen", input: { width: 256, height: 256, ...common }, depends_on: [] });
     nodes.push({ id: "level", tool_id: "level_layout_3d", input: { size: "medium", ...common }, depends_on: ["terrain-heightmap"] });
     nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["level"] });
-    nodes.push({ id: "hero-model", tool_id: "asset_resolver", input: { description: `${genre} hero`, asset_type: "model_3d", ...common }, depends_on: [] });
+    nodes.push({ id: "hero-model", tool_id: "model_3d_gen", input: { description: `${genre} hero`, ...common }, depends_on: [] });
     nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: `${genre} ambience`, ...common }, depends_on: [] });
     nodes.push({ id: "sfx", tool_id: "sfx_gen", input: { description: "action sfx", ...common }, depends_on: [] });
     nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: "core_loop", engine }, depends_on: ["level", "enemies", "hero-model", "music", "sfx"] });

@@ -29,6 +29,7 @@ import entityPlacement from "./level/entity_placement/index.js";
 import levelLayout3d from "./level/level_layout_3d/index.js";
 import heightmapGen from "./level/heightmap_gen/index.js";
 import { bgmGenTool, sfxGenTool, voiceGenTool } from "./audio/tool.js";
+import model3dGen from "./3d/tool.js";
 
 type AnyHandler = (invocation: ToolInvocation) => Promise<ToolExecutionResult>;
 
@@ -52,6 +53,7 @@ export const REGISTRY: Partial<Record<ToolId, AnyHandler>> = {
     bgm_gen: bgmGenTool.handler as AnyHandler,
     sfx_gen: sfxGenTool.handler as AnyHandler,
     voice_gen: voiceGenTool.handler as AnyHandler,
+    model_3d_gen: model3dGen.handler as AnyHandler,
 };
 
 export function isImplemented(toolId: ToolId): boolean {
