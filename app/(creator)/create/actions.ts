@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 
+import { ensureUser } from "@/lib/auth/ensure-user";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { generateGameTask } from "@/trigger/generate-game";
 import type { GenerateGamePayload } from "@/trigger/generate-game";
@@ -22,21 +23,15 @@ export type StartResult =
  * writes status/result to generation_runs; the UI polls getGenerationStatus.
  */
 export async function startGeneration(input: GenerateInput): Promise<StartResult> {
-  const { userId } = await auth();
-  if (!userId) return { ok: false, error: "Not authenticated" };
-
-  const db = getAdminClient();
-
-  // Resolve internal user id from the Clerk id.
-  const { data: user, error: userErr } = await db
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", userId)
-    .single();
-  if (userErr || !user) return { ok: false, error: "User record not found" };
+  // Resolve (or lazily create) the user's DB record — robust even if the Clerk
+  // webhook hasn't populated public.users yet.
+  const ctx = await ensureUser();
+  if (!ctx) return { ok: false, error: "Not authenticated" };
+  const { db, userId, clerkUserId } = ctx;
+  const user = { id: userId };
 
   const request = {
-    user_id: userId,
+    user_id: clerkUserId,
     project_id: null,
     user_prompt: input.user_prompt,
     moodboard_image_urls: input.moodboard_image_urls,

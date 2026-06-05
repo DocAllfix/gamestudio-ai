@@ -1,7 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
-import { getAdminClient } from "@/lib/supabase/admin";
+import { ensureUser } from "@/lib/auth/ensure-user";
 
 export type StudioAssetType =
   | "sprite"
@@ -26,13 +25,9 @@ export interface LibraryAsset {
   created_at: string;
 }
 
-async function resolveUserId(): Promise<{ db: ReturnType<typeof getAdminClient>; userId: string } | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
-  const db = getAdminClient();
-  const { data, error } = await db.from("users").select("id").eq("clerk_user_id", userId).single();
-  if (error || !data) return null;
-  return { db, userId: data.id };
+/** Resolve (or lazily create) the user's DB context. */
+async function resolveUserId() {
+  return ensureUser();
 }
 
 /** List the current user's library, newest + favourites first. */
