@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { HermesPlanResponse } from "@/lib/orchestrator/hermes-client";
-import type { GenerateInput } from "@/app/(creator)/create/actions";
+import type { GenerateInput, StartResult, GenerationStatus } from "@/app/(creator)/create/actions";
 
 /**
- * Creator state machine — progressive disclosure (no rigid wizard).
+ * Creator state machine — progressive disclosure + async generation.
  *
- * Phases, not steps: the user writes one idea + optionally tweaks the proposed
- * setup (engine/genre/style/advanced) on a single "forge" screen, then submits.
- * After submit the response drives plan-preview → generating → output as PHASES.
+ * The generation runs as a Trigger.dev job (full Hermes loop + E2B build exceeds
+ * a serverless limit). forge() enqueues it and the hook POLLS getGenerationStatus
+ * until done|failed, then drives plan → generating → output as PHASES.
  */
-export type CreatorPhase = "setup" | "plan" | "generating" | "done";
+export type CreatorPhase = "setup" | "running" | "plan" | "generating" | "done";
 
 export interface CreatorConfig {
   prompt: string;
-  /** undefined = let Hermes auto-pick the engine (Auto / recommended). */
-  engine?: string;
+  engine?: string; // undefined = Hermes auto-picks
   difficulty?: string;
   imageUrls: string[];
 }
@@ -25,52 +24,69 @@ interface CreatorState {
   phase: CreatorPhase;
   response: HermesPlanResponse | null;
   error: string | null;
-  loading: boolean;
 }
 
-const INITIAL: CreatorState = {
-  phase: "setup",
-  response: null,
-  error: null,
-  loading: false,
-};
+const INITIAL: CreatorState = { phase: "setup", response: null, error: null };
+const POLL_MS = 3000;
 
-export function useCreator(
-  generateFn: (input: GenerateInput) => Promise<
-    { ok: true; response: HermesPlanResponse } | { ok: false; error: string }
-  >,
-) {
+export interface CreatorDeps {
+  start: (input: GenerateInput) => Promise<StartResult>;
+  status: (runId: string) => Promise<GenerationStatus | null>;
+}
+
+export function useCreator(deps: CreatorDeps) {
   const [state, setState] = useState<CreatorState>(INITIAL);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /** Submit the setup → Hermes proposes/builds the plan → show plan preview. */
-  const forge = useCallback(
-    async (config: CreatorConfig) => {
-      setState((s) => ({ ...s, loading: true, error: null }));
-      const result = await generateFn({
-        user_prompt: config.prompt,
-        moodboard_image_urls: config.imageUrls,
-        forced_engine: config.engine, // undefined → Hermes auto-picks
-      });
-      if (result.ok) {
-        setState((s) => ({ ...s, phase: "plan", response: result.response, loading: false }));
-      } else {
-        setState((s) => ({ ...s, error: result.error, loading: false }));
-      }
+  const poll = useCallback(
+    (runId: string) => {
+      timer.current = setTimeout(async () => {
+        const s = await deps.status(runId);
+        if (!s) {
+          setState((p) => ({ ...p, phase: "setup", error: "Lost track of the generation run." }));
+          return;
+        }
+        if (s.status === "done") {
+          setState({ phase: "plan", response: s.response as HermesPlanResponse, error: null });
+        } else if (s.status === "failed") {
+          setState({ phase: "setup", response: null, error: s.error ?? "Generation failed." });
+        } else {
+          poll(runId); // queued | running → keep polling
+        }
+      }, POLL_MS);
     },
-    [generateFn],
+    [deps],
   );
 
-  /** Plan confirmed → run the generation phase. */
-  const startGeneration = useCallback(() => {
+  const forge = useCallback(
+    async (config: CreatorConfig) => {
+      setState({ phase: "running", response: null, error: null });
+      const res = await deps.start({
+        user_prompt: config.prompt,
+        moodboard_image_urls: config.imageUrls,
+        forced_engine: config.engine,
+      });
+      if (res.ok) {
+        poll(res.run_id);
+      } else {
+        setState({ phase: "setup", response: null, error: res.error });
+      }
+    },
+    [deps, poll],
+  );
+
+  const startGenerationPhase = useCallback(() => {
     setState((s) => ({ ...s, phase: "generating" }));
   }, []);
 
-  /** Generation animation complete → output. */
   const generationDone = useCallback(() => {
     setState((s) => ({ ...s, phase: "done" }));
   }, []);
 
-  const reset = useCallback(() => setState(INITIAL), []);
+  const reset = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    setState(INITIAL);
+  }, []);
 
-  return { ...state, forge, startGeneration, generationDone, reset };
+  return { ...state, forge, startGenerationPhase, generationDone, reset };
 }
