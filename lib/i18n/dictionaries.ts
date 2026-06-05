@@ -42,6 +42,18 @@ export interface Dictionary {
     "create.moodboard.label": string;
     "create.submit": string;
     "create.back": string;
+    "studio.title": string;
+    "studio.subtitle": string;
+    "studio.library": string;
+    "studio.library.empty": string;
+    "studio.tool.sprite": string;
+    "studio.tool.tileset": string;
+    "studio.tool.audio": string;
+    "studio.tool.material": string;
+    "studio.tool.model3d": string;
+    "studio.generate": string;
+    "studio.save": string;
+    "studio.saved": string;
 }
 
 const en: Dictionary = {
@@ -73,6 +85,18 @@ const en: Dictionary = {
     "create.moodboard.label": "Moodboard images (optional, max 3)",
     "create.submit": "Forge the game",
     "create.back": "Back to home",
+    "studio.title": "Studio",
+    "studio.subtitle": "Forge assets, refine them, build your library. Then use them in your games.",
+    "studio.library": "Your library",
+    "studio.library.empty": "Nothing forged yet. Make an asset and save it here.",
+    "studio.tool.sprite": "Sprites",
+    "studio.tool.tileset": "Tilesets",
+    "studio.tool.audio": "Audio",
+    "studio.tool.material": "Materials",
+    "studio.tool.model3d": "3D models",
+    "studio.generate": "Generate",
+    "studio.save": "Save to library",
+    "studio.saved": "Saved",
 };
 
 // Italian kept for parity / future language switch (not primary).
@@ -105,6 +129,18 @@ const it: Dictionary = {
     "create.moodboard.label": "Immagini moodboard (opzionale, max 3)",
     "create.submit": "Forgia il gioco",
     "create.back": "Torna alla home",
+    "studio.title": "Studio",
+    "studio.subtitle": "Forgia asset, rifiniscili, costruisci la tua libreria. Poi usali nei tuoi giochi.",
+    "studio.library": "La tua libreria",
+    "studio.library.empty": "Ancora niente. Crea un asset e salvalo qui.",
+    "studio.tool.sprite": "Sprite",
+    "studio.tool.tileset": "Tileset",
+    "studio.tool.audio": "Audio",
+    "studio.tool.material": "Materiali",
+    "studio.tool.model3d": "Modelli 3D",
+    "studio.generate": "Genera",
+    "studio.save": "Salva in libreria",
+    "studio.saved": "Salvato",
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { en, it };
