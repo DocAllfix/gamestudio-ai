@@ -4,23 +4,32 @@ import { useState, useCallback } from "react";
 import type { HermesPlanResponse } from "@/lib/orchestrator/hermes-client";
 import type { GenerateInput } from "@/app/(creator)/create/actions";
 
-export type CreatorStep = 1 | 2 | 3 | 4 | 5;
+/**
+ * Creator state machine — progressive disclosure (no rigid wizard).
+ *
+ * Phases, not steps: the user writes one idea + optionally tweaks the proposed
+ * setup (engine/genre/style/advanced) on a single "forge" screen, then submits.
+ * After submit the response drives plan-preview → generating → output as PHASES.
+ */
+export type CreatorPhase = "setup" | "plan" | "generating" | "done";
+
+export interface CreatorConfig {
+  prompt: string;
+  /** undefined = let Hermes auto-pick the engine (Auto / recommended). */
+  engine?: string;
+  difficulty?: string;
+  imageUrls: string[];
+}
 
 interface CreatorState {
-  step: CreatorStep;
-  prompt: string;
-  imageUrls: string[];
-  engine: string | null;
+  phase: CreatorPhase;
   response: HermesPlanResponse | null;
   error: string | null;
   loading: boolean;
 }
 
 const INITIAL: CreatorState = {
-  step: 1,
-  prompt: "",
-  imageUrls: [],
-  engine: null,
+  phase: "setup",
   response: null,
   error: null,
   loading: false,
@@ -33,59 +42,35 @@ export function useCreator(
 ) {
   const [state, setState] = useState<CreatorState>(INITIAL);
 
-  const setStep = useCallback((step: CreatorStep) => {
-    setState((s) => ({ ...s, step }));
-  }, []);
-
-  // Step 1 → 2
-  const submitPrompt = useCallback((prompt: string, imageUrls: string[]) => {
-    setState((s) => ({ ...s, step: 2, prompt, imageUrls }));
-  }, []);
-
-  // Step 2 → 3: pick engine, immediately call the mock to get the plan
-  const pickEngine = useCallback(
-    async (engine: string) => {
-      setState((s) => ({ ...s, step: 3, engine, loading: true, error: null }));
+  /** Submit the setup → Hermes proposes/builds the plan → show plan preview. */
+  const forge = useCallback(
+    async (config: CreatorConfig) => {
+      setState((s) => ({ ...s, loading: true, error: null }));
       const result = await generateFn({
-        user_prompt: state.prompt,
-        moodboard_image_urls: state.imageUrls,
-        forced_engine: engine,
+        user_prompt: config.prompt,
+        moodboard_image_urls: config.imageUrls,
+        forced_engine: config.engine, // undefined → Hermes auto-picks
       });
       if (result.ok) {
-        setState((s) => ({
-          ...s,
-          response: result.response,
-          loading: false,
-        }));
+        setState((s) => ({ ...s, phase: "plan", response: result.response, loading: false }));
       } else {
         setState((s) => ({ ...s, error: result.error, loading: false }));
       }
     },
-    [generateFn, state.prompt, state.imageUrls],
+    [generateFn],
   );
 
-  // Step 3 → 4: user confirmed the plan, start generation animation
+  /** Plan confirmed → run the generation phase. */
   const startGeneration = useCallback(() => {
-    setState((s) => ({ ...s, step: 4 }));
+    setState((s) => ({ ...s, phase: "generating" }));
   }, []);
 
-  // Step 4 → 5: animation complete
+  /** Generation animation complete → output. */
   const generationDone = useCallback(() => {
-    setState((s) => ({ ...s, step: 5 }));
+    setState((s) => ({ ...s, phase: "done" }));
   }, []);
 
-  // Reset to step 1
-  const reset = useCallback(() => {
-    setState(INITIAL);
-  }, []);
+  const reset = useCallback(() => setState(INITIAL), []);
 
-  return {
-    ...state,
-    submitPrompt,
-    pickEngine,
-    startGeneration,
-    generationDone,
-    setStep,
-    reset,
-  };
+  return { ...state, forge, startGeneration, generationDone, reset };
 }

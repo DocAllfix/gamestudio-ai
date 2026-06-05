@@ -27,6 +27,21 @@ export interface Dictionary {
     "home.grid.heading": string;
     "card.play": string;
     "card.fork": string;
+    "invite.title": string;
+    "invite.placeholder": string;
+    "invite.cta": string;
+    "invite.hint": string;
+    "create.heading": string;
+    "create.subheading": string;
+    "create.engine.label": string;
+    "create.engine.auto": string;
+    "create.genre.label": string;
+    "create.style.label": string;
+    "create.advanced": string;
+    "create.difficulty.label": string;
+    "create.moodboard.label": string;
+    "create.submit": string;
+    "create.back": string;
 }
 
 const en: Dictionary = {
@@ -43,6 +58,21 @@ const en: Dictionary = {
     "home.grid.heading": "Forged by the community",
     "card.play": "Play",
     "card.fork": "Fork",
+    "invite.title": "What game have you always wanted to make?",
+    "invite.placeholder": "A hardcore platformer where the world flips every 10 seconds…",
+    "invite.cta": "Forge it",
+    "invite.hint": "One sentence. We pick the engine, build it, and check it actually runs.",
+    "create.heading": "Forge your game",
+    "create.subheading": "We proposed the setup from your idea. Change anything, then forge.",
+    "create.engine.label": "Engine",
+    "create.engine.auto": "Auto (recommended)",
+    "create.genre.label": "Genre",
+    "create.style.label": "Style",
+    "create.advanced": "Advanced controls",
+    "create.difficulty.label": "Difficulty",
+    "create.moodboard.label": "Moodboard images (optional, max 3)",
+    "create.submit": "Forge the game",
+    "create.back": "Back to home",
 };
 
 // Italian kept for parity / future language switch (not primary).
@@ -60,6 +90,21 @@ const it: Dictionary = {
     "home.grid.heading": "Forgiati dalla community",
     "card.play": "Gioca",
     "card.fork": "Fork",
+    "invite.title": "Che gioco hai sempre voluto creare?",
+    "invite.placeholder": "Un platformer hardcore dove il mondo si capovolge ogni 10 secondi…",
+    "invite.cta": "Forgialo",
+    "invite.hint": "Una frase. Scegliamo noi il motore, lo costruiamo e verifichiamo che giri davvero.",
+    "create.heading": "Forgia il tuo gioco",
+    "create.subheading": "Abbiamo proposto la configurazione dalla tua idea. Cambia ciò che vuoi, poi forgia.",
+    "create.engine.label": "Motore",
+    "create.engine.auto": "Auto (consigliato)",
+    "create.genre.label": "Genere",
+    "create.style.label": "Stile",
+    "create.advanced": "Controlli avanzati",
+    "create.difficulty.label": "Difficoltà",
+    "create.moodboard.label": "Immagini moodboard (opzionale, max 3)",
+    "create.submit": "Forgia il gioco",
+    "create.back": "Torna alla home",
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { en, it };

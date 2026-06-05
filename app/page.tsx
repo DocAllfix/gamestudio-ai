@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
 
 import { AnvilMark } from "@/components/brand/anvil-mark";
 import { GameCard } from "@/components/home/game-card";
+import { Invite } from "@/components/home/invite";
 import { getMockFeedBuilds, type FeedBuild } from "@/lib/runtime/runtime-client";
 import { t } from "@/lib/i18n/dictionaries";
 
@@ -19,7 +19,6 @@ const FILTERS = ["All", "Platformer", "Roguelike", "Arcade", "3D", "Puzzle"] as 
 const SPANS: Array<"tall" | "wide" | "normal"> = ["wide", "normal", "tall", "normal", "normal", "wide"];
 
 export default function HomePage() {
-  const reduce = useReducedMotion();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
 
   const games = useMemo(() => {
@@ -60,39 +59,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Compact hero — left-weighted, mark off-center (not a generic centered hero) */}
-      <section className="relative overflow-hidden border-b border-surface-2 px-6 py-10 md:py-14">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-32 -top-24 h-[420px] w-[420px] rounded-full blur-[120px]"
-          style={{ background: "radial-gradient(circle, rgba(245,88,43,0.16), transparent 70%)" }}
-        />
-        <div className="relative mx-auto flex max-w-6xl items-center justify-between gap-8">
-          <div>
-            <motion.h1
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="max-w-[18ch] font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[0.98] tracking-[-0.04em] text-balance"
-            >
-              {t("home.hero.title")}
-            </motion.h1>
-            <motion.p
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="mt-4 max-w-[58ch] font-sans text-text-muted"
-            >
-              {t("home.hero.subtitle")}
-            </motion.p>
-          </div>
-          <AnvilMark
-            size={150}
-            label={null}
-            className="hidden shrink-0 text-surface-2 drop-shadow-[0_0_30px_rgba(245,88,43,0.15)] lg:block"
-          />
-        </div>
-      </section>
+      {/* Entry invitation — Higgsfield-style breath, routes to the generator */}
+      <Invite />
 
       {/* Filters */}
       <div className="sticky top-[57px] z-10 border-b border-surface-2 bg-ink/85 px-6 py-3 backdrop-blur">
