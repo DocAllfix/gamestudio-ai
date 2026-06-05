@@ -1,0 +1,47 @@
+# GameSmith E2B sandbox template — the build/smoke toolchain for all 5 day-1
+# engines. Boots via Sandbox.create({ template: "<id>" }) from lib/runtime.
+# Adapters only INVOKE these binaries (paths below match the engine constants),
+# they never install at runtime. Build: `e2b template build` from this dir.
+#
+# Engines covered: Phaser / Three.js / Babylon (esbuild + headless Chromium),
+# Godot 4 (headless Web export), Defold (bob.jar + JDK, .apk).
+FROM e2bdev/code-interpreter:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --- Base tools: node is in the e2b image; add zip + java (Defold's bob) ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      zip unzip wget ca-certificates openjdk-17-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- esbuild on PATH (browser engines bundle src with it) ---
+RUN npm install -g esbuild
+
+# --- Babylon core resolvable in the sandbox (NullEngine smoke runner) ---
+RUN npm install -g @babylonjs/core
+
+# --- Headless Chromium for the browser smoke runners (Playwright bundles it) ---
+RUN npm install -g playwright && npx playwright install --with-deps chromium
+
+# --- Godot 4 headless + Web export templates ---
+ARG GODOT_VERSION=4.3-stable
+RUN wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip" -O /tmp/godot.zip \
+    && unzip -q /tmp/godot.zip -d /tmp/godot \
+    && mv /tmp/godot/Godot_v${GODOT_VERSION}_linux.x86_64 /usr/local/bin/godot \
+    && chmod +x /usr/local/bin/godot \
+    && wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz" -O /tmp/templates.tpz \
+    && mkdir -p /root/.local/share/godot/export_templates/${GODOT_VERSION%-*}.stable \
+    && unzip -q /tmp/templates.tpz -d /tmp/tpl \
+    && cp -r /tmp/tpl/templates/* /root/.local/share/godot/export_templates/${GODOT_VERSION%-*}.stable/ \
+    && rm -rf /tmp/godot.zip /tmp/godot /tmp/templates.tpz /tmp/tpl
+
+# --- coi-serviceworker for Godot Web export (cross-origin isolation client-side) ---
+RUN wget -q "https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.js" -O /opt/coi-serviceworker.js
+
+# --- Defold headless build tool (bob.jar) ---
+ARG BOB_VERSION=1.9.8
+RUN wget -q "https://github.com/defold/defold/releases/download/${BOB_VERSION}/bob.jar" -O /opt/bob.jar || \
+    wget -q "http://d.defold.com/archive/stable/${BOB_VERSION}/bob/bob.jar" -O /opt/bob.jar
+
+# Sanity: fail the template build early if a core binary is missing.
+RUN node --version && esbuild --version && zip --version >/dev/null && java -version && godot --version && test -f /opt/bob.jar && test -f /opt/coi-serviceworker.js

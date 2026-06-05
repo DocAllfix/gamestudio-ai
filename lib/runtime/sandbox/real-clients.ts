@@ -30,9 +30,16 @@ export function createE2bClient(): E2bClient {
     const apiKey = process.env.E2B_API_KEY;
     if (!apiKey) throw new Error("E2B_API_KEY missing — required to boot sandboxes.");
 
+    // The W3-owned template (e2b/e2b.Dockerfile) carries the 5-engine toolchain
+    // (esbuild, godot + export templates, bob.jar/JDK, chromium, zip). Without
+    // it the default image is bare and build() fails with exit 127.
+    const template = process.env.E2B_TEMPLATE_ID;
+
     return {
         async createSandbox(): Promise<E2bRawSandbox> {
-            const sbx = await Sandbox.create({ apiKey });
+            const sbx = template
+                ? await Sandbox.create(template, { apiKey })
+                : await Sandbox.create({ apiKey });
             return {
                 id: sbx.sandboxId,
                 // keep a handle so runCommand/writeFile can reach the SDK object
