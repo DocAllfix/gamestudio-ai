@@ -34,6 +34,12 @@ export interface MatchedAsset {
     similarity: number;
 }
 
+export interface UserLibraryAsset {
+    id: string;
+    download_url: string;
+    license: string;
+}
+
 export interface AssetResolverDeps {
     matchAssets(query: {
         description: string;
@@ -42,6 +48,14 @@ export interface AssetResolverDeps {
         genre?: string;
         engine?: string;
     }): Promise<MatchedAsset[]>;
+    /** Optional: the user's personal Studio library (project_assets). When it
+     * returns an asset, it wins over catalog/generative (curated library feeds
+     * the game first). Absent in tests/contexts without a user library. */
+    findUserAsset?(query: {
+        user_id: string;
+        asset_type?: string;
+        style_pack?: string;
+    }): Promise<UserLibraryAsset | null>;
 }
 
 export const AssetResolverInputSchema = ToolInputBaseSchema.extend({
@@ -50,11 +64,13 @@ export const AssetResolverInputSchema = ToolInputBaseSchema.extend({
     style_pack: z.string().optional(),
     genre: z.string().optional(),
     engine: z.string().optional(),
+    /** When present (+ findUserAsset dep), the user's library is checked first. */
+    user_id: z.string().optional(),
 });
 export type AssetResolverInput = z.infer<typeof AssetResolverInputSchema>;
 
 export const AssetResolverOutputSchema = ToolOutputBaseSchema.extend({
-    source: z.enum(["catalog", "generative"]),
+    source: z.enum(["user_library", "catalog", "generative"]),
     /** True when the caller should fall back to a generative tool: either
      * no hit, or a hit too weak to use without a generated alternative. */
     fallback_generative: z.boolean(),
@@ -106,13 +122,63 @@ async function defaultMatchAssets(query: {
     }
 }
 
+/** Default user-library lookup: most recent matching asset from project_assets. */
+async function defaultFindUserAsset(query: {
+    user_id: string;
+    asset_type?: string;
+    style_pack?: string;
+}): Promise<UserLibraryAsset | null> {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return null;
+    try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(url, key);
+        // user_id here is the internal users.id (resolved by the caller).
+        let q = supabase
+            .from("project_assets")
+            .select("id, url, license, asset_type, style_pack_id")
+            .eq("user_id", query.user_id)
+            .order("favorite", { ascending: false })
+            .order("created_at", { ascending: false })
+            .limit(1);
+        if (query.asset_type) q = q.eq("asset_type", query.asset_type);
+        if (query.style_pack) q = q.eq("style_pack_id", query.style_pack);
+        const { data, error } = await q;
+        if (error || !data || data.length === 0) return null;
+        const a = data[0] as { id: string; url: string; license: string };
+        return { id: a.id, download_url: a.url, license: a.license };
+    } catch (error) {
+        console.error({ context: "asset_resolver.defaultFindUserAsset", query, error });
+        return null;
+    }
+}
+
 async function handler(
     invocation: ToolInvocation,
-    deps: AssetResolverDeps = { matchAssets: defaultMatchAssets },
+    deps: AssetResolverDeps = { matchAssets: defaultMatchAssets, findUserAsset: defaultFindUserAsset },
 ) {
     const start = Date.now();
     const input = AssetResolverInputSchema.parse({ ...invocation.input, ...pickBase(invocation) });
 
+    // 1) User's curated Studio library wins, when available.
+    if (deps.findUserAsset && input.user_id) {
+        const owned = await deps.findUserAsset({
+            user_id: input.user_id,
+            asset_type: input.asset_type,
+            style_pack: input.style_pack,
+        });
+        if (owned) {
+            return makeResult({
+                invocation: { tool_id: "asset_resolver", node_id: invocation.node_id, trace_id: invocation.trace_id },
+                output: userLibraryOutput(invocation.trace_id, owned),
+                qa_log: [{ check: "user_library", passed: true, detail: `library asset ${owned.id}` }],
+                latency_ms: Date.now() - start,
+            });
+        }
+    }
+
+    // 2) CC0 catalog.
     const hits = await deps.matchAssets({
         description: input.description,
         asset_type: input.asset_type,
@@ -155,7 +221,7 @@ function pickBase(invocation: ToolInvocation) {
 
 function okOutput(
     trace_id: string,
-    source: "catalog" | "generative",
+    source: "user_library" | "catalog" | "generative",
     fallback_generative: boolean,
     best: MatchedAsset | null,
 ): AssetResolverOutput {
@@ -174,6 +240,19 @@ function okOutput(
                   similarity: best.similarity,
               }
             : null,
+    };
+}
+
+/** A user-library hit is an exact, curated choice — similarity 1, no fallback. */
+function userLibraryOutput(trace_id: string, asset: UserLibraryAsset): AssetResolverOutput {
+    return {
+        trace_id,
+        cost_usd: 0,
+        latency_ms: 0,
+        qa_log: [],
+        source: "user_library",
+        fallback_generative: false,
+        asset: { id: asset.id, download_url: asset.download_url, license: asset.license, similarity: 1 },
     };
 }
 

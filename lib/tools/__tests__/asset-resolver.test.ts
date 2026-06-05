@@ -72,4 +72,28 @@ describe("asset_resolver handler", () => {
         expect(res.output?.source).toBe("generative");
         expect(res.output?.fallback_generative).toBe(true);
     });
+
+    it("prefers the user's library over the catalog", async () => {
+        const matchAssets = matchAssetsReturning(0.99); // strong catalog hit available
+        const findUserAsset = vi.fn(async () => ({
+            id: "00000000-0000-4000-8000-0000000000bb",
+            download_url: "https://r2.example/my-knight.png",
+            license: "user-owned",
+        }));
+        const res = await assetResolver.handler(
+            { ...baseInvocation, input: { description: "a knight", asset_type: "sprite", user_id: "u1" } },
+            { matchAssets, findUserAsset },
+        );
+        expect(res.output?.source).toBe("user_library");
+        expect(res.output?.fallback_generative).toBe(false);
+        expect(matchAssets).not.toHaveBeenCalled(); // library short-circuits the catalog
+    });
+
+    it("falls back to catalog when the library has no match", async () => {
+        const res = await assetResolver.handler(
+            { ...baseInvocation, input: { description: "a knight", asset_type: "sprite", user_id: "u1" } },
+            { matchAssets: matchAssetsReturning(0.9), findUserAsset: vi.fn(async () => null) },
+        );
+        expect(res.output?.source).toBe("catalog");
+    });
 });
