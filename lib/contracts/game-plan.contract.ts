@@ -113,6 +113,17 @@ export const AssetBindingSchema = z.discriminatedUnion("source", [
         output_url: z.string().url(),
         cost_usd: z.number().min(0),
     }),
+    // An asset the user prepared/curated in their personal Studio library
+    // (project_assets table). The resolver prefers these before catalog or
+    // generative, so a curated library feeds the game directly. (Contract
+    // proposal: Asset Studio + Library — adds the third binding source.)
+    z.object({
+        source: z.literal("user_prepared"),
+        slot: z.string().min(1),
+        user_asset_id: z.string().uuid(),
+        download_url: z.string().url(),
+        license: z.string().min(1),
+    }),
 ]);
 export type AssetBinding = z.infer<typeof AssetBindingSchema>;
 
