@@ -8,10 +8,12 @@
 FROM e2bdev/code-interpreter:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
+# The e2b base image runs as a non-root user; switch to root for system installs.
+USER root
 
 # --- Base tools: node is in the e2b image; add zip + java (Defold's bob) ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      zip unzip wget ca-certificates openjdk-17-jre-headless \
+      zip unzip wget ca-certificates openjdk-21-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 # --- esbuild on PATH (browser engines bundle src with it) ---

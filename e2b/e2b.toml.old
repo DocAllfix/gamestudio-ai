@@ -1,0 +1,15 @@
+# This is a config for E2B sandbox template.
+# You can use template ID (0a9xpcjltsjg3kvewrmo) or template name (gamesmith) to create a sandbox:
+
+# Python SDK
+# from e2b import Sandbox, AsyncSandbox
+# sandbox = Sandbox.create("gamesmith") # Sync sandbox
+# sandbox = await AsyncSandbox.create("gamesmith") # Async sandbox
+
+# JS SDK
+# import { Sandbox } from 'e2b'
+# const sandbox = await Sandbox.create('gamesmith')
+
+dockerfile = "e2b.Dockerfile"
+template_name = "gamesmith"
+template_id = "0a9xpcjltsjg3kvewrmo"
