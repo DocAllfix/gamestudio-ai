@@ -26,6 +26,7 @@ import {
     type GamePlan,
     type GamePlanPatch,
 } from "../contracts/game-plan.contract.js";
+import { buildExecutionDag } from "./dag-builder.js";
 
 function refinementPatch(
     plan: GamePlan,
@@ -52,8 +53,21 @@ export const designPlanner: DesignPlanner = {
         const input = DesignPlannerInputSchema.parse(rawInput);
 
         if (input.refinement_request === undefined) {
+            // Structural design: replace the 1-node skeleton DAG with the full
+            // per-genre/engine pipeline so generation orchestrates all the real
+            // tools (sprite, levels, tilemap, entities, audio, code).
+            const { meta } = input.plan;
+            const execution_dag = buildExecutionDag({
+                genre: meta.genre,
+                engine: meta.engine,
+                style_pack_id: meta.style_pack_id,
+                difficulty: meta.difficulty,
+            });
             return {
-                result: { kind: "full_plan", plan: input.plan },
+                result: {
+                    kind: "full_plan",
+                    plan: { ...input.plan, execution_dag },
+                },
                 memory: input.memory,
             };
         }
