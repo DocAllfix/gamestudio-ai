@@ -16,19 +16,20 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   if (event.type === "user.created" || event.type === "user.updated") {
     const user = event.data;
-    const primaryEmail = user.email_addresses.find(
-      (e) => e.id === user.primary_email_address_id,
-    );
-    if (!primaryEmail) {
-      return new Response("No primary email", { status: 400 });
-    }
+    // Prefer the primary email, fall back to the first one, then a placeholder.
+    // Never 400 here: a missing/odd email (OAuth, passkey, Clerk's test payload)
+    // must not block user creation — the account still needs a row.
+    const email =
+      user.email_addresses.find((e) => e.id === user.primary_email_address_id)?.email_address ??
+      user.email_addresses[0]?.email_address ??
+      `${user.id}@placeholder.local`;
 
     const displayName =
-      [user.first_name, user.last_name].filter(Boolean).join(" ") || null;
+      [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || null;
 
     await upsertUser(db, {
       clerk_user_id: user.id,
-      email: primaryEmail.email_address,
+      email,
       display_name: displayName,
     });
   }
