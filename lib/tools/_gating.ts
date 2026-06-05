@@ -40,14 +40,21 @@ export interface GateDeps {
     checkQuota(request: GateRequest): Promise<QuotaVerdict>;
 }
 
-/** Run the paywall gate first (cheap, no RPC), then the quota RPC. */
+/** Run the paywall gate first (cheap, no RPC), then the quota RPC.
+ *
+ * GENERATIVE_PAYWALL_DISABLED=true bypasses the tier check (closed test with
+ * friends — everyone can use generative). The quota RPC still runs as a cost
+ * safety net. Remove the flag to restore the paywall for launch. */
 export async function gateGenerative(
     request: GateRequest,
     deps: GateDeps,
 ): Promise<QuotaVerdict> {
-    const tier = await deps.getUserTier(request.clerk_user_id);
-    if (!PAID_TIERS.has(tier)) {
-        return { allowed: false, reason: "generative_requires_paid_tier", games_used_this_month: 0 };
+    const paywallOff = process.env.GENERATIVE_PAYWALL_DISABLED === "true";
+    if (!paywallOff) {
+        const tier = await deps.getUserTier(request.clerk_user_id);
+        if (!PAID_TIERS.has(tier)) {
+            return { allowed: false, reason: "generative_requires_paid_tier", games_used_this_month: 0 };
+        }
     }
     return deps.checkQuota(request);
 }
