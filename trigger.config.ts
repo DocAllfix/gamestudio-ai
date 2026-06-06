@@ -9,4 +9,8 @@ export default defineConfig({
   project: process.env.TRIGGER_PROJECT_REF ?? "proj_fztdwwxgpjuelyqqcxsh",
   dirs: ["./trigger"],
   maxDuration: 1800, // 30 min ceiling for a full generation run
+  // Node 22 has native WebSocket; the default "node" image is Node 21 and the
+  // SDK's realtime client fails on it ("Node.js 21 detected without native
+  // WebSocket support"). This is the real fix (engines.node is ignored).
+  runtime: "node-22",
 });
