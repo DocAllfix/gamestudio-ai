@@ -44,6 +44,9 @@ export function createE2bClient(): E2bClient {
                 id: sbx.sandboxId,
                 // keep a handle so runCommand/writeFile can reach the SDK object
                 _sdk: sbx,
+                async close() {
+                    await sbx.kill();
+                },
             } as unknown as E2bRawSandbox;
         },
         async runCommand(sandbox, command) {
@@ -98,9 +101,17 @@ export function createR2Client(): R2Client {
     });
 
     return {
-        async putObject({ bucket, key, body }) {
+        async putObject({ bucket, key, body, contentType }) {
             const out = await s3.send(
-                new PutObjectCommand({ Bucket: bucket, Key: key, Body: body }),
+                new PutObjectCommand({
+                    Bucket: bucket,
+                    Key: key,
+                    Body: body,
+                    // Without this R2 serves everything as octet-stream, so the
+                    // browser downloads index.html instead of rendering it and
+                    // refuses to stream-compile the .wasm.
+                    ContentType: contentType,
+                }),
             );
             return { etag: out.ETag ?? "" };
         },
