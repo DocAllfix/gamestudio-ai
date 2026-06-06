@@ -8,12 +8,20 @@ export default makeCodeGenTool({
     language: "gdscript",
     model: "deepseek-chat",
     // The scaffold mounts this script on the root Node2D scene (main.tscn), so
-    // it MUST start with `extends Node2D` and build the game by adding child
-    // nodes in _ready() (do NOT extend RefCounted/Object, or Godot refuses to
-    // instance it onto the Node2D and the scene loads empty).
+    // it MUST be valid Godot 4.3 GDScript. The LLM tends to emit Godot 3 APIs
+    // and Python-style syntax, which fail to parse / load an empty scene.
     entrypointContract:
-        "This script is the main scene's root script and MUST start with " +
-        "`extends Node2D`. Build the whole game from here: create and add child " +
-        "nodes (sprites, UI, player) in `_ready()`, drive logic in `_process(delta)` " +
-        "and `_input(event)`. Never extend RefCounted or Object.",
+        "TARGET: Godot 4.3 GDScript ONLY. This script is the main scene's root " +
+        "and MUST start with `extends Node2D`; build the game by creating and " +
+        "adding child nodes in `_ready()`, logic in `_process(delta)` / " +
+        "`_input(event)`. Never extend RefCounted or Object. " +
+        "STRICT Godot 4 rules (Godot 3 APIs do NOT exist and will crash): " +
+        "use CharacterBody2D (not KinematicBody2D), Sprite2D (not Sprite), " +
+        "node.position/size (not rect_position/rect_size), " +
+        "Image.create()/set_pixel without lock()/unlock(), " +
+        "@onready/@export annotations, `move_and_slide()` with the `velocity` " +
+        "property. SYNTAX: GDScript is NOT Python — never break a line after a " +
+        "binary operator (`and`/`or`/`+`); keep each boolean expression on ONE " +
+        "line, or wrap the whole expression in parentheses. Use tabs for " +
+        "indentation. Draw something visible immediately so the scene is not blank.",
 });

@@ -32,6 +32,7 @@ import {
 } from "../contracts/tool-registry.contract.js";
 import { type SmokeTestReport } from "../contracts/evaluation-metrics.contract.js";
 import type { AssemblerInput, AssemblerOutput } from "../contracts/assembly-pipeline.contract.js";
+import { currentTracer } from "../observability/context.js";
 
 /**
  * Tool batch seam. Default = the REAL W2 tools via the registry (dispatchSafe:
@@ -212,6 +213,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
         const levels = topoLevels(plan.execution_dag.nodes);
         const nodeResults: NodeResult[] = [];
         const failed = new Set<string>();
+        const tracer = currentTracer();
         // Accumulates each succeeded tool's files, keyed by DAG node id, to
         // hand to the build (the Assembler scaffolds these into the engine
         // project). Was previously `{}` — the build received no game files.
@@ -280,6 +282,20 @@ export const executionOrchestrator: ExecutionOrchestrator = {
                     latency_ms: result.latency_ms,
                     error_message: result.error_message,
                 });
+                // Audit each tool with its full output + the generated code, so a
+                // run can be inspected node-by-node (what each tool produced).
+                const out = result.output as { code?: string } | null;
+                await tracer?.record({
+                    phase: "tool",
+                    tool_id: result.tool_id,
+                    node_id: result.node_id,
+                    status: status === "succeeded" ? "succeeded" : "failed",
+                    output: result.output,
+                    generated_code: typeof out?.code === "string" ? out.code : undefined,
+                    cost_usd: result.cost_usd,
+                    latency_ms: result.latency_ms,
+                    error: result.error_message ?? undefined,
+                });
             }
         }
 
@@ -292,6 +308,17 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             run_smoke_test: true,
         });
         totalLatency += build.total_duration_ms;
+        // Audit the build with its FULL log + smoke result — the exact stderr
+        // and smoke crash_reason, so a failed/grey build is debuggable from the DB.
+        await tracer?.record({
+            phase: "build",
+            engine: plan.meta.engine,
+            status: build.smoke_test.passed === false ? "degraded" : "succeeded",
+            output: { artifact_id: build.artifact_id, iframe_url: build.iframe_url ?? null, smoke_passed: build.smoke_test.passed },
+            build_log: build.build_log,
+            smoke_log: build.smoke_test.crash_reason ?? undefined,
+            latency_ms: build.total_duration_ms,
+        });
 
         const smokeReport: SmokeTestReport = {
             runs: [

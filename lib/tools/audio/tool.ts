@@ -108,7 +108,15 @@ function makeHandler(kind: AudioKind) {
             return done("catalog", resolved.asset.download_url, resolved.asset.license);
         }
         if (!deps.audioPort) {
-            throw new Error(`${kind}: paid-tier generation requested without an AudioGenPort`);
+            // No generative provider wired yet: degrade gracefully (CC0 if any,
+            // else no audio) WITHOUT throwing, so the run still produces a game.
+            if (resolved.asset) return done("catalog", resolved.asset.download_url, resolved.asset.license);
+            return makeResult({
+                invocation: { tool_id: kind, node_id: invocation.node_id, trace_id: invocation.trace_id },
+                output: null,
+                qa_log: [{ check: "audio_resolved", passed: false, detail: "no audio; degraded (no generative provider)" }],
+                latency_ms: Date.now() - start,
+            });
         }
         const base = { project_id: input.project_id, plan_version: input.plan_version, trace_id: input.trace_id };
         const gen =

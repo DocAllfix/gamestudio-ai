@@ -92,15 +92,14 @@ async function handler(invocation: ToolInvocation, deps: PopulateDeps = defaultD
         // Free tier: never call FLUX — fall back to the shipped CC0 blob default.
         tileset = { ...DEFAULT_TILESET, source: "default" as const };
         qa_log.push({ check: "tileset_cc0", passed: true, detail: "default-blob" });
+    } else if (!deps.imageGenPort) {
+        // No generative provider wired yet: degrade to the shipped CC0 default
+        // tileset (like free tier) instead of failing. The tilemap data is
+        // still produced from the layout, so this node SUCCEEDS and downstream
+        // code_gen runs. (Generative tilesets are wired in a later slice.)
+        tileset = { ...DEFAULT_TILESET, source: "default" as const };
+        qa_log.push({ check: "tileset_cc0", passed: true, detail: "default-blob (no generative provider)" });
     } else {
-        if (!deps.imageGenPort) {
-            return makeResult({
-                invocation: tool, output: null,
-                qa_log: [{ check: "tileset_resolved", passed: false, detail: "paid generation without ImageGenPort" }],
-                error_message: "tilemap_populate: paid-tier generation requested without an ImageGenPort",
-                latency_ms: Date.now() - start,
-            });
-        }
         const gen = await deps.imageGenPort.generateTileset({
             project_id: input.project_id, plan_version: input.plan_version, trace_id: input.trace_id,
             description: `${input.genre} tileset, style ${input.style_pack_id}`,

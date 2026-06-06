@@ -143,20 +143,9 @@ async function runInner(
         });
         memory = execution.memory;
         push("execution", `nodes=${execution.node_results.length}`);
-        // Audit each tool's per-node outcome (status/cost/latency/error) so a
-        // run can be inspected node-by-node. Best-effort.
-        for (const nr of execution.node_results) {
-            await tracer.record({
-                phase: "tool",
-                tool_id: nr.tool_id,
-                node_id: nr.node_id,
-                engine: plan.meta.engine,
-                status: nr.status === "succeeded" ? "succeeded" : nr.status === "failed" ? "failed" : "skipped",
-                cost_usd: nr.cost_usd,
-                latency_ms: nr.latency_ms,
-                error: nr.error_message ?? undefined,
-            });
-        }
+        // Per-tool traces (incl. generated code) are written inside execution
+        // itself, which has each tool's full output. Here we record the
+        // execution summary (build artifact + playable url).
         await tracer.record({
             phase: "execution",
             status: "succeeded",

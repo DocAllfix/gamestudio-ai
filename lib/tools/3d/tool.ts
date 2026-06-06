@@ -93,7 +93,15 @@ async function handler(invocation: ToolInvocation, deps: Model3DToolDeps = defau
         return done("catalog", resolved.asset.download_url, resolved.asset.license);
     }
     if (!deps.model3dPort) {
-        throw new Error("model_3d_gen: paid-tier generation requested without a Model3DPort");
+        // No generative provider wired yet: degrade gracefully (CC0 if any,
+        // else no model) WITHOUT throwing, so the run still produces a game.
+        if (resolved.asset) return done("catalog", resolved.asset.download_url, resolved.asset.license);
+        return makeResult({
+            invocation: { tool_id: "model_3d_gen", node_id: invocation.node_id, trace_id: invocation.trace_id },
+            output: null,
+            qa_log: [{ check: "model_resolved", passed: false, detail: "no model; degraded (no generative provider)" }],
+            latency_ms: Date.now() - start,
+        });
     }
     const gen = await deps.model3dPort.generateModel({
         project_id: input.project_id,

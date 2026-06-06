@@ -85,7 +85,13 @@ export function buildExecutionDag(args: {
   design?: GameDesignDoc | null;
 }): { nodes: DagNode[] } {
   const { genre, engine, style_pack_id, difficulty, design } = args;
-  const tier = args.tier ?? "free";
+  // GENERATIVE_PAYWALL_DISABLED unlocks ALL tools for the friends test: the
+  // per-tool `if (tier === "free")` guards block generation before the gating
+  // layer, so we hand them the top tier here. CC0 is still preferred first;
+  // this just lets the generative fallback run instead of failing.
+  const tier = process.env.GENERATIVE_PAYWALL_DISABLED === "true"
+    ? "studio"
+    : (args.tier ?? "free");
   const codeGen = ENGINE_CODE_GEN[engine];
   const spatiality = spatialityFor(genre, engine);
   const common = { style_pack_id, genre, engine, tier };
@@ -106,7 +112,9 @@ export function buildExecutionDag(args: {
     if (genre === "visual_novel" || genre === "social_sim") {
       nodes.push({ id: "voice", tool_id: "voice_gen", input: { description: "narration line", ...common }, depends_on: [] });
     }
-    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["hero-sprite", "music"] });
+    // non-spatial code_gen has no structural deps; assets are optional, so it
+    // runs unconditionally (no depends_on) — never skipped by a failed asset.
+    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: [] });
     return { nodes };
   }
 
@@ -117,7 +125,9 @@ export function buildExecutionDag(args: {
     nodes.push({ id: "hero-model", tool_id: "model_3d_gen", input: { description: heroDesc, ...common }, depends_on: [] });
     nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: musicDesc, ...common }, depends_on: [] });
     nodes.push({ id: "sfx", tool_id: "sfx_gen", input: { description: "action sfx", ...common }, depends_on: [] });
-    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["level", "enemies", "hero-model", "music", "sfx"] });
+    // code_gen depends only on structural data (level/enemies), not the
+    // optional asset tools — see the 2D branch note.
+    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["level", "enemies"] });
     return { nodes };
   }
 
@@ -131,6 +141,11 @@ export function buildExecutionDag(args: {
   nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["tilemap"] });
   nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: musicDesc, ...common }, depends_on: [] });
   nodes.push({ id: "sfx", tool_id: "sfx_gen", input: { description: "jump/hit sfx", ...common }, depends_on: [] });
-  nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["hero-sprite", "tilemap", "enemies", "music", "sfx"] });
+  // code_gen depends ONLY on the structural data it uses (tilemap/enemies),
+  // NOT on the asset tools (sprite/music/sfx). Assets are enrichment that can
+  // be absent (free tier without a CC0 match) — a game with placeholder art is
+  // fine, a game with no gameplay code is a grey screen. Decoupling them stops
+  // a failed asset tool from skipping code_gen.
+  nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["tilemap", "enemies"] });
   return { nodes };
 }

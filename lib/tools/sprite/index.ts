@@ -102,7 +102,19 @@ async function handler(invocation: ToolInvocation, deps: SpriteGenDeps = default
         return done("catalog", resolved.asset.download_url, resolved.asset.license);
     }
     if (!deps.imageGenPort) {
-        throw new Error("sprite_gen: paid-tier generation requested without an ImageGenPort");
+        // No generative provider wired yet: degrade gracefully. Use any CC0 hit
+        // we have; otherwise return no asset (output null) WITHOUT throwing, so
+        // the run continues and the code_gen draws placeholder art. (Generative
+        // providers are wired in a later slice.)
+        if (resolved.asset) {
+            return done("catalog", resolved.asset.download_url, resolved.asset.license);
+        }
+        return makeResult({
+            invocation: { tool_id: "sprite_gen", node_id: invocation.node_id, trace_id: invocation.trace_id },
+            output: null,
+            qa_log: [{ check: "asset_resolved", passed: false, detail: "no asset; degraded (no generative provider)" }],
+            latency_ms: Date.now() - start,
+        });
     }
     const generated = await deps.imageGenPort.generateSprite({
         project_id: input.project_id,
