@@ -45,6 +45,21 @@ export default makeCodeGenTool({
         "\tvar dir := Input.get_axis(\"ui_left\", \"ui_right\")\n" +
         "\tplayer.velocity = Vector2(dir * speed, player.velocity.y + 1200.0 * delta)\n" +
         "\tplayer.move_and_slide()\n" +
+        "\t_publish_state()\n" +
+        "```\n" +
+        "MANDATORY — expose the game state for automated testing. Add this and " +
+        "call _publish_state() every frame; keep player_alive/on_screen/" +
+        "goal_reached/game_over/score accurate to YOUR game:\n" +
+        "```gdscript\n" +
+        "var _t := 0.0\n" +
+        "func _publish_state() -> void:\n" +
+        "\tif not JavaScriptBridge.has_method(\"eval\"): return\n" +
+        "\tvar vp := get_viewport_rect().size\n" +
+        "\tvar on := player.position.x >= -50 and player.position.x <= vp.x + 50 and player.position.y <= vp.y + 200\n" +
+        "\tvar st := {\"player_alive\": is_instance_valid(player), \"player_on_screen\": on, " +
+        "\"player_x\": player.position.x, \"player_y\": player.position.y, \"score\": score, " +
+        "\"goal_reached\": false, \"game_over\": false, \"elapsed_seconds\": _t, \"status\": \"\"}\n" +
+        "\tJavaScriptBridge.eval(\"window.__GAME_STATE__ = \" + JSON.stringify(st), true)\n" +
         "```\n" +
         "Custom signals in Godot 4 (define with `signal`, connect a Callable, " +
         "there is NO get_signal_sender — pass data as signal args):\n" +

@@ -24,6 +24,7 @@ export type TracePhase =
     | "tool"
     | "build"
     | "smoke"
+    | "playtest"
     | "web_export"
     | "evaluation"
     | "db_write"

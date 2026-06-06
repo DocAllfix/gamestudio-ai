@@ -132,6 +132,9 @@ export const AssemblerInputSchema = z.object({
      * Orchestrator usually says yes; the Studio Mode "skip QA" debug
      * checkbox sends false. */
     run_smoke_test: z.boolean().default(true),
+    /** The design's declared win/goal, for the Playtester's LLM judge to
+     * assess completability against. Absent → deterministic guards only. */
+    playtest_goal: z.string().optional(),
 });
 export type AssemblerInput = z.infer<typeof AssemblerInputSchema>;
 
@@ -150,6 +153,17 @@ export const AssemblerOutputSchema = z.object({
         crash_reason: z.string().nullable(),
         duration_ms: z.number().int().min(0).nullable(),
     }),
+    /** Playtester verdict (Fetta 5): whether the built game is actually
+     * playable (renders + reacts to input), with a reason fed back to
+     * regeneration on failure. Absent when the playtest was skipped. */
+    playtest: z
+        .object({
+            ran: z.boolean(),
+            playable: z.boolean(),
+            reason: z.string(),
+        })
+        .nullable()
+        .optional(),
     total_duration_ms: z.number().int().min(0),
 });
 export type AssemblerOutput = z.infer<typeof AssemblerOutputSchema>;

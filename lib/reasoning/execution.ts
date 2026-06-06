@@ -299,6 +299,11 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             }
         }
 
+        // The design's win condition, for the Playtester's LLM judge to assess
+        // completability against (universal, genre-agnostic).
+        const designDoc = input.memory.short_term?.design_doc as { win_condition?: string; pitch?: string } | undefined;
+        const playtestGoal = designDoc?.win_condition ?? designDoc?.pitch ?? undefined;
+
         // Hand the (succeeded) tool outputs to the Assembler build seam.
         const build = await runtimeBuildFn({
             project_id: plan.project_id,
@@ -306,6 +311,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             engine: plan.meta.engine,
             tool_outputs: toolOutputs,
             run_smoke_test: true,
+            playtest_goal: playtestGoal,
         });
         totalLatency += build.total_duration_ms;
         // Audit the build with its FULL log + smoke result — the exact stderr
@@ -319,18 +325,29 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             smoke_log: build.smoke_test.crash_reason ?? undefined,
             latency_ms: build.total_duration_ms,
         });
+        if (build.playtest?.ran) {
+            await tracer?.record({
+                phase: "playtest",
+                engine: plan.meta.engine,
+                status: build.playtest.playable ? "succeeded" : "failed",
+                smoke_log: build.playtest.reason,
+            });
+        }
 
-        // Hard gate: a game with no gameplay code is an empty scene (grey
-        // screen), even if the build/smoke "passed". If no code_gen node
-        // succeeded, the run is NOT playable — fail the smoke so D.6 rejects it
-        // (and, later, the template fallback kicks in).
+        // Hard gate: a game is "passed" only if it has gameplay code AND boots
+        // (smoke) AND is actually playable (playtest: renders + reacts to
+        // input). Each failing layer contributes the reason that D.6 surfaces
+        // and the loop feeds back to regeneration.
         const hasCode = nodeResults.some(
             (n) => n.tool_id.startsWith("code_gen") && n.status === "succeeded",
         );
-        const smokePassed = hasCode && (build.smoke_test.passed ?? false);
+        const playtestFailed = build.playtest?.ran === true && build.playtest.playable === false;
+        const smokePassed = hasCode && (build.smoke_test.passed ?? false) && !playtestFailed;
         const crashReason = !hasCode
             ? "no gameplay code generated (code_gen did not succeed)"
-            : build.smoke_test.crash_reason;
+            : playtestFailed
+                ? `not playable: ${build.playtest?.reason}`
+                : build.smoke_test.crash_reason;
 
         const smokeReport: SmokeTestReport = {
             runs: [

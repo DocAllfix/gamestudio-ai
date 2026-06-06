@@ -25,6 +25,40 @@ import {
 } from "../../contracts/assembly-pipeline.contract.js";
 import { scaffoldProject } from "./scaffold.js";
 
+/** LLM judge for the Playtester: given the design goal + the sampled state
+ * trajectory, decide if the game is playable/completable. Universal — it reads
+ * the abstract GameState, not genre rules. Best-effort (null on failure → the
+ * deterministic guards stand). */
+function makeLlmJudge() {
+    return async (args: { goal: string; states: unknown[]; errors: string[] }): Promise<{ playable: boolean; reason: string } | null> => {
+        try {
+            const { complete } = await import("../../llm/router.js");
+            const { z } = await import("zod");
+            const schema = z.object({ playable: z.boolean(), reason: z.string().min(1), confidence: z.number().int().min(0).max(100) });
+            const res = await complete({
+                model: "gpt-4.1-mini",
+                system:
+                    "You are a QA playtester. Given a game's DESIGN GOAL and a time-ordered " +
+                    "trajectory of its state (player_alive, player_on_screen, player_x/y, score, " +
+                    "goal_reached, game_over, elapsed_seconds), judge if the game is actually " +
+                    "playable and can progress toward the goal. Fail it if the player dies/leaves " +
+                    "the screen and never recovers, never moves, makes no progress, or the state is " +
+                    "frozen. Return JSON {playable, reason, confidence}.",
+                user: `GOAL: ${args.goal}\nSTATES: ${JSON.stringify(args.states).slice(0, 4000)}\nERRORS: ${args.errors.join("; ").slice(0, 500)}`,
+                response_schema: schema,
+                max_tokens: 400,
+                temperature: 0.1,
+                trace_id: "playtest-judge",
+            });
+            const j = schema.safeParse(res.output);
+            return j.success ? { playable: j.data.playable, reason: j.data.reason } : null;
+        } catch (e) {
+            console.error("playtest judge failed: " + (e instanceof Error ? e.message : String(e)));
+            return null;
+        }
+    };
+}
+
 /** Smoke section when the test was skipped (run_smoke_test=false). */
 const SKIPPED_SMOKE = {
     ran: false,
@@ -71,6 +105,27 @@ export async function assemble(
             logParts.push(`[smoke passed=${smoke.passed}]\n${smoke.logs}`);
         }
 
+        // 4b. Playtest (Fetta 5): actually play the build headlessly and judge
+        // if it's playable (renders + reacts to input), not just that it booted.
+        // Best-effort: a flaky playtest must not block a sound game.
+        let playtestResult: { ran: boolean; playable: boolean; reason: string } | null = null;
+        if (parsed.run_smoke_test) {
+            try {
+                const { playtest, webDirForEngine } = await import("../playtest-runner/playtest.js");
+                const target = webDirForEngine(parsed.engine);
+                if (target) {
+                    const v = await playtest(sandbox as never, target, {
+                        goal: parsed.playtest_goal,
+                        judge: parsed.playtest_goal ? makeLlmJudge() : undefined,
+                    });
+                    playtestResult = { ran: true, playable: v.playable, reason: v.reason };
+                    logParts.push(`[playtest playable=${v.playable}] ${v.reason}`);
+                }
+            } catch (ptErr) {
+                console.error("assemble playtest skipped: " + (ptErr instanceof Error ? ptErr.message : String(ptErr)));
+            }
+        }
+
         // 5. Package to R2 (the .zip for export/ownership).
         const artifact = await adapter.package(sandbox);
 
@@ -106,6 +161,7 @@ export async function assemble(
                       duration_ms: smoke.duration_ms,
                   }
                 : SKIPPED_SMOKE,
+            playtest: playtestResult,
             total_duration_ms: Date.now() - started,
         });
     } catch (error) {
