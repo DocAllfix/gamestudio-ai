@@ -118,6 +118,7 @@ function isClaude(model: ModelId): boolean {
 export function buildChatParams(
     model: ModelId,
     request: LlmCompleteRequest,
+    viaOpenRouter = false,
 ): ChatParams {
     const messages: ChatParams["messages"] = [];
     if (request.system) {
@@ -130,10 +131,11 @@ export function buildChatParams(
         messages,
         max_tokens: request.max_tokens,
     };
-    // OpenAI/Azure JSON mode: when a response_schema is requested, force a JSON
-    // object so the model returns parseable JSON (no markdown fence). Claude on
-    // Azure doesn't take this param.
-    if (request.response_schema && !isClaude(model)) {
+    // JSON mode: force a JSON object so the model returns parseable JSON (no
+    // prose preamble like "Looking at the requirements..."). Available for
+    // non-Claude on Azure AND for Claude on OpenRouter (OpenRouter supports it);
+    // only Claude-on-Azure can't take it.
+    if (request.response_schema && (!isClaude(model) || viaOpenRouter)) {
         base.response_format = { type: "json_object" };
     }
 
@@ -252,11 +254,25 @@ function safeErr(error: unknown): string {
 }
 
 function parseStructured(content: string, schema: unknown): unknown {
+    const stripped = stripCodeFence(content);
     let json: unknown;
     try {
-        json = JSON.parse(stripCodeFence(content));
-    } catch (error) {
-        throw new Error(`LLM output was not valid JSON: ${(error as Error).message}`);
+        json = JSON.parse(stripped);
+    } catch {
+        // Fallback: some models (Claude) prepend prose ("Looking at the
+        // requirements...") before the JSON. Extract the outermost {...} object
+        // and parse that, so we don't waste a whole retry on a preamble.
+        const first = stripped.indexOf("{");
+        const last = stripped.lastIndexOf("}");
+        if (first >= 0 && last > first) {
+            try {
+                json = JSON.parse(stripped.slice(first, last + 1));
+            } catch (error) {
+                throw new Error(`LLM output was not valid JSON: ${(error as Error).message}`);
+            }
+        } else {
+            throw new Error("LLM output was not valid JSON: no JSON object found");
+        }
     }
     return (schema as ZodType).parse(json);
 }
@@ -277,7 +293,7 @@ export async function complete(
         process.env.LLM_ROUTER_PROVIDER !== "openrouter" &&
         !!process.env.OPENROUTER_API_KEY;
     const client = deps.client ?? (useOpenRouter ? openRouterClient() : defaultClient());
-    const params = buildChatParams(parsed.model, parsed);
+    const params = buildChatParams(parsed.model, parsed, useOpenRouter);
     if (useOpenRouter) params.model = openRouterModel(parsed.model);
     // Use the explicit tracer, else the ambient run tracer (set by the
     // orchestrator via withTracer) so every LLM call is audited without
