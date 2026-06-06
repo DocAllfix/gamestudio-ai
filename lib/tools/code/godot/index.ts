@@ -6,22 +6,59 @@ export default makeCodeGenTool({
     name: "Godot (GDScript)",
     kbEngine: "godot",
     language: "gdscript",
-    model: "deepseek-chat",
-    // The scaffold mounts this script on the root Node2D scene (main.tscn), so
-    // it MUST be valid Godot 4.3 GDScript. The LLM tends to emit Godot 3 APIs
-    // and Python-style syntax, which fail to parse / load an empty scene.
+    // deepseek repeatedly emits Godot-3 / Python-style GDScript that won't parse
+    // (proven via the self-heal traces: 3 retries, still broken). gpt-4.1-mini
+    // (on Azure, no Claude deployment here) handles Godot 4 better; combined
+    // with the validate+retry loop it's reliable. code_gen quality is the
+    // whole product, so the per-call cost is worth it.
+    model: "gpt-4.1-mini",
+    // The scaffold mounts this script on the root Node2D scene (main.tscn).
+    // The LLM keeps mixing Godot 3 APIs and assuming a scene tree that doesn't
+    // exist ($Player), so we anchor it with a COMPLETE valid Godot 4.3 example
+    // to imitate — far more reliable than abstract rules. The self-heal loop
+    // (godot --check-only + doc-API + retry) catches whatever slips through.
     entrypointContract:
-        "TARGET: Godot 4.3 GDScript ONLY. This script is the main scene's root " +
-        "and MUST start with `extends Node2D`; build the game by creating and " +
-        "adding child nodes in `_ready()`, logic in `_process(delta)` / " +
-        "`_input(event)`. Never extend RefCounted or Object. " +
-        "STRICT Godot 4 rules (Godot 3 APIs do NOT exist and will crash): " +
-        "use CharacterBody2D (not KinematicBody2D), Sprite2D (not Sprite), " +
-        "node.position/size (not rect_position/rect_size), " +
-        "Image.create()/set_pixel without lock()/unlock(), " +
-        "@onready/@export annotations, `move_and_slide()` with the `velocity` " +
-        "property. SYNTAX: GDScript is NOT Python — never break a line after a " +
-        "binary operator (`and`/`or`/`+`); keep each boolean expression on ONE " +
-        "line, or wrap the whole expression in parentheses. Use tabs for " +
-        "indentation. Draw something visible immediately so the scene is not blank.",
+        "TARGET: Godot 4.3 GDScript ONLY. This is the root script of the main " +
+        "scene — there are NO other nodes in the scene yet, so NEVER use " +
+        "$NodePath / get_node(); CREATE every node in `_ready()` and keep " +
+        "references in variables. Imitate the structure and API of this WORKING " +
+        "Godot 4.3 example exactly:\n" +
+        "```gdscript\n" +
+        "extends Node2D\n\n" +
+        "var player: CharacterBody2D\n" +
+        "var speed := 300.0\n" +
+        "var score := 0\n\n" +
+        "func _ready() -> void:\n" +
+        "\tplayer = CharacterBody2D.new()\n" +
+        "\tplayer.position = Vector2(120, 200)\n" +
+        "\tadd_child(player)\n" +
+        "\tvar shape := CollisionShape2D.new()\n" +
+        "\tvar rect := RectangleShape2D.new()\n" +
+        "\trect.size = Vector2(24, 24)\n" +
+        "\tshape.shape = rect\n" +
+        "\tplayer.add_child(shape)\n" +
+        "\tvar spr := ColorRect.new()\n" +
+        "\tspr.size = Vector2(24, 24)\n" +
+        "\tspr.color = Color.RED\n" +
+        "\tplayer.add_child(spr)\n\n" +
+        "func _physics_process(delta: float) -> void:\n" +
+        "\tvar dir := Input.get_axis(\"ui_left\", \"ui_right\")\n" +
+        "\tplayer.velocity = Vector2(dir * speed, player.velocity.y + 1200.0 * delta)\n" +
+        "\tplayer.move_and_slide()\n" +
+        "```\n" +
+        "Custom signals in Godot 4 (define with `signal`, connect a Callable, " +
+        "there is NO get_signal_sender — pass data as signal args):\n" +
+        "```gdscript\n" +
+        "signal coin_collected(amount: int)\n\n" +
+        "func _ready() -> void:\n" +
+        "\tcoin_collected.connect(_on_coin_collected)\n\n" +
+        "func _on_coin_collected(amount: int) -> void:\n" +
+        "\tscore += amount\n" +
+        "```\n" +
+        "Key Godot-4 rules shown above: CharacterBody2D (not KinematicBody2D), " +
+        "`move_and_slide()` takes NO args and uses the `velocity` property, " +
+        "`@onready`/`@export` need the @, Color.RED (uppercase), Sprite2D not " +
+        "Sprite, node.position/size not rect_*. GDScript is NOT Python: never " +
+        "break a line after `and`/`or`; tabs for indentation. Make something " +
+        "visible on screen.",
 });

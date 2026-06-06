@@ -51,6 +51,13 @@ const GeneratedCodeSchema = z.object({
 export interface CodeGenDeps {
     getReferences(query: ReferenceQuery): Promise<CodeReference[]>;
     complete(request: LlmCompleteRequest): Promise<LlmCompleteResponse>;
+    /** Optional self-heal: validate generated code (e.g. `godot --check-only`
+     * in the sandbox) and return parse/compile errors, or null when valid.
+     * When present, the handler retries with the errors fed back to the LLM. */
+    validateCode?(args: { engine: string; code: string }): Promise<string | null>;
+    /** Optional: given a compiler error, return official API docs for the
+     * symbols it names (the root-cause grounding for version-mismatch errors). */
+    lookupApiDocs?(engine: string, errorText: string): Promise<string>;
 }
 
 export interface EngineConfig {
@@ -78,6 +85,15 @@ function defaultDeps(): CodeGenDeps {
         async complete(request) {
             const { complete } = await import("../../llm/router.js");
             return complete(request);
+        },
+        async validateCode(args) {
+            // Dynamic import keeps the tool layer free of a static runtime dep.
+            const { validateCode } = await import("../../runtime/code-validator.js");
+            return validateCode(args);
+        },
+        async lookupApiDocs(engine, errorText) {
+            const { lookupApiDocsForError } = await import("../../runtime/code-validator.js");
+            return lookupApiDocsForError(engine, errorText);
         },
     };
 }
@@ -111,30 +127,75 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
             `Mechanic: ${input.mechanic}` +
             (input.context ? `\nContext: ${input.context}` : "");
 
-        const completion = await deps.complete({
-            model: config.model,
-            system,
-            user,
-            response_schema: GeneratedCodeSchema,
-            max_tokens: 4096,
-            temperature: 0.2,
-            trace_id: invocation.trace_id,
-        });
+        // Generate, then (when a validator is wired) self-heal: validate the
+        // code and, on parse/compile errors, feed them back to the LLM and
+        // retry. The LLM repeatedly mis-targets engine versions; validating
+        // against the real toolchain is the only reliable guarantee.
+        const MAX_HEAL = deps.validateCode ? 5 : 1;
+        let userMsg = user;
+        let generated!: z.infer<typeof GeneratedCodeSchema>;
+        let totalCost = 0;
+        const healLog: { check: string; passed: boolean; detail: string | null }[] = [];
 
-        const generated = GeneratedCodeSchema.parse(completion.output);
+        for (let attempt = 1; attempt <= MAX_HEAL; attempt++) {
+            const completion = await deps.complete({
+                model: config.model,
+                system,
+                user: userMsg,
+                response_schema: GeneratedCodeSchema,
+                max_tokens: 4096,
+                temperature: 0.2,
+                trace_id: `${invocation.trace_id}:gen${attempt}`,
+            });
+            generated = GeneratedCodeSchema.parse(completion.output);
+            totalCost += completion.cost_usd;
+
+            if (!deps.validateCode) break;
+            const errors = await deps.validateCode({ engine: config.kbEngine ?? config.id, code: generated.code });
+            if (!errors) {
+                healLog.push({ check: "code_validates", passed: true, detail: `attempt ${attempt}` });
+                break;
+            }
+            healLog.push({ check: "code_validates", passed: false, detail: `attempt ${attempt}: ${errors.slice(0, 160)}` });
+            if (attempt === MAX_HEAL) break;
+            // Root-cause grounding: most retries fail on engine-API mistakes
+            // (Godot `Color.red` vs `RED`, wrong method signatures). Look up the
+            // OFFICIAL docs for the exact symbols named in the error and inject
+            // their real signatures/constants — far more reliable than example
+            // code or the model's guess. Best-effort.
+            let errorGrounding = "";
+            if (deps.lookupApiDocs && config.kbEngine) {
+                try {
+                    errorGrounding = await deps.lookupApiDocs(config.kbEngine, errors);
+                } catch { /* grounding is optional */ }
+            }
+            // Feed the exact compiler errors (+ the authoritative API docs) back.
+            userMsg =
+                `${user}\n\nYour previous ${config.language} did NOT compile in ` +
+                `${config.name}. Fix these EXACT errors and return the full corrected file:\n` +
+                `${errors.slice(0, 1500)}` +
+                (errorGrounding
+                    ? `\n\nAuthoritative ${config.name} API for the symbols above ` +
+                      `(use these EXACT names/signatures):\n${errorGrounding.slice(0, 2500)}`
+                    : "");
+        }
+
         const output: CodeGenOutput = {
             trace_id: invocation.trace_id,
-            cost_usd: completion.cost_usd,
-            latency_ms: completion.latency_ms,
-            qa_log: [],
+            cost_usd: totalCost,
+            latency_ms: Date.now() - start,
+            qa_log: healLog,
             ...generated,
         };
 
         return makeResult({
             invocation: { tool_id: config.id, node_id: invocation.node_id, trace_id: invocation.trace_id },
             output,
-            qa_log: [{ check: "non_empty_code", passed: generated.code.length > 0, detail: null }],
-            cost_usd: completion.cost_usd,
+            qa_log: [
+                { check: "non_empty_code", passed: generated.code.length > 0, detail: null },
+                ...healLog,
+            ],
+            cost_usd: totalCost,
             latency_ms: Date.now() - start,
         });
     }

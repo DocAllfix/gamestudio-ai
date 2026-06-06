@@ -157,13 +157,57 @@ html/export_icon=true
 `;
 
 /**
+ * Deterministic Godot 3 → 4 sanitizer. The LLM keeps emitting Godot-3 APIs and
+ * near-misses that won't parse in Godot 4 (proven via harness traces:
+ * `onready var` without @, KinematicBody2D, Sprite, .rect_position, Color.red).
+ * Fixing the known patterns here, before validation, removes the dominant class
+ * of parse errors instantly — what's left goes to the self-heal + doc-API loop.
+ * Order matters (longer/more-specific patterns first).
+ */
+const GODOT_3_TO_4: ReadonlyArray<[RegExp, string | ((m: string, ...g: string[]) => string)]> = [
+    // Annotations: `onready`/`export` became `@onready`/`@export` (skip if
+    // already prefixed with @).
+    [/(^|\n)(\s*)onready\s+var/g, "$1$2@onready var"],
+    [/(^|\n)(\s*)export(\s*\([^)]*\))?\s+var/g, "$1$2@export var"],
+    // Renamed nodes/classes.
+    [/\bKinematicBody2D\b/g, "CharacterBody2D"],
+    [/\bKinematicBody\b/g, "CharacterBody3D"],
+    [/\bSprite\.new\(\)/g, "Sprite2D.new()"],
+    [/\b(class_name\s+\w+\s*,\s*)?\bSprite\b(?!2D|3D)/g, "Sprite2D"],
+    [/\bPosition2D\b/g, "Marker2D"],
+    [/\bArea\b(?!2D|3D)/g, "Area3D"],
+    [/\bYSort\b/g, "Node2D"],
+    // Renamed properties.
+    [/\.rect_position\b/g, ".position"],
+    [/\.rect_size\b/g, ".size"],
+    [/\.rect_scale\b/g, ".scale"],
+    // Color constants: Color.red → Color.RED (lowercase x11 names dropped).
+    [/\bColor\.([a-z][a-z_]+)\b/g, (_m, n: string) => `Color.${n.toUpperCase()}`],
+    // Coroutines: yield(x,"sig") → await x.sig (best-effort common form).
+    [/\byield\s*\(\s*([^,]+?)\s*,\s*["']([^"']+)["']\s*\)/g, "await $1.$2"],
+    // Image: removed lock()/unlock().
+    [/(^|\n)\s*\w+\.(lock|unlock)\(\)\s*(?=\n)/g, "$1"],
+    // instance() → instantiate().
+    [/\.instance\(\)/g, ".instantiate()"],
+];
+
+export function sanitizeGodot4(code: string): string {
+    let out = code;
+    for (const [re, rep] of GODOT_3_TO_4) {
+        out = typeof rep === "string" ? out.replace(re, rep) : out.replace(re, rep);
+    }
+    return out;
+}
+
+/**
  * Guarantee the main script extends Node2D (main.tscn mounts it on a Node2D
  * node). The code_gen LLM often omits `extends` or extends the wrong base
  * (e.g. RefCounted), which makes Godot refuse to instance the script onto the
  * scene node → the scene loads empty (grey screen). We normalize the first
  * `extends` line, or prepend one when absent.
  */
-function ensureGodotExtendsNode2D(code: string): string {
+function ensureGodotExtendsNode2D(rawCode: string): string {
+    const code = sanitizeGodot4(rawCode);
     const trimmed = code.trimStart();
     if (/^extends\s+Node2D\b/m.test(trimmed)) return code;
     if (/^\s*extends\s+\w+/m.test(trimmed)) {

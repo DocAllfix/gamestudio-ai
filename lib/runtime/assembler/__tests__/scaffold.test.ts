@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scaffoldProject } from "../scaffold.js";
+import { scaffoldProject, sanitizeGodot4 } from "../scaffold.js";
 import type { AssemblerInput } from "../../../contracts/assembly-pipeline.contract.js";
 
 type ToolOutputs = AssemblerInput["tool_outputs"];
@@ -41,6 +41,18 @@ describe("scaffoldProject", () => {
             expect(gd?.content.startsWith(mustContain)).toBe(true);
             expect(gd?.content).not.toContain("extends RefCounted");
         }
+    });
+
+    it("sanitizeGodot4: rewrites the common Godot 3 → 4 patterns", () => {
+        expect(sanitizeGodot4("onready var p = 1")).toContain("@onready var p");
+        expect(sanitizeGodot4("export var hp = 100")).toContain("@export var hp");
+        expect(sanitizeGodot4("var b = KinematicBody2D.new()")).toContain("CharacterBody2D");
+        expect(sanitizeGodot4("var s = Sprite.new()")).toContain("Sprite2D.new()");
+        expect(sanitizeGodot4("r.rect_position = Vector2()")).toContain(".position");
+        expect(sanitizeGodot4("c.color = Color.red")).toContain("Color.RED");
+        expect(sanitizeGodot4("var n = scene.instance()")).toContain(".instantiate()");
+        // Already-correct Godot 4 is left untouched.
+        expect(sanitizeGodot4("@onready var p = 1")).toBe("@onready var p = 1");
     });
 
     it("phaser: code becomes the esbuild entry and an index.html is added", () => {
