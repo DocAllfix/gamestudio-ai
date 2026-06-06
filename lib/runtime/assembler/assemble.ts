@@ -71,12 +71,31 @@ export async function assemble(
             logParts.push(`[smoke passed=${smoke.passed}]\n${smoke.logs}`);
         }
 
-        // 5. Package to R2.
+        // 5. Package to R2 (the .zip for export/ownership).
         const artifact = await adapter.package(sandbox);
+
+        // 6. Web export: upload the playable bundle to R2's CDN and get the
+        // iframe URL the /play page embeds. A failure here must not fail the
+        // whole build — the user still has the exportable .zip — so it
+        // degrades to a null iframe_url with the reason in the log.
+        let iframeUrl: string | null = null;
+        try {
+            const web = await adapter.webExport(sandbox);
+            iframeUrl = web.iframe_url;
+            logParts.push(`[webExport iframe_url=${web.iframe_url} bytes=${web.bundle_size_bytes}]`);
+        } catch (webError) {
+            console.error("assemble webExport failed (game built, not playable in iframe)", {
+                project_id: parsed.project_id,
+                engine: parsed.engine,
+                error: webError,
+            });
+            logParts.push(`[webExport FAILED: ${(webError as Error).message}]`);
+        }
 
         return AssemblerOutputSchema.parse({
             artifact_id: artifact.artifact_id,
             download_url: artifact.download_url,
+            iframe_url: iframeUrl,
             size_bytes: artifact.size_bytes,
             build_log: logParts.join("\n"),
             smoke_test: smoke

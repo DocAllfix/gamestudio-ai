@@ -258,6 +258,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
 
         return {
             build_artifact_id: build.artifact_id,
+            iframe_url: build.iframe_url ?? null,
             node_results: nodeResults,
             smoke_test_report: smokeReport,
             total_cost_usd: totalCost,

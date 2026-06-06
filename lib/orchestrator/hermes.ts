@@ -158,6 +158,8 @@ export const hermesOrchestrator: HermesOrchestrator = {
             overall_passed: report.overall_passed,
             total_cost_usd: execution.total_cost_usd,
             total_latency_ms: execution.total_latency_ms,
+            build_artifact_id: execution.build_artifact_id,
+            iframe_url: execution.iframe_url ?? null,
         };
     },
 };

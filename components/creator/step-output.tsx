@@ -9,7 +9,7 @@ type MetricVerdict = {
   passed: boolean;
   notes: string;
 };
-import { CheckCircle2, Download, ExternalLink, RotateCcw, XCircle } from "lucide-react";
+import { CheckCircle2, ExternalLink, RotateCcw, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -21,9 +21,11 @@ export function StepOutput({ response, onReset }: Props) {
   const plan = response.final_plan;
   const report = response.final_report;
 
-  // iframe_url from WebBuildArtifact.iframe_url (W3 contract) — bound to field
-  const iframeUrl = (plan as unknown as { iframe_url?: string }).iframe_url ?? null;
-  const downloadUrl = (plan as unknown as { bundle_url?: string }).bundle_url ?? null;
+  // The playable build URL (R2 CDN), produced by the real web export.
+  const iframeUrl = response.iframe_url ?? null;
+  // Shareable page on our own domain (brand stays GameSmith; the R2 URL is
+  // hidden inside the iframe). null until the project is persisted.
+  const shareUrl = response.project_id ? `/play/${response.project_id}` : null;
 
   return (
     <div className="flex flex-col gap-6" data-testid="step-output">
@@ -69,45 +71,29 @@ export function StepOutput({ response, onReset }: Props) {
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-text-muted">
             <span className="font-display text-forge text-xl">▶</span>
-            <span>
-              Player — caricherà{" "}
-              <code className="text-spark">iframe_url</code> da WebBuildArtifact una volta che W3 è live
-            </span>
+            <span>The game built, but the playable web export isn&apos;t ready yet.</span>
           </div>
         )}
       </div>
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
-        {downloadUrl && (
+        {shareUrl && iframeUrl && (
           <a
-            href={downloadUrl}
-            download
-            data-testid="download-btn"
-            className="flex items-center gap-2 rounded-lg border border-surface-2 px-4 py-2.5 text-sm font-medium text-text hover:border-text-muted transition-colors"
+            href={shareUrl}
+            data-testid="play-page-btn"
+            className="flex items-center gap-2 rounded-lg bg-forge px-4 py-2.5 text-sm font-semibold text-ink hover:bg-spark transition-colors"
           >
-            <Download size={14} />
-            Download .zip
+            <ExternalLink size={14} />
+            Open & share
           </a>
         )}
 
         <button
           type="button"
-          data-testid="open-studio-btn"
-          disabled
-          title="Studio Mode — F2"
-          className="flex items-center gap-2 rounded-lg border border-surface-2 px-4 py-2.5 text-sm font-medium text-text-muted"
-        >
-          <ExternalLink size={14} />
-          Open in Studio
-          <span className="rounded bg-surface-2 px-1 py-0.5 text-[10px]">F2</span>
-        </button>
-
-        <button
-          type="button"
           data-testid="create-another-btn"
           onClick={onReset}
-          className="flex items-center gap-2 rounded-lg bg-forge px-4 py-2.5 text-sm font-semibold text-ink hover:bg-spark transition-colors"
+          className="flex items-center gap-2 rounded-lg border border-surface-2 px-4 py-2.5 text-sm font-medium text-text hover:border-text-muted transition-colors"
         >
           <RotateCcw size={14} />
           Forge another

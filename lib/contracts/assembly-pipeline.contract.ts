@@ -138,6 +138,10 @@ export type AssemblerInput = z.infer<typeof AssemblerInputSchema>;
 export const AssemblerOutputSchema = z.object({
     artifact_id: z.string().uuid(),
     download_url: z.string().url(),
+    /** Public URL of the browser-playable build (index.html on R2's CDN),
+     * embedded in the /play/<id> iframe. Null/absent when webExport was
+     * skipped or failed (the .zip download_url still lets the user export). */
+    iframe_url: z.string().url().nullable().optional(),
     size_bytes: z.number().int().min(0),
     build_log: z.string(),
     smoke_test: z.object({

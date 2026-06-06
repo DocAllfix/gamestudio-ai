@@ -217,6 +217,9 @@ export type ExecutionOrchestratorInput = z.infer<
 export const ExecutionOrchestratorOutputSchema = z.object({
     /** Reference to the build artifact .zip in R2. */
     build_artifact_id: z.string().uuid(),
+    /** Public URL of the browser-playable build, embedded in /play/<id>.
+     * Null/absent when the web export was skipped or failed. */
+    iframe_url: z.string().url().nullable().optional(),
     /** Per-node execution result. The Studio Mode UI shows each in the
      * Game Plan DAG canvas. */
     node_results: z.array(
@@ -314,6 +317,11 @@ export const HermesPlanResponseSchema = z.object({
     overall_passed: z.boolean(),
     total_cost_usd: z.number().min(0),
     total_latency_ms: z.number().int().min(0),
+    /** R2 .zip reference for export/ownership. */
+    build_artifact_id: z.string().uuid().nullable().optional(),
+    /** Public URL of the browser-playable build, embedded in /play/<id>.
+     * Null/absent when the web export was skipped or failed. */
+    iframe_url: z.string().url().nullable().optional(),
 });
 export type HermesPlanResponse = z.infer<typeof HermesPlanResponseSchema>;
 

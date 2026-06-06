@@ -103,6 +103,9 @@ export type HermesPlanResponse = {
   overall_passed: boolean;
   total_cost_usd: number;
   total_latency_ms: number;
+  build_artifact_id?: string | null;
+  /** Public URL of the browser-playable build, embedded in /play/<id>. */
+  iframe_url?: string | null;
 };
 
 // ---- Real implementation (delegates to W1 Hermes, server-side only) --------
