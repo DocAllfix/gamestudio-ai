@@ -29,6 +29,14 @@ export const CodeGenInputSchema = ToolInputBaseSchema.extend({
     mechanic: z.string().min(1),
     /** Optional extra context appended to the prompt. */
     context: z.string().optional(),
+    /** The generated level the game must be built ON (reachable AbstractLayout:
+     * cells, entry/spawn, exit/goal, size). When present the code MUST use it
+     * instead of inventing a level. */
+    level_layout: z.unknown().optional(),
+    /** Placed entities (enemies/pickups with coords) to spawn. */
+    entities: z.unknown().optional(),
+    /** Resolved asset urls (sprite/audio) to use instead of placeholders. */
+    assets: z.record(z.unknown()).optional(),
 });
 export type CodeGenInput = z.infer<typeof CodeGenInputSchema>;
 
@@ -98,6 +106,54 @@ function defaultDeps(): CodeGenDeps {
     };
 }
 
+/** Summarize the generated level + entities + assets into a compact brief the
+ * LLM must build the game ON (instead of inventing a tiny level). Returns ""
+ * when there's no level (non-spatial genres / missing upstream). */
+function describeLevel(layout: unknown, entities: unknown, assets: Record<string, unknown> | undefined): string {
+    const lines: string[] = [];
+    const l = layout as {
+        width?: number; height?: number; tile_px?: number;
+        cells?: string[][]; entry?: { x: number; y: number }; exit?: { x: number; y: number };
+    } | undefined;
+
+    if (l?.cells && l.width && l.height) {
+        const tile = l.tile_px ?? 16;
+        lines.push(
+            `BUILD THE GAME ON THIS GENERATED LEVEL (do NOT invent your own level). ` +
+            `Grid ${l.width}x${l.height} cells, ${tile}px each → world size ` +
+            `${l.width * tile}x${l.height * tile} px.`,
+        );
+        if (l.entry) lines.push(`Player START (entry) at cell (${l.entry.x}, ${l.entry.y}) → place the player there.`);
+        if (l.exit) lines.push(`GOAL/EXIT at cell (${l.exit.x}, ${l.exit.y}) → reaching it = win.`);
+        // Compact row map so the LLM can lay out platforms/walls/hazards.
+        const legend = "legend: .=empty #=wall =floor P=platform ^=hazard E=exit S=entry o=pickup x=enemy";
+        const sym: Record<string, string> = {
+            empty: ".", wall: "#", floor: "_", platform: "P", hazard: "^",
+            exit: "E", entry: "S", pickup_slot: "o", enemy_slot: "x", door: "D", decor: ",",
+        };
+        const rows = l.cells.slice(0, 24).map((row) => row.slice(0, 64).map((c) => sym[c] ?? "?").join(""));
+        lines.push(legend + "\nMAP:\n" + rows.join("\n"));
+        lines.push(
+            `Create solid ground/platforms where the map shows _/P (CharacterBody2D/StaticBody2D), ` +
+            `walls at #, hazards at ^. The level is wider than the screen — add a Camera2D that ` +
+            `follows the player so it never leaves the view.`,
+        );
+    }
+
+    const ents = entities as Array<{ kind?: string; x?: number; y?: number }> | undefined;
+    if (Array.isArray(ents) && ents.length > 0) {
+        const summary = ents.slice(0, 20).map((e) => `${e.kind}@(${e.x},${e.y})`).join(", ");
+        lines.push(`Place these entities (cell coords): ${summary}.`);
+    }
+
+    if (assets && (assets.sprite || assets.audio)) {
+        if (assets.sprite) lines.push(`Player/sprite texture URL: ${assets.sprite} (load it; fallback to a colored rect if it fails).`);
+        if (assets.audio) lines.push(`Background audio URL: ${assets.audio}.`);
+    }
+
+    return lines.join("\n");
+}
+
 export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
     async function handler(invocation: ToolInvocation, deps: CodeGenDeps = defaultDeps()) {
         const start = Date.now();
@@ -122,10 +178,12 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
             `${config.language} for the requested mechanic. ` +
             (config.entrypointContract ? config.entrypointContract + " " : "") +
             `Return JSON: {code, language, filename, notes}.`;
+        const levelBrief = describeLevel(input.level_layout, input.entities, input.assets);
         const user =
             (grounding ? grounding + "\n\n" : "") +
             `Mechanic: ${input.mechanic}` +
-            (input.context ? `\nContext: ${input.context}` : "");
+            (input.context ? `\nContext: ${input.context}` : "") +
+            (levelBrief ? `\n\n${levelBrief}` : "");
 
         // Generate, then (when a validator is wired) self-heal: validate the
         // code and, on parse/compile errors, feed them back to the LLM and

@@ -11,33 +11,36 @@
 import type { TraceStep } from "./tracer.js";
 
 let client: unknown = null;
-let initialized = false;
+let initPromise: Promise<unknown> | null = null;
 
-function getClient(): unknown {
-    if (initialized) return client;
-    initialized = true;
-    const pub = process.env.LANGFUSE_PUBLIC_KEY;
-    const sec = process.env.LANGFUSE_SECRET_KEY;
-    if (!pub || !sec) return (client = null);
-    try {
-        // Lazy require so the package is optional until installed.
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { Langfuse } = require("langfuse") as { Langfuse: new (o: object) => unknown };
-        client = new Langfuse({
-            publicKey: pub,
-            secretKey: sec,
-            baseUrl: process.env.LANGFUSE_HOST || undefined,
-        });
-    } catch (e) {
-        console.error("langfuse init skipped: " + (e instanceof Error ? e.message : String(e)));
-        client = null;
-    }
-    return client;
+async function getClient(): Promise<unknown> {
+    if (initPromise) return initPromise;
+    initPromise = (async () => {
+        const pub = process.env.LANGFUSE_PUBLIC_KEY;
+        const sec = process.env.LANGFUSE_SECRET_KEY;
+        if (!pub || !sec) return null;
+        try {
+            // Dynamic import (ESM) so the package is optional and `require` is
+            // never used (require is not defined under ESM).
+            const mod = await import("langfuse");
+            const Langfuse = (mod as { Langfuse: new (o: object) => unknown }).Langfuse;
+            client = new Langfuse({
+                publicKey: pub,
+                secretKey: sec,
+                baseUrl: process.env.LANGFUSE_HOST || undefined,
+            });
+        } catch (e) {
+            console.error("langfuse init skipped: " + (e instanceof Error ? e.message : String(e)));
+            client = null;
+        }
+        return client;
+    })();
+    return initPromise;
 }
 
 /** Record one LLM call as a Langfuse generation. No-op when unconfigured. */
-export function traceLlmCall(runId: string | null, step: TraceStep): void {
-    const lf = getClient() as {
+export async function traceLlmCall(runId: string | null, step: TraceStep): Promise<void> {
+    const lf = (await getClient()) as {
         generation?: (a: object) => void;
     } | null;
     if (!lf?.generation) return;
@@ -61,7 +64,7 @@ export function traceLlmCall(runId: string | null, step: TraceStep): void {
 
 /** Flush pending events (call at the end of a run). No-op when unconfigured. */
 export async function flushLangfuse(): Promise<void> {
-    const lf = getClient() as { flushAsync?: () => Promise<void> } | null;
+    const lf = (await getClient()) as { flushAsync?: () => Promise<void> } | null;
     if (lf?.flushAsync) {
         try {
             await lf.flushAsync();

@@ -161,6 +161,27 @@ function azureDeployment(model: ModelId): string {
     return process.env[envName] ?? process.env.AZURE_OPENAI_DEPLOYMENT ?? model;
 }
 
+let cachedOpenRouter: ChatClient | null = null;
+/** OpenRouter client for models Azure doesn't host (Claude). Lets us route
+ * claude-* to OpenRouter while keeping gpt/deepseek on Azure. */
+function openRouterClient(): ChatClient {
+    if (cachedOpenRouter) return cachedOpenRouter;
+    cachedOpenRouter = new OpenAI({
+        apiKey: requireEnv("OPENROUTER_API_KEY"),
+        baseURL: "https://openrouter.ai/api/v1",
+    }) as unknown as ChatClient;
+    return cachedOpenRouter;
+}
+
+/** Map our model id to the OpenRouter model slug. */
+function openRouterModel(model: ModelId): string {
+    switch (model) {
+        case "claude-sonnet-4-7": return "anthropic/claude-sonnet-4";
+        case "claude-haiku-4-5": return "anthropic/claude-3.5-haiku";
+        default: return model;
+    }
+}
+
 let cachedClient: ChatClient | null = null;
 /** Default client: Azure AI Foundry, or OpenRouter when
  * `LLM_ROUTER_PROVIDER=openrouter`. Neither path uses Helicone. */
@@ -248,8 +269,16 @@ export async function complete(
     deps: CompleteDeps = {},
 ): Promise<LlmCompleteResponse> {
     const parsed = LlmCompleteRequestSchema.parse(request);
-    const client = deps.client ?? defaultClient();
+    // Claude isn't on Azure: route claude-* to OpenRouter (when configured)
+    // while gpt/deepseek stay on the default Azure client. Explicit deps.client
+    // (tests) always wins.
+    const useOpenRouter =
+        isClaude(parsed.model) &&
+        process.env.LLM_ROUTER_PROVIDER !== "openrouter" &&
+        !!process.env.OPENROUTER_API_KEY;
+    const client = deps.client ?? (useOpenRouter ? openRouterClient() : defaultClient());
     const params = buildChatParams(parsed.model, parsed);
+    if (useOpenRouter) params.model = openRouterModel(parsed.model);
     // Use the explicit tracer, else the ambient run tracer (set by the
     // orchestrator via withTracer) so every LLM call is audited without
     // threading a tracer through every call site.

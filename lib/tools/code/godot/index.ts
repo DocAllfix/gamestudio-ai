@@ -6,12 +6,12 @@ export default makeCodeGenTool({
     name: "Godot (GDScript)",
     kbEngine: "godot",
     language: "gdscript",
-    // deepseek repeatedly emits Godot-3 / Python-style GDScript that won't parse
-    // (proven via the self-heal traces: 3 retries, still broken). gpt-4.1-mini
-    // (on Azure, no Claude deployment here) handles Godot 4 better; combined
-    // with the validate+retry loop it's reliable. code_gen quality is the
-    // whole product, so the per-call cost is worth it.
-    model: "gpt-4.1-mini",
+    // Generating a full game + a designed level is complex; gpt-4.1-mini made
+    // too many errors at that size (5/5 retries failed, errors varied). Claude
+    // Sonnet (via OpenRouter — not on Azure) handles complex GDScript far
+    // better; with the self-heal + doc-API loop it's reliable. code_gen quality
+    // is the whole product, so the cost is worth it.
+    model: "claude-sonnet-4-7",
     // The scaffold mounts this script on the root Node2D scene (main.tscn).
     // The LLM keeps mixing Godot 3 APIs and assuming a scene tree that doesn't
     // exist ($Player), so we anchor it with a COMPLETE valid Godot 4.3 example
@@ -77,6 +77,14 @@ export default makeCodeGenTool({
         "standing ON a platform/ground (not in empty space) and must be able to " +
         "move and survive at least a few seconds; place the ground under the " +
         "player's start position. " +
+        "LEVEL DESIGN: design a COMPLETE, intentional level (this is a finished " +
+        "game, not an empty room). Place MULTIPLE platforms at varied heights " +
+        "forming a clear path from the start to a goal; space jumps so they're " +
+        "reachable (gap <= ~120px horizontal, <= ~80px up). Add collectibles " +
+        "and/or a few enemies along the path, and a visible GOAL (exit) the " +
+        "player reaches to win. The level should be wider than the screen with a " +
+        "Camera2D following the player. Don't leave the player on a single flat " +
+        "floor with nothing to do. " +
         "Key Godot-4 rules shown above: CharacterBody2D (not KinematicBody2D), " +
         "`move_and_slide()` takes NO args and uses the `velocity` property, " +
         "`@onready`/`@export` need the @, Color.RED (uppercase), Sprite2D not " +

@@ -151,6 +151,25 @@ function wireInputs(
         if (layout) input.layout = layout;
         if (tilemap) input.tilemap = tilemap;
     }
+    // code_gen is the consumer of the whole pipeline: give it the generated
+    // LEVEL (reachable layout: cells/entry/exit/size), the placed ENTITIES
+    // (enemies/pickups with coords), and the resolved ASSET urls — so the LLM
+    // builds the game ON the real generated content instead of inventing a tiny
+    // broken level. This is the wiring that was missing (level/entity outputs
+    // died unused). Each is optional; absent → the LLM falls back.
+    if (node.tool_id.startsWith("code_gen")) {
+        const layout = fromAny("layout");
+        const entities = fromAny("entities");
+        if (layout) input.level_layout = layout;
+        if (entities) input.entities = entities;
+        // Asset urls produced upstream (sprite/audio), keyed for the prompt.
+        const assets: Record<string, unknown> = {};
+        for (const o of allOutputs) {
+            if (typeof o.image_url === "string") assets.sprite = o.image_url;
+            if (typeof o.audio_url === "string") assets.audio = o.audio_url;
+        }
+        if (Object.keys(assets).length > 0) input.assets = assets;
+    }
     return input;
 }
 

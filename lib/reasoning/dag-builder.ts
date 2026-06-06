@@ -63,6 +63,18 @@ const ENGINE_IS_3D: Partial<Record<Engine, boolean>> = {
   stride: true,
 };
 
+/** Genres whose level is best made by rot-js procedural generation (random
+ * but well-formed maps ARE the genre). Everything else 2D is "curated": the
+ * code_gen designs the level itself (the LLM level_layout made empty maps). */
+const PROCEDURAL_GENRES: ReadonlySet<string> = new Set([
+    "roguelike",   // rotjs_uniform — dungeon
+    "retro_8bit",  // rotjs_cellular — cave
+    "jrpg",        // rotjs_digger — connected rooms
+]);
+function usesProceduralMap(genre: Genre): boolean {
+    return PROCEDURAL_GENRES.has(genre);
+}
+
 function spatialityFor(genre: Genre, engine: Engine): Spatiality {
   const base = GENRE_SPATIALITY[genre];
   // A 2D genre on a 3D-only engine becomes 3D (and vice-versa is left as 2D).
@@ -131,21 +143,26 @@ export function buildExecutionDag(args: {
     return { nodes };
   }
 
-  // 2D spatial — the default rich pipeline. level→tilemap→entity pass data
-  // along their edges; execution.ts wires each parent's output into the child
-  // input (layout→tilemap.layout, tilemap→entity.tilemap). `node` is the
-  // world-graph node level expands; execution injects the real one.
+  // 2D spatial. Two level strategies:
+  //  - PROCEDURAL genres (roguelike/dungeon/cave/jrpg): rot-js makes a good
+  //    random-but-well-formed map → run level_layout_2d → tilemap → entity and
+  //    feed it to code_gen.
+  //  - CURATED genres (platformer/metroidvania/arcade/puzzle/arena): the
+  //    LLM level_layout produced empty/degenerate maps (entry=exit, no
+  //    platforms). For these the code_gen designs the level itself (one
+  //    coherent LLM) and the Playtester/reachability validates it.
   nodes.push({ id: "hero-sprite", tool_id: "sprite_gen", input: { description: heroDesc, ...common }, depends_on: [] });
-  nodes.push({ id: "level", tool_id: "level_layout_2d", input: { size: "m", difficulty, ...common }, depends_on: [] });
-  nodes.push({ id: "tilemap", tool_id: "tilemap_populate", input: { ...common }, depends_on: ["level"] });
-  nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["tilemap"] });
   nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: musicDesc, ...common }, depends_on: [] });
   nodes.push({ id: "sfx", tool_id: "sfx_gen", input: { description: "jump/hit sfx", ...common }, depends_on: [] });
-  // code_gen depends ONLY on the structural data it uses (tilemap/enemies),
-  // NOT on the asset tools (sprite/music/sfx). Assets are enrichment that can
-  // be absent (free tier without a CC0 match) — a game with placeholder art is
-  // fine, a game with no gameplay code is a grey screen. Decoupling them stops
-  // a failed asset tool from skipping code_gen.
-  nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["tilemap", "enemies"] });
+
+  if (usesProceduralMap(genre)) {
+    nodes.push({ id: "level", tool_id: "level_layout_2d", input: { size: "m", difficulty, ...common }, depends_on: [] });
+    nodes.push({ id: "tilemap", tool_id: "tilemap_populate", input: { ...common }, depends_on: ["level"] });
+    nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["tilemap"] });
+    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["tilemap", "enemies"] });
+  } else {
+    // Curated: code_gen designs + builds the level (no empty level_layout).
+    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine, design_the_level: true }, depends_on: [] });
+  }
   return { nodes };
 }

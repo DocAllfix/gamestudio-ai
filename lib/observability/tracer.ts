@@ -76,7 +76,7 @@ export class Tracer {
             // Forward LLM calls to Langfuse for the visual trace (best-effort).
             if (step.phase === "llm_call") {
                 const { traceLlmCall } = await import("./langfuse.js");
-                traceLlmCall(this.runId, step);
+                void traceLlmCall(this.runId, step).catch(() => {});
             }
 
             if (!this.runId) {
