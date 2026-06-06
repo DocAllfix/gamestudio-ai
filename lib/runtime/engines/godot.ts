@@ -70,8 +70,18 @@ export class GodotAdapter implements EngineAdapter {
 
     async build(sandbox: SandboxSession): Promise<CommandResult> {
         const start = Date.now();
+        // First import the project so Godot generates its .godot/ cache (a
+        // fresh project has none, which otherwise errors during export). The
+        // import exits non-zero by design (it has no main loop) — that's fine.
+        await sandbox.runCommand(
+            `mkdir -p ${GODOT_EXPORT_DIR} && cd /project && ` +
+            `GODOT_SILENCE_ROOT_WARNING=1 timeout 60 godot --headless --path /project --import || true`,
+        );
+        // Then export. Run inside the project dir with --path so Godot resolves
+        // project.godot + export_presets.cfg from there (not the cwd).
         const exportCmd = await sandbox.runCommand(
-            `godot --headless --export-release "Web" ${GODOT_EXPORT_DIR}/index.html`,
+            `cd /project && GODOT_SILENCE_ROOT_WARNING=1 godot --headless --path /project ` +
+            `--export-release "Web" ${GODOT_EXPORT_DIR}/index.html`,
         );
         if (exportCmd.exit_code !== 0) {
             return exportCmd;
