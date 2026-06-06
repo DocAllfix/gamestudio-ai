@@ -61,6 +61,17 @@ Obiettivo: Sonnet non solo scrive, ma dirige la pipeline e cura la qualità.
 
 ---
 
+## Rapporto con gli altri piani (niente è perso/in conflitto)
+- **Piano fette** (`~/.claude/plans/svolgi-sia-uno-che-sharded-allen.md`): Fette 0-3 fatte
+  (ingresso Higgsfield, primo gioco, audio, **Studio shell**); restano Fetta 4 (play+edit = WOW D1),
+  Fetta 5 (Playtester = **fatto oggi**), Fetta 6 (code-RAG misurato), Fetta 7 (LoRA, dietro gate).
+- **Piano Sorceress** (`docs/research/SORCERESS_*.md`): assorbire i 30 tool come "Asset Studio".
+  La SHELL Studio esiste (Fetta 3); le CAPABILITY dietro le porte (sprite FLUX, audio, 3D/Meshy,
+  Material Forge) = **WOW FASE B2/C**. Lo stesso lavoro (cablare i provider dietro
+  ImageGenPort/AudioGenPort/Model3DPort) serve sia la generazione-gioco sia lo Studio → un lavoro,
+  due feature. Per decisione del piano Sorceress: si fa DOPO aver validato il primo gioco reale
+  (= FASE A qui), per non costruire uno studio asset su un motore non provato end-to-end.
+
 ## Cosa NON facciamo (deciso col dato)
 - Template fissi per gioco (ucciderebbero "qualsiasi gioco da un prompt").
 - Assembler per-motore (il nostro scaffold li ha superati).
