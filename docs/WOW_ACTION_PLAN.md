@@ -61,6 +61,31 @@ Obiettivo: Sonnet non solo scrive, ma dirige la pipeline e cura la qualità.
 
 ---
 
+## I 30 tool Sorceress — inventario esplicito (per FASE B/C, non dimenticare)
+Fonte: `docs/research/SORCERESS_30_TOOLS.md` (inventario+mapping completo). Sorceress = pura
+orchestrazione (no modelli propri). Vantaggio nostro: le porte esagonali esistono già
+(ImageGenPort/Model3DPort/AudioGenPort) → integrarli = riempire porte, non riscrivere.
+
+**🟢 Ricreabili 1:1 in casa (algoritmo deterministico, costo ZERO, free tier) — 12:**
+True Pixel, Pixel Snap, Sprite Analyzer, Slicer, 3D-to-2D (render headless dei 554 model CC0),
+Material Forge (5/6 PBR map = derivati deterministici), Background Remover (rembg), Corridor Chroma
+(chroma key), SFX Editor, Sound Studio (slice), Procedural Walk (IK), Bitrate converter.
+
+**🟡 Riempire una porta esistente con un provider (paywall) — 9:**
+Auto-Sprite (video→frame→chroma→sheet, la capability più forte), 3D Studio + Auto-Rigging +
+Text-to-Animation (Meshy/TRELLIS/Rodin/Tripo), Material base-color, Seamless Tile, Image Expander
+(outpaint), Music Gen (Suno), SFX Gen (ElevenLabs + 2.488 SFX CC0 nel DB), Speech Gen (ElevenLabs).
+
+**🔵 Già nostro (a volte meglio) — 5+:** Tileset Forge (il nostro autotile 47-blob da 1 tile è
+superiore), Quick Sprites, Publishing (webExport+zip+itch), Play Arcade (feed iframe), WizardGenie
+(il loro game-engine SENZA verifica — il nostro verificato vince; mai assorbire).
+
+**⚪ Skip day-1:** Voxel Studio/anim/walk (×3), Canvas, Layout Preview, Marketplace.
+
+→ Sequenza: i 12 deterministici sono lavoro nostro gratis (free tier); i 9 provider vanno dietro
+`ensureAllowed` (paywall). Tutti come pannelli dello Studio (Fetta 3, shell fatta) + come fonti per
+l'`asset_resolver` nella generazione-gioco. Audio è il più pronto (codice già scritto).
+
 ## Rapporto con gli altri piani (niente è perso/in conflitto)
 - **Piano fette** (`~/.claude/plans/svolgi-sia-uno-che-sharded-allen.md`): Fette 0-3 fatte
   (ingresso Higgsfield, primo gioco, audio, **Studio shell**); restano Fetta 4 (play+edit = WOW D1),
