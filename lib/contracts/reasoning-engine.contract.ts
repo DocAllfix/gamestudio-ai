@@ -273,6 +273,9 @@ export type EvaluationAgentOutput = z.infer<
 export const HermesPlanRequestSchema = z.object({
     user_id: z.string().min(1),
     project_id: z.string().uuid().nullable(),
+    /** generation_runs row id, used to write per-step audit traces
+     * (run_traces). Optional so local/test callers can omit it. */
+    run_id: z.string().uuid().optional(),
     user_prompt: z.string().min(1).max(4000),
     moodboard_image_urls: z.array(z.string().url()).max(20).default([]),
     reference_game_ids: z.array(z.string().uuid()).max(20).default([]),
@@ -322,6 +325,9 @@ export const HermesPlanResponseSchema = z.object({
     /** Public URL of the browser-playable build, embedded in /play/<id>.
      * Null/absent when the web export was skipped or failed. */
     iframe_url: z.string().url().nullable().optional(),
+    /** Per-node tool outcomes from D.5, surfaced for audit (which tools ran,
+     * succeeded/failed/skipped, cost, latency). */
+    node_results: ExecutionOrchestratorOutputSchema.shape.node_results.optional(),
 });
 export type HermesPlanResponse = z.infer<typeof HermesPlanResponseSchema>;
 

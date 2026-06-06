@@ -41,6 +41,7 @@ const EvaluationReportSchema = z.object({
 export const HermesPlanRequestSchema = z.object({
   user_id: z.string().min(1),
   project_id: z.string().uuid().nullable(),
+  run_id: z.string().uuid().optional(),
   user_prompt: z.string().min(1).max(4000),
   moodboard_image_urls: z.array(z.string()).max(20).default([]),
   reference_game_ids: z.array(z.string()).max(20).default([]),

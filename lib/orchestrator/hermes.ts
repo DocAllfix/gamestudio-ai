@@ -35,6 +35,9 @@ import { consistencyManager } from "../reasoning/consistency.js";
 import { balanceController } from "../reasoning/balance.js";
 import { executionOrchestrator } from "../reasoning/execution.js";
 import { evaluationAgent } from "../reasoning/evaluation.js";
+import { Tracer } from "../observability/tracer.js";
+import { withTracer } from "../observability/context.js";
+import { flushLangfuse } from "../observability/langfuse.js";
 
 type Iteration = HermesPlanResponse["iterations"][number];
 
@@ -58,6 +61,20 @@ export const hermesOrchestrator: HermesOrchestrator = {
     async run(rawRequest: HermesPlanRequest): Promise<HermesPlanResponse> {
         const req = HermesPlanRequestSchema.parse(rawRequest);
         const projectId = req.project_id ?? randomUUID();
+        // Audit every step of this run into run_traces (+ Langfuse for LLM
+        // calls). The whole run executes inside withTracer so deep code (the
+        // LLM router) can find the tracer ambiently.
+        const tracer = new Tracer(req.run_id ?? null, projectId);
+        return withTracer(tracer, () => runInner(req, projectId, tracer));
+    },
+};
+
+async function runInner(
+    req: HermesPlanRequest,
+    projectId: string,
+    tracer: Tracer,
+): Promise<HermesPlanResponse> {
+    {
 
         let memory: HermesMemory = HermesMemorySchema.parse({});
         const iterations: Iteration[] = [];
@@ -126,6 +143,28 @@ export const hermesOrchestrator: HermesOrchestrator = {
         });
         memory = execution.memory;
         push("execution", `nodes=${execution.node_results.length}`);
+        // Audit each tool's per-node outcome (status/cost/latency/error) so a
+        // run can be inspected node-by-node. Best-effort.
+        for (const nr of execution.node_results) {
+            await tracer.record({
+                phase: "tool",
+                tool_id: nr.tool_id,
+                node_id: nr.node_id,
+                engine: plan.meta.engine,
+                status: nr.status === "succeeded" ? "succeeded" : nr.status === "failed" ? "failed" : "skipped",
+                cost_usd: nr.cost_usd,
+                latency_ms: nr.latency_ms,
+                error: nr.error_message ?? undefined,
+            });
+        }
+        await tracer.record({
+            phase: "execution",
+            status: "succeeded",
+            engine: plan.meta.engine,
+            output: { build_artifact_id: execution.build_artifact_id, iframe_url: execution.iframe_url ?? null },
+            cost_usd: execution.total_cost_usd,
+            latency_ms: execution.total_latency_ms,
+        });
 
         // D.6 Evaluation — the final smoke gate. Cost/time totals from
         // D.5 feed the cost/time verdicts; the smoke report is threaded
@@ -150,6 +189,7 @@ export const hermesOrchestrator: HermesOrchestrator = {
             push("refinement", evaluation.refinement_request.slice(0, 500));
         }
 
+        await flushLangfuse();
         return {
             project_id: projectId,
             final_plan: plan,
@@ -160,9 +200,10 @@ export const hermesOrchestrator: HermesOrchestrator = {
             total_latency_ms: execution.total_latency_ms,
             build_artifact_id: execution.build_artifact_id,
             iframe_url: execution.iframe_url ?? null,
+            node_results: execution.node_results,
         };
-    },
-};
+    }
+}
 
 /** Compatibility entrypoint matching `orchestrator.mock.runHermesPlan`,
  * so the W4 import site swaps to this module with no call-site change. */

@@ -34,7 +34,8 @@ export const generateGameTask = task({
     await db.from("generation_runs").update({ status: "running" }).eq("id", runId);
 
     try {
-      const response = await runHermesPlan(request);
+      // Pass the run id so the orchestrator writes per-step audit traces.
+      const response = await runHermesPlan({ ...request, run_id: runId });
       const meta = response.final_plan?.meta;
 
       // Create the projects row BEFORE referencing it: generation_runs.project_id

@@ -88,6 +88,22 @@ export interface ChatParams {
 export interface CompleteDeps {
     /** Override the underlying client (tests / OpenRouter path). */
     client?: ChatClient;
+    /** Optional tracer: when present, every LLM call is recorded (prompt,
+     * response, model, tokens, latency, error) for audit + Langfuse. */
+    tracer?: {
+        record(step: {
+            phase: "llm_call";
+            status: "succeeded" | "failed";
+            tool_id?: string;
+            input?: unknown;
+            output?: unknown;
+            model?: string;
+            latency_ms?: number;
+            prompt_tokens?: number;
+            completion_tokens?: number;
+            error?: string;
+        }): Promise<void>;
+    };
 }
 
 // ---- Payload shaping ------------------------------------------------------
@@ -181,6 +197,17 @@ function stripCodeFence(raw: string): string {
         .trim();
 }
 
+/** The ambient run tracer set by the orchestrator (withTracer), or null.
+ * Lazy import so the router has no hard dependency on observability. */
+async function ambientTracer(): Promise<CompleteDeps["tracer"] | null> {
+    try {
+        const { currentTracer } = await import("../observability/context.js");
+        return (currentTracer() as CompleteDeps["tracer"]) ?? null;
+    } catch {
+        return null;
+    }
+}
+
 /** Flatten any thrown value into a short, inspect-safe string. OpenAI/Azure
  * SDK errors carry nested objects with getters that can crash util.inspect. */
 function safeErr(error: unknown): string {
@@ -218,6 +245,10 @@ export async function complete(
     const parsed = LlmCompleteRequestSchema.parse(request);
     const client = deps.client ?? defaultClient();
     const params = buildChatParams(parsed.model, parsed);
+    // Use the explicit tracer, else the ambient run tracer (set by the
+    // orchestrator via withTracer) so every LLM call is audited without
+    // threading a tracer through every call site.
+    const tracer = deps.tracer ?? (await ambientTracer());
 
     const start = Date.now();
     let completion;
@@ -231,6 +262,15 @@ export async function complete(
             `llm.router.complete failed model=${parsed.model} trace=${parsed.trace_id}: ` +
             safeErr(error),
         );
+        await tracer?.record({
+            phase: "llm_call",
+            status: "failed",
+            tool_id: parsed.trace_id,
+            model: parsed.model,
+            input: { system: parsed.system, user: parsed.user },
+            latency_ms: Date.now() - start,
+            error: safeErr(error),
+        });
         throw error;
     }
     const latency_ms = Date.now() - start;
@@ -239,6 +279,18 @@ export async function complete(
     const output = parsed.response_schema
         ? parseStructured(content, parsed.response_schema)
         : content;
+
+    await tracer?.record({
+        phase: "llm_call",
+        status: "succeeded",
+        tool_id: parsed.trace_id,
+        model: parsed.model,
+        input: { system: parsed.system, user: parsed.user },
+        output,
+        latency_ms,
+        prompt_tokens: completion.usage?.prompt_tokens,
+        completion_tokens: completion.usage?.completion_tokens,
+    });
 
     return LlmCompleteResponseSchema.parse({
         trace_id: parsed.trace_id,
