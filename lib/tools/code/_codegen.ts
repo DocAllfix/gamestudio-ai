@@ -62,6 +62,11 @@ export interface EngineConfig {
     model: ModelId;
     /** Curated grounding text injected when kbEngine is null. */
     curatedGrounding?: string;
+    /** Engine entrypoint contract: how the generated code must match the
+     * scaffold (e.g. Godot's main.gd is the root Node2D scene script). Without
+     * this the LLM picks an incompatible base class and the scene fails to
+     * instance. */
+    entrypointContract?: string;
 }
 
 function defaultDeps(): CodeGenDeps {
@@ -98,8 +103,9 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
 
         const system =
             `You are an expert ${config.name} engineer. Generate idiomatic, runnable ` +
-            `${config.language} for the requested mechanic. Return JSON: ` +
-            `{code, language, filename, notes}.`;
+            `${config.language} for the requested mechanic. ` +
+            (config.entrypointContract ? config.entrypointContract + " " : "") +
+            `Return JSON: {code, language, filename, notes}.`;
         const user =
             (grounding ? grounding + "\n\n" : "") +
             `Mechanic: ${input.mechanic}` +

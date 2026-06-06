@@ -156,10 +156,26 @@ vram_texture_compression/for_desktop=true
 html/export_icon=true
 `;
 
+/**
+ * Guarantee the main script extends Node2D (main.tscn mounts it on a Node2D
+ * node). The code_gen LLM often omits `extends` or extends the wrong base
+ * (e.g. RefCounted), which makes Godot refuse to instance the script onto the
+ * scene node → the scene loads empty (grey screen). We normalize the first
+ * `extends` line, or prepend one when absent.
+ */
+function ensureGodotExtendsNode2D(code: string): string {
+    const trimmed = code.trimStart();
+    if (/^extends\s+Node2D\b/m.test(trimmed)) return code;
+    if (/^\s*extends\s+\w+/m.test(trimmed)) {
+        return trimmed.replace(/^\s*extends\s+\w+.*$/m, "extends Node2D");
+    }
+    return `extends Node2D\n\n${code}`;
+}
+
 function godotScaffold(code: string, assets: ScaffoldFile[]): ScaffoldFile[] {
     return [
         { path: "/project/project.godot", content: GODOT_PROJECT, encoding: "utf-8" },
-        { path: "/project/main.gd", content: code, encoding: "utf-8" },
+        { path: "/project/main.gd", content: ensureGodotExtendsNode2D(code), encoding: "utf-8" },
         { path: "/project/main.tscn", content: GODOT_MAIN_TSCN, encoding: "utf-8" },
         {
             path: "/project/export_presets.cfg",

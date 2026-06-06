@@ -27,6 +27,22 @@ describe("scaffoldProject", () => {
         expect(gd?.content).toContain("extends Node2D");
     });
 
+    it("godot: forces the main script to extend Node2D (matches main.tscn)", () => {
+        // The .tscn mounts the script on a Node2D; a script extending anything
+        // else (or nothing → RefCounted) fails to instance → grey screen.
+        const cases = [
+            ["extends RefCounted\nfunc _init(): pass", "extends Node2D"],
+            ["func _ready(): pass", "extends Node2D"], // no extends → prepended
+            ["extends Node2D\nfunc _ready(): pass", "extends Node2D"], // kept
+        ];
+        for (const [input, mustContain] of cases) {
+            const files = scaffoldProject("godot", { n1: codeNode("code_gen_godot_gdscript", input) });
+            const gd = files.find((f) => f.path === "/project/main.gd");
+            expect(gd?.content.startsWith(mustContain)).toBe(true);
+            expect(gd?.content).not.toContain("extends RefCounted");
+        }
+    });
+
     it("phaser: code becomes the esbuild entry and an index.html is added", () => {
         const files = scaffoldProject("phaser", { n1: codeNode("code_gen_phaser_js", "new Phaser.Game({})") });
         const paths = files.map((f) => f.path);
