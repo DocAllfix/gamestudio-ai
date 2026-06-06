@@ -25,7 +25,7 @@ import type {
 } from "../../contracts/assembly-pipeline.contract.js";
 import type { Engine } from "../../contracts/game-plan.contract.js";
 import { bootSandbox, type E2bClient, type SandboxSession } from "../sandbox/e2b.js";
-import { type R2Client, uploadArtifact } from "../sandbox/r2.js";
+import { type R2Client, uploadArtifact, uploadDir, type DirFile } from "../sandbox/r2.js";
 
 /** Headless smoke window — the contract calls it a "10-second smoke test". */
 export const SMOKE_DURATION_MS = 10_000;
@@ -41,6 +41,10 @@ export interface RuntimeAdapterDeps {
     e2b: E2bClient;
     r2: R2Client;
     bucket: string;
+    /** Public base URL of the R2 bucket (e.g. https://pub-xxx.r2.dev), used
+     * to build the playable iframe URL for a web export. When unset,
+     * webExport falls back to a signed URL to the entry file. */
+    publicUrl?: string;
 }
 
 /** Boot an E2B sandbox for an adapter via the injected client. Shared by
@@ -88,21 +92,37 @@ export async function webExportBundle(
         mobileApkUrl?: string | null;
     },
 ): Promise<WebBuildArtifact> {
-    // The total bundle bytes; `du -sb` prints "<bytes>\t<dir>".
-    const sizeCmd = await sandbox.runCommand(`du -sb ${opts.webDir}`);
-    const bundle_size_bytes = parseDuBytes(sizeCmd.stdout);
+    // Walk the built web dir, read each file's bytes out of the sandbox, and
+    // upload the whole tree to R2 under one prefix. The game runs in the
+    // user's browser from these static files (served by R2's CDN), embedded
+    // in GameSmith's own /play/<id> page.
+    const prefix = `web/${engine}/${randomUUID()}`;
+    const entries = await sandbox.listFiles(opts.webDir);
 
-    const key = `web/${engine}/${randomUUID()}/${opts.entry}`;
-    const { download_url } = await uploadArtifact(deps.r2, {
-        bucket: deps.bucket,
-        key,
-        // The bytes live in the sandbox FS; the real uploader streams the
-        // dir. The contract only needs the served URL here.
-        body: "",
-    });
+    const files: DirFile[] = [];
+    let bundle_size_bytes = 0;
+    for (const entry of entries) {
+        const body = await sandbox.readFile(entry.path);
+        // Key path relative to webDir, so /project/build/web/index.html →
+        // <prefix>/index.html.
+        const rel = entry.path.startsWith(opts.webDir)
+            ? entry.path.slice(opts.webDir.length).replace(/^\/+/, "")
+            : entry.path.replace(/^\/+/, "");
+        files.push({ key: `${prefix}/${rel}`, body });
+        bundle_size_bytes += body.byteLength;
+    }
+    await uploadDir(deps.r2, deps.bucket, files);
+
+    const entryKey = `${prefix}/${opts.entry}`;
+    // Prefer the public CDN URL; fall back to a signed URL to the already
+    // uploaded entry when no public base is configured (the signed URL won't
+    // load sibling assets, but keeps the path honest in dev).
+    const iframe_url = deps.publicUrl
+        ? `${deps.publicUrl.replace(/\/+$/, "")}/${entryKey}`
+        : await deps.r2.getSignedUrl({ bucket: deps.bucket, key: entryKey, expiresIn: 3600 });
 
     return {
-        iframe_url: download_url,
+        iframe_url,
         bundle_size_bytes,
         target: opts.target ?? "browser",
         mobile_apk_url: opts.mobileApkUrl ?? null,

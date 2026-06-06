@@ -121,6 +121,19 @@ export const e2bMock = {
             throw new Error("writeFile: content too large");
         }
     },
+
+    async listFiles(
+        _sbx: MockSandbox,
+        dir: string,
+    ): Promise<{ path: string; size: number }[]> {
+        // The offline mock reports a single index entry so webExport produces
+        // a non-empty bundle without a real FS.
+        return [{ path: `${dir.replace(/\/+$/, "")}/index.html`, size: 64 }];
+    },
+
+    async readFile(_sbx: MockSandbox, _path: string): Promise<Buffer> {
+        return Buffer.from("<!doctype html><title>mock</title>");
+    },
 };
 
 // ---- Trigger.dev ---------------------------------------------------------

@@ -19,8 +19,16 @@ import { DefoldAdapter } from "../defold.js";
 const deps = { e2b: e2bMock, r2: r2Mock, bucket: "game-builds" };
 
 /** A sandbox whose `du -sb` reports a non-zero byte count. */
-function sizedSandbox(bytes = 2_500_000) {
-    return makeFakeSandbox([{ match: "du -sb", exit_code: 0, stdout: `${bytes}\t/project` }]);
+/** A sandbox whose web dirs hold real files, so webExport's listFiles/
+ * readFile walk + R2 upload produce a non-zero bundle. Pre-populates the
+ * browser dir (/project/dist) and the godot/defold web dirs. */
+function sizedSandbox() {
+    const sbx = makeFakeSandbox([{ match: "test -f", exit_code: 0 }]);
+    for (const dir of ["/project/dist", "/project/build/web", "/project/build/html5"]) {
+        void sbx.writeFile(`${dir}/index.html`, "<!doctype html><title>game</title>");
+        void sbx.writeFile(`${dir}/bundle.js`, "console.log('game')");
+    }
+    return sbx;
 }
 
 const browserAdapters = [
@@ -52,11 +60,10 @@ describe("webExport() — godot (WASM)", () => {
 
 describe("webExport() — defold (WASM + native .apk)", () => {
     it("returns a non-empty iframe_url AND a non-null mobile_apk_url", async () => {
-        // du -sb for the web dir + apk upload both succeed
-        const sandbox = makeFakeSandbox([
-            { match: "du -sb", exit_code: 0, stdout: "1800000\t/project" },
-            { match: "test -f", exit_code: 0 },
-        ]);
+        // The .apk exists (test -f → 0) and the html5 web dir holds files.
+        const sandbox = makeFakeSandbox([{ match: "test -f", exit_code: 0 }]);
+        void sandbox.writeFile("/project/build/html5/index.html", "<!doctype html>");
+        void sandbox.writeFile("/project/build/html5/game.js", "init()");
         const art = await new DefoldAdapter(deps).webExport(sandbox);
         expect(art.iframe_url.length).toBeGreaterThan(0);
         expect(art.mobile_apk_url).not.toBeNull();

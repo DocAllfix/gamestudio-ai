@@ -65,6 +65,20 @@ export function createE2bClient(): E2bClient {
                       ) as ArrayBuffer;
             await sbx.files.write(path, payload);
         },
+        async listFiles(sandbox, dir) {
+            const sbx = (sandbox as unknown as { _sdk: Sandbox })._sdk;
+            // Walk the tree deep enough to catch nested export output (Godot
+            // emits a flat dir; defold/three may nest a level or two).
+            const entries = await sbx.files.list(dir, { depth: 5 });
+            return entries
+                .filter((e) => e.type === "file")
+                .map((e) => ({ path: e.path, size: e.size ?? 0 }));
+        },
+        async readFile(sandbox, path) {
+            const sbx = (sandbox as unknown as { _sdk: Sandbox })._sdk;
+            const bytes = await sbx.files.read(path, { format: "bytes" });
+            return Buffer.from(bytes);
+        },
     };
 }
 
@@ -106,5 +120,8 @@ export function createRealDeps(): RuntimeAdapterDeps {
         e2b: createE2bClient(),
         r2: createR2Client(),
         bucket: process.env.R2_BUCKET ?? "",
+        // Public CDN base for the built game (https://pub-xxx.r2.dev). The
+        // playable iframe_url is `${R2_PUBLIC_URL}/web/<engine>/<id>/index.html`.
+        publicUrl: process.env.R2_PUBLIC_URL,
     };
 }

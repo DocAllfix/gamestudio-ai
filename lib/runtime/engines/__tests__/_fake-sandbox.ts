@@ -13,7 +13,7 @@ import type {
     CommandResult,
     SandboxHandle,
 } from "../../../contracts/assembly-pipeline.contract.js";
-import type { SandboxSession } from "../../sandbox/e2b.js";
+import type { SandboxFileEntry, SandboxSession } from "../../sandbox/e2b.js";
 
 /** A scripted response: matched against a command by substring. */
 export interface ScriptEntry {
@@ -69,6 +69,23 @@ export function makeFakeSandbox(
                 stderr: entry?.stderr ?? "",
                 duration_ms: 1,
             };
+        },
+
+        async listFiles(dir: string): Promise<SandboxFileEntry[]> {
+            const norm = dir.replace(/\/+$/, "");
+            return [...files.keys()]
+                .filter((p) => p === norm || p.startsWith(norm + "/"))
+                .map((p) => {
+                    const c = files.get(p)!;
+                    const size = typeof c === "string" ? Buffer.byteLength(c) : c.byteLength;
+                    return { path: p, size };
+                });
+        },
+
+        async readFile(path: string): Promise<Buffer> {
+            const c = files.get(path);
+            if (c === undefined) throw new Error(`fake readFile: ${path} not found`);
+            return typeof c === "string" ? Buffer.from(c) : c;
         },
     };
 }
