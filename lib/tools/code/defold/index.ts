@@ -6,5 +6,6 @@ export default makeCodeGenTool({
     name: "Defold (Lua)",
     kbEngine: "defold",
     language: "lua",
-    model: "deepseek-chat",
+    // Claude Sonnet (via OpenRouter) for reliable complex code — same as Godot.
+    model: "claude-sonnet-4-7",
 });

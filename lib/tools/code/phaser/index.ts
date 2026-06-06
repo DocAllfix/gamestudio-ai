@@ -6,5 +6,7 @@ export default makeCodeGenTool({
     name: "Phaser 3 (JavaScript)",
     kbEngine: "phaser",
     language: "javascript",
-    model: "deepseek-chat",
+    // Claude Sonnet (via OpenRouter) for reliable, complex game code — same as
+    // Godot; deepseek emitted too many broken games.
+    model: "claude-sonnet-4-7",
 });

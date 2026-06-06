@@ -13,6 +13,7 @@ export default makeCodeGenTool({
     name: "Babylon.js (TypeScript)",
     kbEngine: null,
     language: "typescript",
-    model: "deepseek-chat",
+    // Claude Sonnet (via OpenRouter) for reliable complex code — same as Godot.
+    model: "claude-sonnet-4-7",
     curatedGrounding: BABYLON_GROUNDING,
 });

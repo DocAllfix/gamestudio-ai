@@ -6,5 +6,6 @@ export default makeCodeGenTool({
     name: "Three.js (TypeScript)",
     kbEngine: "threejs",
     language: "typescript",
-    model: "deepseek-chat",
+    // Claude Sonnet (via OpenRouter) for reliable complex code — same as Godot.
+    model: "claude-sonnet-4-7",
 });
