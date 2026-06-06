@@ -320,12 +320,24 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             latency_ms: build.total_duration_ms,
         });
 
+        // Hard gate: a game with no gameplay code is an empty scene (grey
+        // screen), even if the build/smoke "passed". If no code_gen node
+        // succeeded, the run is NOT playable — fail the smoke so D.6 rejects it
+        // (and, later, the template fallback kicks in).
+        const hasCode = nodeResults.some(
+            (n) => n.tool_id.startsWith("code_gen") && n.status === "succeeded",
+        );
+        const smokePassed = hasCode && (build.smoke_test.passed ?? false);
+        const crashReason = !hasCode
+            ? "no gameplay code generated (code_gen did not succeed)"
+            : build.smoke_test.crash_reason;
+
         const smokeReport: SmokeTestReport = {
             runs: [
                 {
                     engine: smokeEngine(plan.meta.engine),
-                    passed: build.smoke_test.passed ?? false,
-                    crash_reason: build.smoke_test.crash_reason,
+                    passed: smokePassed,
+                    crash_reason: crashReason,
                 },
             ],
         };

@@ -174,9 +174,14 @@ function defaultClient(): ChatClient {
             baseURL: "https://openrouter.ai/api/v1",
         }) as unknown as ChatClient;
     } else {
+        // The Azure "v1" OpenAI-compatible base. Prefer an explicit
+        // AZURE_OPENAI_V1_ENDPOINT, else derive it from AZURE_OPENAI_ENDPOINT
+        // (.../openai/v1) so we don't need a separate env on every deploy.
+        const base = process.env.AZURE_OPENAI_V1_ENDPOINT
+            ?? requireEnv("AZURE_OPENAI_ENDPOINT").replace(/\/+$/, "") + "/openai/v1";
         cachedClient = new OpenAI({
             apiKey: requireEnv("AZURE_OPENAI_API_KEY"),
-            baseURL: requireEnv("AZURE_OPENAI_V1_ENDPOINT"),
+            baseURL: base,
             defaultQuery: { "api-version": requireEnv("AZURE_OPENAI_API_VERSION") },
             defaultHeaders: { "api-key": requireEnv("AZURE_OPENAI_API_KEY") },
         }) as unknown as ChatClient;

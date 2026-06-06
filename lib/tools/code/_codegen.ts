@@ -137,18 +137,32 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
         let totalCost = 0;
         const healLog: { check: string; passed: boolean; detail: string | null }[] = [];
 
+        let generationFailed = false;
         for (let attempt = 1; attempt <= MAX_HEAL; attempt++) {
-            const completion = await deps.complete({
-                model: config.model,
-                system,
-                user: userMsg,
-                response_schema: GeneratedCodeSchema,
-                max_tokens: 4096,
-                temperature: 0.2,
-                trace_id: `${invocation.trace_id}:gen${attempt}`,
-            });
-            generated = GeneratedCodeSchema.parse(completion.output);
-            totalCost += completion.cost_usd;
+            // A truncated/invalid JSON response throws here; don't let it kill
+            // the whole node — log and retry (the next attempt often succeeds).
+            try {
+                const completion = await deps.complete({
+                    model: config.model,
+                    system,
+                    user: userMsg,
+                    response_schema: GeneratedCodeSchema,
+                    // Game scripts + the gold-example imitation run long; 4096
+                    // cut the JSON mid-string ("Unterminated string"). 8192
+                    // fits a full file with margin.
+                    max_tokens: 8192,
+                    temperature: 0.2,
+                    trace_id: `${invocation.trace_id}:gen${attempt}`,
+                });
+                generated = GeneratedCodeSchema.parse(completion.output);
+                totalCost += completion.cost_usd;
+                generationFailed = false;
+            } catch (genErr) {
+                generationFailed = true;
+                healLog.push({ check: "generation", passed: false, detail: `attempt ${attempt}: ${(genErr as Error).message.slice(0, 120)}` });
+                if (attempt === MAX_HEAL) break;
+                continue; // retry generation
+            }
 
             if (!deps.validateCode) break;
             const errors = await deps.validateCode({ engine: config.kbEngine ?? config.id, code: generated.code });
@@ -178,6 +192,19 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
                     ? `\n\nAuthoritative ${config.name} API for the symbols above ` +
                       `(use these EXACT names/signatures):\n${errorGrounding.slice(0, 2500)}`
                     : "");
+        }
+
+        // Every attempt failed to even produce parseable code → fail cleanly
+        // (the gate treats a missing code_gen as not playable).
+        if (generationFailed || !generated) {
+            return makeResult({
+                invocation: { tool_id: config.id, node_id: invocation.node_id, trace_id: invocation.trace_id },
+                output: null,
+                qa_log: healLog,
+                error_message: `code generation failed after ${MAX_HEAL} attempts`,
+                cost_usd: totalCost,
+                latency_ms: Date.now() - start,
+            });
         }
 
         const output: CodeGenOutput = {
