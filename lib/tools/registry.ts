@@ -96,7 +96,11 @@ async function dispatchSafe(invocation: ToolInvocation): Promise<ToolExecutionRe
     try {
         return await dispatch(invocation);
     } catch (error) {
-        console.error({ context: "registry.dispatchSafe", tool_id: invocation.tool_id, node_id: invocation.node_id, error });
+        // Flat string log: passing the raw error object (e.g. an E2B
+        // CommandExitError) to console.error can crash util.inspect and, since
+        // that throw escapes this catch, kill the whole run.
+        const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        console.error(`registry.dispatchSafe failed tool=${invocation.tool_id} node=${invocation.node_id}: ${msg}`);
         return ToolExecutionResultSchema.parse({
             ...base,
             status: "failed",

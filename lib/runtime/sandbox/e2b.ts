@@ -96,7 +96,8 @@ export async function bootSandbox(client: E2bClient): Promise<SandboxSession> {
                     duration_ms: Date.now() - start,
                 };
             } catch (error) {
-                console.error("e2b.runCommand failed", { sandbox: raw.id, command, error });
+                const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+                console.error(`e2b.runCommand failed sandbox=${raw.id} cmd=${command.slice(0, 60)}: ${msg}`);
                 throw error;
             }
         },

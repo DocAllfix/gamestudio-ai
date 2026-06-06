@@ -112,7 +112,7 @@ export function buildExecutionDag(args: {
 
   if (spatiality === "3d") {
     nodes.push({ id: "terrain-heightmap", tool_id: "heightmap_gen", input: { width: 256, height: 256, ...common }, depends_on: [] });
-    nodes.push({ id: "level", tool_id: "level_layout_3d", input: { size: "medium", ...common }, depends_on: ["terrain-heightmap"] });
+    nodes.push({ id: "level", tool_id: "level_layout_3d", input: { size: "m", ...common }, depends_on: ["terrain-heightmap"] });
     nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["level"] });
     nodes.push({ id: "hero-model", tool_id: "model_3d_gen", input: { description: heroDesc, ...common }, depends_on: [] });
     nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: musicDesc, ...common }, depends_on: [] });
@@ -121,9 +121,12 @@ export function buildExecutionDag(args: {
     return { nodes };
   }
 
-  // 2D spatial — the default rich pipeline.
+  // 2D spatial — the default rich pipeline. level→tilemap→entity pass data
+  // along their edges; execution.ts wires each parent's output into the child
+  // input (layout→tilemap.layout, tilemap→entity.tilemap). `node` is the
+  // world-graph node level expands; execution injects the real one.
   nodes.push({ id: "hero-sprite", tool_id: "sprite_gen", input: { description: heroDesc, ...common }, depends_on: [] });
-  nodes.push({ id: "level", tool_id: "level_layout_2d", input: { size: "medium", difficulty, ...common }, depends_on: [] });
+  nodes.push({ id: "level", tool_id: "level_layout_2d", input: { size: "m", difficulty, ...common }, depends_on: [] });
   nodes.push({ id: "tilemap", tool_id: "tilemap_populate", input: { ...common }, depends_on: ["level"] });
   nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["tilemap"] });
   nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: musicDesc, ...common }, depends_on: [] });

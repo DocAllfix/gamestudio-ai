@@ -113,6 +113,46 @@ function mapStatus(result: ToolExecutionResult): NodeResult["status"] {
     return result.status === "succeeded" ? "succeeded" : "failed";
 }
 
+/**
+ * Build a node's tool input, injecting data the spatial tools need from their
+ * parents (the DAG edges carry data, not just ordering):
+ *   - level_layout_2d/3d need the world-graph `node` to expand.
+ *   - tilemap_populate needs the `layout` produced by its level parent.
+ *   - entity_placement needs the `tilemap` produced by its tilemap parent.
+ *   - level_layout_3d needs the `heightmap` from its heightmap parent.
+ * Falls back to the node's static input when a parent output is absent.
+ */
+function wireInputs(
+    node: ExecutionDagNode,
+    nodeOutputs: Record<string, Record<string, unknown>>,
+    entryNode: { id: string; display_name: string; requires: string[]; grants: string[]; tags: string[] },
+): Record<string, unknown> {
+    const input: Record<string, unknown> = { ...node.input };
+    const parents = node.depends_on.map((id) => nodeOutputs[id]).filter(Boolean);
+    // Some fields come from an ancestor, not the direct parent (entity needs
+    // the level's `layout`, two hops up), so search all produced outputs too.
+    const allOutputs = Object.values(nodeOutputs);
+    const fromAny = (key: string): unknown =>
+        allOutputs.find((o) => key in o)?.[key];
+
+    if (node.tool_id === "level_layout_2d" || node.tool_id === "level_layout_3d") {
+        input.node = entryNode;
+        const hm = parents.find((p) => "heightmap" in p);
+        if (hm) input.heightmap = hm.heightmap;
+    }
+    if (node.tool_id === "tilemap_populate") {
+        const layout = fromAny("layout");
+        if (layout) input.layout = layout;
+    }
+    if (node.tool_id === "entity_placement") {
+        const layout = fromAny("layout");
+        const tilemap = fromAny("tilemap");
+        if (layout) input.layout = layout;
+        if (tilemap) input.tilemap = tilemap;
+    }
+    return input;
+}
+
 type ToolFile = AssemblerInput["tool_outputs"][string]["files"][number];
 
 /**
@@ -176,6 +216,12 @@ export const executionOrchestrator: ExecutionOrchestrator = {
         // hand to the build (the Assembler scaffolds these into the engine
         // project). Was previously `{}` — the build received no game files.
         const toolOutputs: AssemblerInput["tool_outputs"] = {};
+        // Raw output object per node id, so a child node can read a parent's
+        // result (level→tilemap→entity data-flow), keyed by node id.
+        const nodeOutputs: Record<string, Record<string, unknown>> = {};
+        const entryNode = plan.world_graph.nodes.find(
+            (n) => n.id === plan.world_graph.entry_node_id,
+        ) ?? plan.world_graph.nodes[0];
         let totalCost = 0;
         let totalLatency = 0;
 
@@ -200,7 +246,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
 
             const invocations: ToolInvocation[] = runnable.map((node) => ({
                 tool_id: node.tool_id as ToolInvocation["tool_id"],
-                input: node.input,
+                input: wireInputs(node, nodeOutputs, entryNode),
                 node_id: node.id,
                 project_id: plan.project_id,
                 plan_version: plan.plan_version,
@@ -215,6 +261,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
                 const status = mapStatus(result);
                 if (status === "failed") failed.add(result.node_id);
                 else {
+                    if (result.output) nodeOutputs[result.node_id] = result.output;
                     const files = outputToFiles(result.tool_id, result.output);
                     if (files.length > 0) {
                         toolOutputs[result.node_id] = {

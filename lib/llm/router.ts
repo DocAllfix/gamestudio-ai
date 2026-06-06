@@ -181,6 +181,23 @@ function stripCodeFence(raw: string): string {
         .trim();
 }
 
+/** Flatten any thrown value into a short, inspect-safe string. OpenAI/Azure
+ * SDK errors carry nested objects with getters that can crash util.inspect. */
+function safeErr(error: unknown): string {
+    if (error instanceof Error) {
+        const status = (error as { status?: number }).status;
+        const code = (error as { code?: string }).code;
+        return [error.name, status && `status=${status}`, code && `code=${code}`, error.message]
+            .filter(Boolean)
+            .join(" ");
+    }
+    try {
+        return String(error);
+    } catch {
+        return "unprintable error";
+    }
+}
+
 function parseStructured(content: string, schema: unknown): unknown {
     let json: unknown;
     try {
@@ -207,7 +224,13 @@ export async function complete(
     try {
         completion = await client.chat.completions.create(params);
     } catch (error) {
-        console.error({ context: "llm.router.complete", model: parsed.model, trace_id: parsed.trace_id, error });
+        // Log a flat, inspect-safe summary. Passing the raw OpenAI/Azure error
+        // object to console.error can crash util.inspect (TypeError reading
+        // 'value'), which would mask the real error and kill the run.
+        console.error(
+            `llm.router.complete failed model=${parsed.model} trace=${parsed.trace_id}: ` +
+            safeErr(error),
+        );
         throw error;
     }
     const latency_ms = Date.now() - start;

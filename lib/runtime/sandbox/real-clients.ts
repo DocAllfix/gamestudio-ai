@@ -51,8 +51,21 @@ export function createE2bClient(): E2bClient {
         },
         async runCommand(sandbox, command) {
             const sbx = (sandbox as unknown as { _sdk: Sandbox })._sdk;
-            const res = await sbx.commands.run(command);
-            return { exitCode: res.exitCode, stdout: res.stdout, stderr: res.stderr };
+            // The SDK throws CommandExitError on a non-zero exit; the engine
+            // adapters expect a result with exit_code so they can handle a
+            // failed build/smoke gracefully. Convert the error back to a result.
+            try {
+                const res = await sbx.commands.run(command);
+                return { exitCode: res.exitCode, stdout: res.stdout, stderr: res.stderr };
+            } catch (error) {
+                const e = error as { exitCode?: number; result?: { exitCode?: number; stdout?: string; stderr?: string }; stdout?: string; stderr?: string; message?: string };
+                const exitCode = e.exitCode ?? e.result?.exitCode ?? 1;
+                return {
+                    exitCode,
+                    stdout: e.result?.stdout ?? e.stdout ?? "",
+                    stderr: e.result?.stderr ?? e.stderr ?? e.message ?? "command failed",
+                };
+            }
         },
         async writeFile(sandbox, path, content) {
             const sbx = (sandbox as unknown as { _sdk: Sandbox })._sdk;
