@@ -23,6 +23,7 @@ import {
     type SandboxHandle,
     type SmokeTestResult,
 } from "../../contracts/assembly-pipeline.contract.js";
+import { scaffoldProject } from "./scaffold.js";
 
 /** Smoke section when the test was skipped (run_smoke_test=false). */
 const SKIPPED_SMOKE = {
@@ -42,14 +43,16 @@ export async function assemble(
 
     const sandbox: SandboxHandle = await adapter.bootSandbox();
     try {
-        // 2. Write every tool output into the sandbox FS. tool_outputs is a
-        // record keyed by DAG node id; the order between nodes does not
-        // matter for a flat write (the DAG ordering matters for tool
-        // *execution*, which is W1's job, not assembly's).
-        for (const node of Object.values(parsed.tool_outputs)) {
-            for (const file of node.files) {
-                await adapter.writeFile(sandbox, file.path, file.content);
-            }
+        // 2. Scaffold the engine project from the tool outputs, then write
+        // it into the sandbox FS. The code_gen tools emit a single gameplay
+        // file; scaffoldProject wraps it in the build-ready project tree
+        // (project.godot + presets for Godot, index.html entry for the
+        // browser engines, game.project for Defold) and carries asset files
+        // through. The write order is irrelevant (the DAG ordering matters
+        // for tool *execution*, which is W1's job, not assembly's).
+        const projectFiles = scaffoldProject(parsed.engine, parsed.tool_outputs);
+        for (const file of projectFiles) {
+            await adapter.writeFile(sandbox, file.path, file.content);
         }
 
         // 3. Build.

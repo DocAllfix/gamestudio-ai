@@ -89,12 +89,19 @@ describe("assemble()", () => {
         expect(parsed.total_duration_ms).toBeGreaterThanOrEqual(0);
     });
 
-    it("writes every DAG tool_output file into the sandbox", async () => {
+    it("scaffolds the engine project from the tool outputs into the sandbox", async () => {
         const adapter = stubAdapter();
         await assemble(baseInput, adapter);
         const paths = adapter.written.map((w) => w.path);
-        expect(paths).toContain("src/main.js");
+        // Phaser scaffold: the code_gen source becomes the esbuild entry, an
+        // index.html is added so the bundle is playable, and asset files pass
+        // through verbatim.
+        expect(paths).toContain("/project/src/main.js");
+        expect(paths).toContain("/project/dist/index.html");
         expect(paths).toContain("assets/hero.png");
+        // The entry holds the generated gameplay source.
+        const entry = adapter.written.find((w) => w.path === "/project/src/main.js");
+        expect(entry?.content).toBe("console.log('hi')");
     });
 
     it("skips the smoke test when run_smoke_test=false", async () => {

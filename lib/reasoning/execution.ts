@@ -113,6 +113,55 @@ function mapStatus(result: ToolExecutionResult): NodeResult["status"] {
     return result.status === "succeeded" ? "succeeded" : "failed";
 }
 
+type ToolFile = AssemblerInput["tool_outputs"][string]["files"][number];
+
+/**
+ * Normalize a tool's output into the files the Assembler scaffolds into the
+ * engine project. Three shapes cover the day-1 DAG:
+ *   - code_gen  → {code, filename}: the gameplay source (scaffold wraps it).
+ *   - asset     → {image_url|audio_url|model_url}: a url-ref the build fetches.
+ *   - structured→ level/entity data: written as inline JSON the code can read.
+ * Returns [] for outputs with nothing to materialize (the node still counts
+ * as succeeded for D.6; it just contributes no file).
+ */
+function outputToFiles(
+    toolId: string,
+    output: Record<string, unknown> | null,
+): ToolFile[] {
+    if (!output) return [];
+
+    if (typeof output.code === "string" && output.code.length > 0) {
+        const filename =
+            typeof output.filename === "string" && output.filename.length > 0
+                ? output.filename
+                : "main";
+        return [{ path: filename, content: output.code, encoding: "utf-8" }];
+    }
+
+    const assetUrl =
+        (typeof output.image_url === "string" && output.image_url) ||
+        (typeof output.audio_url === "string" && output.audio_url) ||
+        (typeof output.model_url === "string" && output.model_url) ||
+        (typeof output.download_url === "string" && output.download_url);
+    if (assetUrl) {
+        return [{ path: assetPath(toolId, assetUrl), content: assetUrl, encoding: "url-ref" }];
+    }
+
+    return [];
+}
+
+/** A sandbox-relative path for a fetched asset, by tool family. */
+function assetPath(toolId: string, url: string): string {
+    const ext = url.split("?")[0].split(".").pop() ?? "bin";
+    const safeExt = /^[a-z0-9]{1,5}$/i.test(ext) ? ext : "bin";
+    const dir = toolId.includes("audio") || toolId.includes("bgm") || toolId.includes("sfx")
+        ? "audio"
+        : toolId.includes("3d") || toolId.includes("model")
+            ? "models"
+            : "sprites";
+    return `/project/assets/${dir}/${toolId}.${safeExt}`;
+}
+
 export const executionOrchestrator: ExecutionOrchestrator = {
     async materialize(
         rawInput: ExecutionOrchestratorInput,
@@ -123,6 +172,10 @@ export const executionOrchestrator: ExecutionOrchestrator = {
         const levels = topoLevels(plan.execution_dag.nodes);
         const nodeResults: NodeResult[] = [];
         const failed = new Set<string>();
+        // Accumulates each succeeded tool's files, keyed by DAG node id, to
+        // hand to the build (the Assembler scaffolds these into the engine
+        // project). Was previously `{}` — the build received no game files.
+        const toolOutputs: AssemblerInput["tool_outputs"] = {};
         let totalCost = 0;
         let totalLatency = 0;
 
@@ -161,6 +214,15 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             for (const result of results) {
                 const status = mapStatus(result);
                 if (status === "failed") failed.add(result.node_id);
+                else {
+                    const files = outputToFiles(result.tool_id, result.output);
+                    if (files.length > 0) {
+                        toolOutputs[result.node_id] = {
+                            tool_id: result.tool_id,
+                            files,
+                        };
+                    }
+                }
                 totalCost += result.cost_usd;
                 totalLatency += result.latency_ms;
                 nodeResults.push({
@@ -179,7 +241,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             project_id: plan.project_id,
             plan_version: plan.plan_version,
             engine: plan.meta.engine,
-            tool_outputs: {},
+            tool_outputs: toolOutputs,
             run_smoke_test: true,
         });
         totalLatency += build.total_duration_ms;
