@@ -135,47 +135,64 @@ async function runInner(
         plan = balance.balanced_plan;
         push("balance", `adjustments=${balance.adjustments.length}`);
 
-        // D.5 Execution — run the DAG + build.
-        const execution = await executionOrchestrator.materialize({
-            plan,
-            incremental: false,
-            memory,
-        });
-        memory = execution.memory;
-        push("execution", `nodes=${execution.node_results.length}`);
-        // Per-tool traces (incl. generated code) are written inside execution
-        // itself, which has each tool's full output. Here we record the
-        // execution summary (build artifact + playable url).
-        await tracer.record({
-            phase: "execution",
-            status: "succeeded",
-            engine: plan.meta.engine,
-            output: { build_artifact_id: execution.build_artifact_id, iframe_url: execution.iframe_url ?? null },
-            cost_usd: execution.total_cost_usd,
-            latency_ms: execution.total_latency_ms,
-        });
+        // D.5 → D.6 with a regeneration loop: if the gate fails (smoke OR the
+        // Playtester says not-playable), feed D.6's refinement_request back as
+        // playtest_feedback so code_gen regenerates with the exact reason, and
+        // re-run. Caps at MAX_GEN_ITERS so a stubborn case can't loop forever.
+        // This is what makes "always playable" real: not a perfect first try,
+        // but a loop that converges on a playable game.
+        const MAX_GEN_ITERS = 3;
+        let execution!: Awaited<ReturnType<typeof executionOrchestrator.materialize>>;
+        let report!: EvaluationReport;
+        let totalCost = 0;
+        let totalLatency = 0;
 
-        // D.6 Evaluation — the final smoke gate. Cost/time totals from
-        // D.5 feed the cost/time verdicts; the smoke report is threaded
-        // through so D.6 measures the same build D.5 produced.
-        const evaluation = await evaluationAgent.evaluate(
-            {
+        for (let iter = 1; iter <= MAX_GEN_ITERS; iter++) {
+            execution = await executionOrchestrator.materialize({
                 plan,
-                build_artifact_id: execution.build_artifact_id,
-                num_playtests: 10,
+                incremental: false,
                 memory,
-            },
-            {
-                smokeReport: execution.smoke_test_report,
-                generation_cost_usd: execution.total_cost_usd,
-                generation_time_seconds: execution.total_latency_ms / 1000,
-            },
-        );
-        memory = evaluation.memory;
-        const report = evaluation.report;
-        push("evaluation", `overall_passed=${report.overall_passed}`);
-        if (evaluation.refinement_request !== null) {
+            });
+            memory = execution.memory;
+            totalCost += execution.total_cost_usd;
+            totalLatency += execution.total_latency_ms;
+            push("execution", `iter=${iter} nodes=${execution.node_results.length}`);
+            await tracer.record({
+                phase: "execution",
+                status: "succeeded",
+                engine: plan.meta.engine,
+                output: { iter, build_artifact_id: execution.build_artifact_id, iframe_url: execution.iframe_url ?? null },
+                cost_usd: execution.total_cost_usd,
+                latency_ms: execution.total_latency_ms,
+            });
+
+            const evaluation = await evaluationAgent.evaluate(
+                {
+                    plan,
+                    build_artifact_id: execution.build_artifact_id,
+                    num_playtests: 10,
+                    memory,
+                },
+                {
+                    smokeReport: execution.smoke_test_report,
+                    generation_cost_usd: execution.total_cost_usd,
+                    generation_time_seconds: execution.total_latency_ms / 1000,
+                },
+            );
+            memory = evaluation.memory;
+            report = evaluation.report;
+            push("evaluation", `iter=${iter} overall_passed=${report.overall_passed}`);
+
+            if (report.overall_passed || evaluation.refinement_request === null || iter === MAX_GEN_ITERS) {
+                break;
+            }
+            // Not playable → regenerate with the specific reason. Stored in
+            // memory so wireInputs threads it into code_gen's prompt next pass.
             push("refinement", evaluation.refinement_request.slice(0, 500));
+            memory = {
+                ...memory,
+                short_term: { ...memory.short_term, playtest_feedback: evaluation.refinement_request },
+            };
         }
 
         await flushLangfuse();
@@ -185,8 +202,8 @@ async function runInner(
             final_report: report,
             iterations,
             overall_passed: report.overall_passed,
-            total_cost_usd: execution.total_cost_usd,
-            total_latency_ms: execution.total_latency_ms,
+            total_cost_usd: totalCost,
+            total_latency_ms: totalLatency,
             build_artifact_id: execution.build_artifact_id,
             iframe_url: execution.iframe_url ?? null,
             node_results: execution.node_results,

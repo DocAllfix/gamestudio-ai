@@ -195,9 +195,14 @@ export const evaluationAgent = {
         };
 
         const failed = verdicts.filter((v) => !v.passed).map((v) => v.metric);
+        // Surface the specific crash/playtest reason (not just the metric name)
+        // so the regeneration loop knows exactly what to fix.
+        const crashReason = smoke.runs.find((r) => !r.passed)?.crash_reason;
         const refinementRequest = overallPassed
             ? null
-            : `Evaluation failed on: ${failed.join(", ")}. Revise the plan to satisfy these constraints.`;
+            : crashReason
+                ? crashReason
+                : `Evaluation failed on: ${failed.join(", ")}. Revise the plan to satisfy these constraints.`;
 
         return { report, refinement_request: refinementRequest, memory: input.memory };
     },

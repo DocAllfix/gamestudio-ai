@@ -37,6 +37,9 @@ export const CodeGenInputSchema = ToolInputBaseSchema.extend({
     entities: z.unknown().optional(),
     /** Resolved asset urls (sprite/audio) to use instead of placeholders. */
     assets: z.record(z.unknown()).optional(),
+    /** Playtester feedback from a previous failed pass (regeneration loop):
+     * the specific playability problem to fix this time. */
+    playtest_feedback: z.string().optional(),
 });
 export type CodeGenInput = z.infer<typeof CodeGenInputSchema>;
 
@@ -181,6 +184,10 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
         const levelBrief = describeLevel(input.level_layout, input.entities, input.assets);
         const user =
             (grounding ? grounding + "\n\n" : "") +
+            (input.playtest_feedback
+                ? `IMPORTANT — a previous version of this game FAILED playtesting: ` +
+                  `${input.playtest_feedback}\nFix this specific problem in the new version.\n\n`
+                : "") +
             `Mechanic: ${input.mechanic}` +
             (input.context ? `\nContext: ${input.context}` : "") +
             (levelBrief ? `\n\n${levelBrief}` : "");

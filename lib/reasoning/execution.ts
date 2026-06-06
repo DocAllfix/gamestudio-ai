@@ -127,6 +127,7 @@ function wireInputs(
     node: ExecutionDagNode,
     nodeOutputs: Record<string, Record<string, unknown>>,
     entryNode: { id: string; display_name: string; requires: string[]; grants: string[]; tags: string[] },
+    playtestFeedback?: string,
 ): Record<string, unknown> {
     const input: Record<string, unknown> = { ...node.input };
     const parents = node.depends_on.map((id) => nodeOutputs[id]).filter(Boolean);
@@ -169,6 +170,9 @@ function wireInputs(
             if (typeof o.audio_url === "string") assets.audio = o.audio_url;
         }
         if (Object.keys(assets).length > 0) input.assets = assets;
+        // Regeneration feedback: the Playtester's reason from the previous
+        // failed pass, so the LLM fixes the specific playability problem.
+        if (playtestFeedback) input.playtest_feedback = playtestFeedback;
     }
     return input;
 }
@@ -265,9 +269,12 @@ export const executionOrchestrator: ExecutionOrchestrator = {
                 });
             }
 
+            const playtestFeedback = typeof input.memory.short_term?.playtest_feedback === "string"
+                ? (input.memory.short_term.playtest_feedback as string)
+                : undefined;
             const invocations: ToolInvocation[] = runnable.map((node) => ({
                 tool_id: node.tool_id as ToolInvocation["tool_id"],
-                input: wireInputs(node, nodeOutputs, entryNode),
+                input: wireInputs(node, nodeOutputs, entryNode, playtestFeedback),
                 node_id: node.id,
                 project_id: plan.project_id,
                 plan_version: plan.plan_version,
