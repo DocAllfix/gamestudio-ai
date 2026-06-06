@@ -27,6 +27,17 @@ import {
     type GamePlanPatch,
 } from "../contracts/game-plan.contract.js";
 import { buildExecutionDag } from "./dag-builder.js";
+import { GameDesignDocSchema, type GameDesignDoc } from "./game-designer.js";
+import type { HermesMemory } from "../contracts/reasoning-engine.contract.js";
+
+/** Pull the D.1 design doc out of memory.short_term, if it's there and valid.
+ * Returns null otherwise so the DAG falls back to generic node inputs. */
+function readDesignDoc(memory: HermesMemory): GameDesignDoc | null {
+    const raw = memory.short_term?.design_doc;
+    if (!raw) return null;
+    const parsed = GameDesignDocSchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
+}
 
 function refinementPatch(
     plan: GamePlan,
@@ -57,11 +68,16 @@ export const designPlanner: DesignPlanner = {
             // per-genre/engine pipeline so generation orchestrates all the real
             // tools (sprite, levels, tilemap, entities, audio, code).
             const { meta } = input.plan;
+            // The D.1 enhancement step parks its rich design doc here; when
+            // present its briefs seed the DAG node inputs (specific direction
+            // for sprite/music/code instead of generic "${genre} ..." text).
+            const designDoc = readDesignDoc(input.memory);
             const execution_dag = buildExecutionDag({
                 genre: meta.genre,
                 engine: meta.engine,
                 style_pack_id: meta.style_pack_id,
                 difficulty: meta.difficulty,
+                design: designDoc,
             });
             return {
                 result: {

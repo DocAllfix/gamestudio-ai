@@ -31,6 +31,7 @@ import {
 } from "../contracts/game-plan.contract.js";
 import { complete } from "../llm/router.js";
 import { defaultEngineFor, templateSkeleton } from "./baseline.js";
+import { designFromBrief, type GameDesignDoc } from "./game-designer.js";
 
 /** Keyword → genre cues, checked in order. First match wins. Kept tiny:
  * the production path layers an LLM classification on top, this only
@@ -106,22 +107,38 @@ export const intentInterpreter: IntentInterpreter = {
     ): Promise<IntentInterpreterOutput> {
         const input = IntentInterpreterInputSchema.parse(rawInput);
 
-        const genre = inferGenre(input.user_prompt);
-        const engine: Engine = input.forced_engine ?? defaultEngineFor(genre);
-        const title = deriveTitle(input.user_prompt);
+        // Enhancement step: expand the brief into a rich design doc. On any
+        // failure `doc` is null and we fall back to the keyword/template path,
+        // so the plan is always GamePlanSchema-valid (graceful degradation).
+        const doc: GameDesignDoc | null = await designFromBrief(input.user_prompt);
 
-        const draftPlan = templateSkeleton(randomUUID(), genre, engine, title);
-        const rationale = await writeRationale(
-            input.user_prompt,
-            genre,
-            engine,
-            input.forced_engine !== undefined,
-        );
+        const genre = doc?.genre ?? inferGenre(input.user_prompt);
+        const engine: Engine = input.forced_engine ?? defaultEngineFor(genre);
+        const title = doc?.title ?? deriveTitle(input.user_prompt);
+        const difficulty = doc?.difficulty ?? "balanced";
+
+        const draftPlan = templateSkeleton(randomUUID(), genre, engine, title, difficulty);
+
+        // Carry the design doc through memory.short_term so D.2 can seed the
+        // DAG node inputs with its per-asset briefs (no GamePlan contract
+        // change needed). When `doc` is null the DAG uses generic defaults.
+        const rationale = doc
+            ? doc.pitch
+            : await writeRationale(
+                  input.user_prompt,
+                  genre,
+                  engine,
+                  input.forced_engine !== undefined,
+              );
+
+        const memory = doc
+            ? { ...input.memory, short_term: { ...input.memory.short_term, design_doc: doc } }
+            : input.memory;
 
         return {
             draft_plan: draftPlan,
             rationale,
-            memory: input.memory,
+            memory,
         };
     },
 };

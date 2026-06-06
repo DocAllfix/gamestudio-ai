@@ -67,6 +67,7 @@ export function templateSkeleton(
     genre: Genre,
     engine: Engine,
     title: string,
+    difficulty: GamePlan["meta"]["difficulty"] = "balanced",
 ): GamePlan {
     return {
         plan_version: 1,
@@ -78,7 +79,7 @@ export function templateSkeleton(
             style_pack_id: `${genre}_default`,
             template_origin: templateOrigin(genre, engine),
             target_duration_minutes: 30,
-            difficulty: "balanced",
+            difficulty,
         },
         world_graph: {
             nodes: [

@@ -31,6 +31,7 @@ export const ModelIdEnum = z.enum([
     "deepseek-reasoner",
     "claude-sonnet-4-7", // reasoning
     "claude-haiku-4-5",
+    "gpt-4.1-mini", // Azure deployment (design enhancement); ≠ gpt-4o-mini
     "gpt-4o-mini",
     "gpt-4o",
     "gemini-2.5-flash",
@@ -81,6 +82,7 @@ export interface ChatParams {
     max_tokens: number;
     top_p?: number;
     temperature?: number;
+    response_format?: { type: "json_object" };
 }
 
 export interface CompleteDeps {
@@ -112,6 +114,12 @@ export function buildChatParams(
         messages,
         max_tokens: request.max_tokens,
     };
+    // OpenAI/Azure JSON mode: when a response_schema is requested, force a JSON
+    // object so the model returns parseable JSON (no markdown fence). Claude on
+    // Azure doesn't take this param.
+    if (request.response_schema && !isClaude(model)) {
+        base.response_format = { type: "json_object" };
+    }
 
     if (isClaude(model)) {
         return { ...base, top_p: 0.99 };
@@ -162,10 +170,21 @@ function defaultClient(): ChatClient {
 
 // ---- complete() ----------------------------------------------------------
 
+/** Strip a ```json … ``` (or bare ```) markdown fence some models wrap JSON
+ * in, leaving the raw JSON text. No fence → returned unchanged. */
+function stripCodeFence(raw: string): string {
+    const t = raw.trim();
+    if (!t.startsWith("```")) return t;
+    return t
+        .replace(/^```(?:json)?\s*\n?/i, "")
+        .replace(/\n?```\s*$/, "")
+        .trim();
+}
+
 function parseStructured(content: string, schema: unknown): unknown {
     let json: unknown;
     try {
-        json = JSON.parse(content);
+        json = JSON.parse(stripCodeFence(content));
     } catch (error) {
         throw new Error(`LLM output was not valid JSON: ${(error as Error).message}`);
     }
