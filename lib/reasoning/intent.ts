@@ -32,6 +32,7 @@ import {
 import { complete } from "../llm/router.js";
 import { defaultEngineFor, templateSkeleton } from "./baseline.js";
 import { designFromBrief, type GameDesignDoc } from "./game-designer.js";
+import { referenceGroundingFor } from "./reference-games.js";
 
 /** Keyword → genre cues, checked in order. First match wins. Kept tiny:
  * the production path layers an LLM classification on top, this only
@@ -107,10 +108,18 @@ export const intentInterpreter: IntentInterpreter = {
     ): Promise<IntentInterpreterOutput> {
         const input = IntentInterpreterInputSchema.parse(rawInput);
 
-        // Enhancement step: expand the brief into a rich design doc. On any
-        // failure `doc` is null and we fall back to the keyword/template path,
-        // so the plan is always GamePlanSchema-valid (graceful degradation).
-        const doc: GameDesignDoc | null = await designFromBrief(input.user_prompt);
+        // Enhancement step: expand the brief into a rich design doc, anchored to
+        // real shipped games of the likely genre (keyword-inferred up front just
+        // to fetch references; the designer may still pick a different genre).
+        // The references are *context*, not constraints — the designer outputs a
+        // single coherent design. On any failure `doc` is null and we fall back
+        // to the keyword/template path (graceful degradation, plan stays valid).
+        const likelyGenre = inferGenre(input.user_prompt);
+        const referenceGrounding = await referenceGroundingFor(likelyGenre);
+        const doc: GameDesignDoc | null = await designFromBrief(
+            input.user_prompt,
+            referenceGrounding,
+        );
 
         const genre = doc?.genre ?? inferGenre(input.user_prompt);
         const engine: Engine = input.forced_engine ?? defaultEngineFor(genre);

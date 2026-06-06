@@ -80,13 +80,23 @@ const SYSTEM = [
 ].join("\n");
 
 /**
- * Run the designer on a raw brief. Returns the validated doc, or null on any
- * failure (LLM error, malformed output, or insufficient_brief) so the caller
- * keeps the deterministic fallback. Never throws.
+ * Run the designer on a raw brief. `referenceGrounding` (optional) is a block
+ * of real shipped games for the likely genre, distilled from the KB's vision
+ * analysis — it anchors the design to real games instead of generic invention.
+ * Returns the validated doc, or null on any failure (LLM error, malformed
+ * output, or insufficient_brief) so the caller keeps the deterministic
+ * fallback. Never throws.
  */
-export async function designFromBrief(brief: string): Promise<GameDesignDoc | null> {
+export async function designFromBrief(
+    brief: string,
+    referenceGrounding = "",
+): Promise<GameDesignDoc | null> {
     const trimmed = brief.trim();
     if (trimmed.length === 0) return null;
+
+    const userMsg = referenceGrounding
+        ? `${referenceGrounding}\n\nUser brief:\n${trimmed}`
+        : `User brief:\n${trimmed}`;
 
     try {
         const res = await complete({
@@ -97,7 +107,7 @@ export async function designFromBrief(brief: string): Promise<GameDesignDoc | nu
             // above deepseek-chat (which we keep for code-gen). NOT gpt-4o-mini.
             model: "gpt-4.1-mini",
             system: SYSTEM,
-            user: `User brief:\n${trimmed}`,
+            user: userMsg,
             response_schema: GameDesignDocSchema,
             max_tokens: 2048,
             temperature: 0.7, // some creative range; the schema keeps it safe
