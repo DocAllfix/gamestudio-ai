@@ -119,6 +119,56 @@ function browserScaffold(
 // export_presets.cfg with a "Web" preset, and a main scene. The generated
 // GDScript is the main scene's script.
 
+// Pre-register the input actions generated games commonly use. The LLM calls
+// Input.is_action_pressed("jump"/"retry"/...) for actions that otherwise don't
+// exist in the InputMap → flood of "action doesn't exist" USER ERRORs and a
+// game that can't be controlled. Registering them here (plus the built-in ui_*)
+// makes those calls valid regardless of what the LLM chose. Godot 4 .cfg input
+// event format.
+const GODOT_INPUT = `[input]
+
+move_left={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194319),Object(InputEventKey,"physical_keycode":65)]
+}
+move_right={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194321),Object(InputEventKey,"physical_keycode":68)]
+}
+move_up={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194320),Object(InputEventKey,"physical_keycode":87)]
+}
+move_down={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194322),Object(InputEventKey,"physical_keycode":83)]
+}
+jump={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":32),Object(InputEventKey,"physical_keycode":4194320)]
+}
+shoot={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194309),Object(InputEventKey,"physical_keycode":74)]
+}
+action={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194309)]
+}
+retry={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":82)]
+}
+restart={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":82)]
+}
+pause={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194305)]
+}
+`;
+
 const GODOT_PROJECT = `; Engine configuration, GameSmith scaffold.
 config_version=5
 
@@ -127,6 +177,7 @@ config/name="GameSmith Game"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
+${GODOT_INPUT}
 [rendering]
 renderer/rendering_method="gl_compatibility"
 `;

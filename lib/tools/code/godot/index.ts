@@ -55,6 +55,13 @@ export default makeCodeGenTool({
         "func _on_coin_collected(amount: int) -> void:\n" +
         "\tscore += amount\n" +
         "```\n" +
+        "INPUT: only these InputMap actions exist — use ONLY these: move_left, " +
+        "move_right, move_up, move_down, jump, shoot, action, retry, restart, " +
+        "pause (plus built-in ui_left/ui_right/ui_up/ui_down/ui_accept). Never " +
+        "reference any other action name. PLAYABILITY: the player must START " +
+        "standing ON a platform/ground (not in empty space) and must be able to " +
+        "move and survive at least a few seconds; place the ground under the " +
+        "player's start position. " +
         "Key Godot-4 rules shown above: CharacterBody2D (not KinematicBody2D), " +
         "`move_and_slide()` takes NO args and uses the `velocity` property, " +
         "`@onready`/`@export` need the @, Color.RED (uppercase), Sprite2D not " +
