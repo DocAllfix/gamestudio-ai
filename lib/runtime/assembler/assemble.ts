@@ -59,6 +59,34 @@ function makeLlmJudge() {
     };
 }
 
+/** True if the bytes look like a real asset of the path's expected type (magic
+ * bytes). Guards against download_urls that return HTML/redirect/error pages,
+ * which would crash the engine import → grey screen. */
+function isValidAsset(path: string, buf: Buffer): boolean {
+    if (buf.length < 12) return false;
+    const ext = path.split(".").pop()?.toLowerCase() ?? "";
+    const b = buf;
+    const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+    const jpg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+    const webp = b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45;
+    const gif = b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46;
+    const ogg = b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53;
+    const mp3 = (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0);
+    const wav = b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x41;
+    const glb = b[0] === 0x67 && b[1] === 0x6c && b[2] === 0x54 && b[3] === 0x46; // "glTF"
+    // an HTML error page would start with '<' or whitespace+'<'
+    const looksHtml = (() => { const s = b.subarray(0, 64).toString("utf8").trimStart().toLowerCase(); return s.startsWith("<") || s.startsWith("<!doctype"); })();
+    if (looksHtml) return false;
+    if (["png"].includes(ext)) return png || jpg || webp || gif; // accept any image for a .png slot
+    if (["jpg", "jpeg"].includes(ext)) return jpg || png || webp;
+    if (["webp"].includes(ext)) return webp || png || jpg;
+    if (["mp3"].includes(ext)) return mp3 || ogg || wav;
+    if (["ogg"].includes(ext)) return ogg || mp3 || wav;
+    if (["wav"].includes(ext)) return wav || ogg || mp3;
+    if (["glb", "gltf"].includes(ext)) return glb;
+    return !looksHtml; // unknown type: accept unless it's clearly HTML
+}
+
 /** Smoke section when the test was skipped (run_smoke_test=false). */
 const SKIPPED_SMOKE = {
     ran: false,
@@ -96,6 +124,15 @@ export async function assemble(
                     const r = await fetch(file.content);
                     if (!r.ok) throw new Error(`asset fetch ${r.status}`);
                     const buf = Buffer.from(await r.arrayBuffer());
+                    // VALIDATE the bytes before writing. A CC0 download_url can
+                    // return HTML/redirect/404-page instead of the real file; a
+                    // broken image makes Godot crash at import ("No loader found
+                    // for resource") → grey screen. Only write if the magic bytes
+                    // match the expected type; else skip → _tex() uses a
+                    // placeholder texture (no crash).
+                    if (!isValidAsset(file.path, buf)) {
+                        throw new Error(`invalid bytes (got ${buf.length}B, not a valid asset)`);
+                    }
                     await adapter.writeFile(sandbox, file.path, buf);
                     logParts.push(`[asset fetched ${file.path} ${buf.length}B]`);
                 } catch (e) {
