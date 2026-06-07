@@ -421,9 +421,18 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             // first PLAYABLE result (the real signal), not on overall_passed
             // (false for non-fatal smoke "degraded").
             playtest_playable: build.playtest?.ran === true ? build.playtest.playable : null,
+            // Did the game actually RENDER (publish game state)? Derived from the
+            // playtest reason (the contract carries no structured signal): a
+            // "no game state published" reason means it didn't render (grey). The
+            // Hermes loop uses this to never SHIP a broken iteration over an
+            // earlier one that rendered. Null when the playtest didn't run.
+            playtest_rendered:
+                build.playtest?.ran === true
+                    ? !/no game state|could not assess/i.test(build.playtest.reason ?? "")
+                    : null,
             total_cost_usd: totalCost,
             total_latency_ms: totalLatency,
             memory: input.memory,
-        } as Awaited<ReturnType<ExecutionOrchestrator["materialize"]>> & { playtest_playable: boolean | null };
+        } as Awaited<ReturnType<ExecutionOrchestrator["materialize"]>> & { playtest_playable: boolean | null; playtest_rendered: boolean | null };
     },
 };

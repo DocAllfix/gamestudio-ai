@@ -242,10 +242,12 @@ export function generatePlatformLayout(args: {
     }
 
     // Entry on the first platform, exit on the last (one cell above the top).
+    // Spawn at the platform's CENTER, not its left edge — a player dropped on the
+    // edge (minimal overlap) slides off and "falls at 0.5s", failing the playtest.
     const first = platforms[0]!;
     const last = platforms[platforms.length - 1]!;
-    const entry = { x: first.x, y: Math.max(0, first.y - 1) };
-    const exit = { x: Math.min(width - 1, last.x + last.len - 1), y: Math.max(0, last.y - 1) };
+    const entry = { x: first.x + Math.floor(first.len / 2), y: Math.max(0, first.y - 1) };
+    const exit = { x: last.x + Math.floor(last.len / 2), y: Math.max(0, last.y - 1) };
     if (cells[entry.y]) cells[entry.y]![entry.x] = "entry";
     if (cells[exit.y]) cells[exit.y]![exit.x] = "exit";
 

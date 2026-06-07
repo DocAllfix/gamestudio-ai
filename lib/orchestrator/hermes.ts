@@ -147,6 +147,19 @@ async function runInner(
         let totalCost = 0;
         let totalLatency = 0;
 
+        // SHIP THE BEST iteration, not the last. Regeneration can regress (a
+        // later pass producing a broken/grey build), and shipping the final
+        // iteration unconditionally meant a worse result replaced a better one.
+        // Rank each iteration; keep the highest.
+        let best: { execution: typeof execution; report: EvaluationReport; score: number } | null = null;
+        const scoreOf = (ex: typeof execution): number => {
+            const e = ex as { playtest_playable?: boolean | null; playtest_rendered?: boolean | null };
+            if (e.playtest_playable === true) return 3; // playable — best
+            if (e.playtest_rendered === true) return 2; // rendered, not fully playable
+            if (e.playtest_rendered === null) return 1; // playtest skipped (unknown)
+            return 0; // didn't render (grey/broken)
+        };
+
         for (let iter = 1; iter <= MAX_GEN_ITERS; iter++) {
             execution = await executionOrchestrator.materialize({
                 plan,
@@ -183,6 +196,12 @@ async function runInner(
             report = evaluation.report;
             push("evaluation", `iter=${iter} overall_passed=${report.overall_passed}`);
 
+            // Remember the best iteration seen so we never ship a regression.
+            const score = scoreOf(execution);
+            if (best === null || score > best.score) {
+                best = { execution, report, score };
+            }
+
             // STOP as soon as the game is PLAYABLE. The playtest verdict is the
             // real "is it a good game" signal; only regenerate when the player
             // is actually lost/unplayable. Previously we kept iterating on
@@ -204,17 +223,22 @@ async function runInner(
         }
 
         await flushLangfuse();
+        // Ship the BEST iteration (highest score), not whatever the loop ended
+        // on — a late regeneration that regressed must not replace a better build.
+        const shipExecution = best?.execution ?? execution;
+        const shipReport = best?.report ?? report;
+        push("evaluation", `ship best score=${best?.score ?? "n/a"} iframe=${shipExecution.iframe_url ?? "none"}`);
         return {
             project_id: projectId,
             final_plan: plan,
-            final_report: report,
+            final_report: shipReport,
             iterations,
-            overall_passed: report.overall_passed,
+            overall_passed: shipReport.overall_passed,
             total_cost_usd: totalCost,
             total_latency_ms: totalLatency,
-            build_artifact_id: execution.build_artifact_id,
-            iframe_url: execution.iframe_url ?? null,
-            node_results: execution.node_results,
+            build_artifact_id: shipExecution.build_artifact_id,
+            iframe_url: shipExecution.iframe_url ?? null,
+            node_results: shipExecution.node_results,
         };
     }
 }

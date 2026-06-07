@@ -143,7 +143,9 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
             `World ${l.width * tile}x${l.height * tile} px. Build a StaticBody2D platform (with a ` +
             `RectangleShape2D + a visible Sprite2D using _tex(), see VISUALS rule) for EACH of these rectangles (x,y = top-left, px):\n` +
             plats.slice(0, 40).join("  ") + "\n" +
-            `Spawn the player at ${entryPx}. Put the goal/exit at ${exitPx} (reaching it = win). ` +
+            `Spawn the player at ${entryPx} — this point is already centered just ABOVE the first ` +
+            `platform, so the player drops squarely onto it (do NOT shift it to a platform edge or ` +
+            `it slides off and falls). Put the goal/exit at ${exitPx} (reaching it = win). ` +
             `Add a Camera2D as a child of the player so the wide level scrolls. The platforms are ` +
             `already spaced within jump reach — just place them exactly.`,
         );
