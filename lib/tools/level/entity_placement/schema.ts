@@ -6,8 +6,10 @@ import { TileFileSchema } from "../tilemap_populate/schema.js";
 
 export const EntityPlacementInputSchema = ToolInputBaseSchema.extend({
     layout: AbstractLayoutSchema,
-    /** The concrete Tiled map produced by tilemap_populate. */
-    tilemap: z.record(z.unknown()),
+    /** The concrete Tiled map from tilemap_populate. OPTIONAL: tilemap can fail
+     * (its BFS check rejects a platformer's gap-separated platforms) and entity
+     * placement only needs the layout's entity_slots/coords. */
+    tilemap: z.record(z.unknown()).optional(),
     genre: z.string().min(1),
     difficulty: z.enum(["chill", "balanced", "hard", "brutal"]).default("balanced"),
     engine: z.string().min(1),

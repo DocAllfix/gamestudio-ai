@@ -92,17 +92,23 @@ async function handler(invocation: ToolInvocation, deps: EntityDeps = defaultDep
         });
     }
 
-    // QA 1: no entity sits on a non-walkable tile.
-    const allOnWalkable = entities.every((e) => grid[e.y]?.[e.x] === true);
-    qa_log.push({ check: "entities_on_walkable", passed: allOnWalkable, detail: allOnWalkable ? null : "an entity is inside a wall" });
+    // Platformer (no tilemap): platforms are gap-separated, so the 4-dir BFS
+    // moat doesn't apply (the level already validated jump-reachability). Skip
+    // the walkable/reachability QA — entities are placed on the layout's slots.
+    const isPlatformer = !input.tilemap || layout.meta?.strategy === "platform";
+    let allOnWalkable = true;
+    let reachable = true;
+    if (!isPlatformer) {
+        allOnWalkable = entities.every((e) => grid[e.y]?.[e.x] === true);
+        qa_log.push({ check: "entities_on_walkable", passed: allOnWalkable, detail: allOnWalkable ? null : "an entity is inside a wall" });
+        const requiredGoals: Point[] = entities.filter((e) => e.grants.length > 0).map((e) => ({ x: e.x, y: e.y }));
+        reachable = isReachable(grid, layout.entry, [layout.exit, ...requiredGoals]);
+        qa_log.push({ check: "required_entities_reachable", passed: reachable, detail: reachable ? null : "a required-grant entity is unreachable" });
+    }
+    void reached;
 
-    // QA 2 (moat): every required-grant entity stays reachable from entry.
-    const requiredGoals: Point[] = entities.filter((e) => e.grants.length > 0).map((e) => ({ x: e.x, y: e.y }));
-    const reachable = isReachable(grid, layout.entry, [layout.exit, ...requiredGoals]);
-    qa_log.push({ check: "required_entities_reachable", passed: reachable, detail: reachable ? null : "a required-grant entity is unreachable" });
-    void reached; // computed for diagnostics / future weighting
-
-    const mapWithEntities = withEntities(tiledMap, objects);
+    // tilemap may be absent (platformer) → emit just the entities (no map merge).
+    const mapWithEntities = tiledMap ? withEntities(tiledMap, objects) : { entities: objects };
     const files = [{ path: mapPath(layout.node_id), content: JSON.stringify(mapWithEntities), encoding: "utf-8" as const }];
 
     const passed = allOnWalkable && reachable;
