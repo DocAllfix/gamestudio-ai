@@ -23,27 +23,45 @@ export default makeCodeGenTool({
         "$NodePath / get_node(); CREATE every node in `_ready()` and keep " +
         "references in variables. Imitate the structure and API of this WORKING " +
         "Godot 4.3 example exactly:\n" +
+        "PHYSICS IS FIXED — use these EXACT constants (they match the generated " +
+        "level's jump spacing; do NOT change them): gravity 1200.0, jump_velocity " +
+        "-450.0, move_speed 300.0. Use this controller VERBATIM (add your mechanics " +
+        "on top, don't rewrite the movement/jump):\n" +
         "```gdscript\n" +
         "extends Node2D\n\n" +
         "var player: CharacterBody2D\n" +
-        "var speed := 300.0\n" +
-        "var score := 0\n\n" +
+        "const GRAVITY := 1200.0\n" +
+        "const JUMP_VELOCITY := -450.0\n" +
+        "const MOVE_SPEED := 300.0\n" +
+        "const COYOTE := 0.1\n" +
+        "var score := 0\n" +
+        "var _coyote := 0.0\n\n" +
         "func _ready() -> void:\n" +
         "\tplayer = CharacterBody2D.new()\n" +
         "\tplayer.position = Vector2(120, 200)\n" +
         "\tadd_child(player)\n" +
         "\tvar shape := CollisionShape2D.new()\n" +
         "\tvar rect := RectangleShape2D.new()\n" +
-        "\trect.size = Vector2(24, 24)\n" +
+        "\trect.size = Vector2(24, 32)\n" +
         "\tshape.shape = rect\n" +
         "\tplayer.add_child(shape)\n" +
         "\tvar spr := ColorRect.new()\n" +
-        "\tspr.size = Vector2(24, 24)\n" +
+        "\tspr.size = Vector2(24, 32)\n" +
+        "\tspr.position = Vector2(-12, -16)\n" +
         "\tspr.color = Color.RED\n" +
-        "\tplayer.add_child(spr)\n\n" +
+        "\tplayer.add_child(spr)\n" +
+        "\tvar cam := Camera2D.new()\n" +
+        "\tplayer.add_child(cam)  # camera follows the player\n\n" +
         "func _physics_process(delta: float) -> void:\n" +
-        "\tvar dir := Input.get_axis(\"ui_left\", \"ui_right\")\n" +
-        "\tplayer.velocity = Vector2(dir * speed, player.velocity.y + 1200.0 * delta)\n" +
+        "\tplayer.velocity.y += GRAVITY * delta\n" +
+        "\tif player.is_on_floor():\n" +
+        "\t\t_coyote = COYOTE\n" +
+        "\telse:\n" +
+        "\t\t_coyote -= delta\n" +
+        "\tif Input.is_action_just_pressed(\"jump\") and _coyote > 0.0:\n" +
+        "\t\tplayer.velocity.y = JUMP_VELOCITY\n" +
+        "\t\t_coyote = 0.0\n" +
+        "\tplayer.velocity.x = Input.get_axis(\"move_left\", \"move_right\") * MOVE_SPEED\n" +
         "\tplayer.move_and_slide()\n" +
         "\t_publish_state()\n" +
         "```\n" +
