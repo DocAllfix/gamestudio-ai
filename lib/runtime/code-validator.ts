@@ -22,10 +22,13 @@ async function getValidatorSandbox() {
     if (sharedSandbox) return sharedSandbox;
     const deps = createRealDeps();
     sharedSandbox = await bootSandbox(deps.e2b);
-    // Project + scene written once; only main.gd changes per attempt.
+    // Project + scene written once; only main.gd changes per attempt. Include
+    // the SAME warnings-as-errors-off [debug] block the real build uses, so the
+    // validator doesn't reject valid-but-warned code the build would accept.
+    const { GODOT_DEBUG_GDSCRIPT } = await import("./assembler/scaffold.js");
     await sharedSandbox.writeFile(
         "/check/project.godot",
-        'config_version=5\n[application]\nconfig/name="check"\nrun/main_scene="res://main.tscn"\n',
+        'config_version=5\n[application]\nconfig/name="check"\nrun/main_scene="res://main.tscn"\n\n' + GODOT_DEBUG_GDSCRIPT,
     );
     await sharedSandbox.writeFile(
         "/check/main.tscn",

@@ -169,6 +169,24 @@ pause={
 }
 `;
 
+// Turn OFF warnings-as-errors. The LLM keeps writing valid-but-warned GDScript
+// (untyped `var x = expr`, etc.) that Godot, with the default
+// treat_warnings_as_errors, rejects as a Parse Error — burning a self-heal
+// retry per variable. These are WARNINGS, not real errors; disabling the
+// as-errors gate (and the noisiest declaration warnings) kills the whole class
+// at once without masking genuine parse/runtime errors. Shared by the scaffold
+// build and the validator so both see the same rules.
+export const GODOT_DEBUG_GDSCRIPT = `[debug]
+
+gdscript/warnings/treat_warnings_as_errors=false
+gdscript/warnings/untyped_declaration=0
+gdscript/warnings/inferred_declaration=0
+gdscript/warnings/unsafe_method_access=0
+gdscript/warnings/unsafe_property_access=0
+gdscript/warnings/unsafe_cast=0
+gdscript/warnings/unsafe_call_argument=0
+`;
+
 const GODOT_PROJECT = `; Engine configuration, GameSmith scaffold.
 config_version=5
 
@@ -180,7 +198,8 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 ${GODOT_INPUT}
 [rendering]
 renderer/rendering_method="gl_compatibility"
-`;
+
+${GODOT_DEBUG_GDSCRIPT}`;
 
 const GODOT_MAIN_TSCN = `[gd_scene load_steps=2 format=3]
 
