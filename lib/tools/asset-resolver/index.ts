@@ -20,7 +20,11 @@ import {
 } from "../../contracts/tool-registry.contract.js";
 import { makeResult, type Tool } from "../_shared.js";
 
-const CATALOG_THRESHOLD = 0.85;
+// Above this similarity we serve the catalog asset directly; below (but above
+// the RPC floor 0.45) we return it flagged for generative fallback. Tuned to
+// text-embedding-3-small's real range on these captions (perfect ~0.63), not the
+// theoretical 0.85 which never triggered.
+const CATALOG_THRESHOLD = 0.55;
 
 export interface MatchedAsset {
     id: string;
@@ -110,6 +114,12 @@ async function defaultMatchAssets(query: {
             p_style_pack: query.style_pack ?? null,
             p_genre: query.genre ?? null,
             p_engine: query.engine ?? null,
+            // text-embedding-3-small scores even perfect matches ~0.60-0.65 on
+            // these descriptive CC0 captions, so the RPC's 0.75 default rejected
+            // everything (every game was mute / used no CC0 art). 0.45 is the
+            // realistic floor for "clearly relevant"; ranking still surfaces the
+            // best hit first.
+            p_match_threshold: 0.45,
         });
         if (error) {
             console.error({ context: "asset_resolver.match_assets.rpc", query, error });
