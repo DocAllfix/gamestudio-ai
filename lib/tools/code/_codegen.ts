@@ -155,10 +155,19 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         // an external URL at runtime). Paths mirror assetPath() in execution.ts.
         if (assets.sprite) {
             lines.push(
-                `PLAYER SPRITE: load the texture at "res://assets/sprites/sprite_gen.png" ` +
-                `(var tex := load("res://assets/sprites/sprite_gen.png")) and use a Sprite2D ` +
-                `with it for the player instead of a ColorRect. If the load returns null, ` +
-                `fall back to a ColorRect.`,
+                `PLAYER SPRITE: use the texture at "res://assets/sprites/sprite_gen.png" for the ` +
+                `player via a Sprite2D, NOT a ColorRect. The texture is large (~1024px) so you MUST ` +
+                `scale it down to the player's gameplay size (~48px tall). Do exactly this:\n` +
+                `\tvar tex := load("res://assets/sprites/sprite_gen.png") as Texture2D\n` +
+                `\tif tex:\n` +
+                `\t\tvar spr := Sprite2D.new()\n` +
+                `\t\tspr.texture = tex\n` +
+                `\t\tspr.scale = Vector2.ONE * (48.0 / float(tex.get_height()))  # fit to ~48px tall\n` +
+                `\t\tplayer.add_child(spr)\n` +
+                `\telse:\n` +
+                `\t\t# fallback to a ColorRect if the texture is missing\n` +
+                `\t\tpass\n` +
+                `Make the player's CollisionShape2D match that ~48px size, not the raw texture size.`,
             );
         }
         if (assets.audio) {
