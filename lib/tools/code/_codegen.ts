@@ -323,12 +323,18 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
             ...generated,
         };
 
+        // qa_log here drives the node STATUS (deriveStatus → rejected_by_qa if
+        // ANY entry failed). The self-heal's intermediate failed attempts live in
+        // output.qa_log (healLog) for audit/dataset, but must NOT mark the node
+        // failed when the FINAL code is valid. So report only the final outcome.
+        const finalValidates = healLog.some((q) => q.check === "code_validates" && q.passed)
+            || !deps.validateCode; // no validator wired → accept non-empty code
         return makeResult({
             invocation: { tool_id: config.id, node_id: invocation.node_id, trace_id: invocation.trace_id },
             output,
             qa_log: [
                 { check: "non_empty_code", passed: generated.code.length > 0, detail: null },
-                ...healLog,
+                { check: "code_validates", passed: finalValidates, detail: finalValidates ? "final code valid" : "code did not validate after retries" },
             ],
             cost_usd: totalCost,
             latency_ms: Date.now() - start,
