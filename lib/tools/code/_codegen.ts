@@ -162,12 +162,16 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
             "VISUALS — STRICT: NEVER use ColorRect for anything. EVERY visible element " +
             "(player, platforms, enemies, pickups, background) MUST be a Sprite2D whose " +
             "texture comes from the _tex(path, size, color) helper (it always returns a " +
-            "texture, loading the asset or a placeholder). Use these paths:",
+            "texture, loading the asset or a placeholder). SIZING — assets vary wildly " +
+            "(16px tile .. 1024px render): gameplay sprites MUST be scaled to a target " +
+            "px height with the _fit(spr, target_h) helper; background/platforms stretch " +
+            "to fill their area. NEVER render a sprite at raw native size (it comes out " +
+            "tiny or screen-filling). Use these paths and sizes:",
         );
-        lines.push(`- BACKGROUND: Sprite2D _tex("res://assets/sprites/background.png", view_size, Color(0.1,0.1,0.15)), behind everything.`);
-        lines.push(`- PLATFORMS: each platform StaticBody2D gets a Sprite2D _tex("res://assets/sprites/tileset.png", platform_size, Color(0.4,0.3,0.2)), stretched to the platform rect.`);
-        lines.push(`- ENEMIES: Sprite2D _tex("res://assets/sprites/enemy.png", Vector2(28,28), Color.CRIMSON) for each enemy.`);
-        lines.push(`- PICKUPS/coins: Sprite2D _tex("res://assets/sprites/sprite_gen.png", Vector2(16,16), Color.GOLD) or a small placeholder.`);
+        lines.push(`- BACKGROUND: a Sprite2D with _tex("res://assets/sprites/background.png", view_size, Color(0.1,0.1,0.15)), behind everything, centered; STRETCH it to cover the viewport (spr.scale = view_size / spr.texture.get_size()). Do NOT _fit it.`);
+        lines.push(`- PLATFORMS: each platform StaticBody2D gets a Sprite2D _tex("res://assets/sprites/tileset.png", platform_size, Color(0.4,0.3,0.2)); STRETCH to the platform rect (spr.scale = platform_size / spr.texture.get_size()).`);
+        lines.push(`- ENEMIES: Sprite2D _tex("res://assets/sprites/enemy.png", Vector2(36,36), Color.CRIMSON); then _fit(spr, 36.0).`);
+        lines.push(`- PICKUPS/coins: Sprite2D _tex("res://assets/sprites/sprite_gen.png", Vector2(20,20), Color.GOLD); then _fit(spr, 20.0).`);
 
     if (assets && (assets.sprite || assets.audio)) {
         // The assembler fetches these URLs into the project before building, so
@@ -175,10 +179,9 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         // an external URL at runtime). Paths mirror assetPath() in execution.ts.
         if (assets.sprite) {
             lines.push(
-                `PLAYER SPRITE: a Sprite2D using _tex("res://assets/sprites/sprite_gen.png", Vector2(48,48), Color.RED). ` +
-                `The real texture is large (~1024px) — scale the Sprite2D to ~48px tall ` +
-                `(spr.scale = Vector2.ONE * (48.0 / float(spr.texture.get_height()))). ` +
-                `Match the player's CollisionShape2D to ~48px. NEVER a ColorRect.`,
+                `PLAYER SPRITE: a Sprite2D using _tex("res://assets/sprites/sprite_gen.png", Vector2(40,40), Color.RED), ` +
+                `then _fit(spr, 40.0) to scale it to ~40px tall (the real texture can be ~1024px → giant raw). ` +
+                `Match the player's CollisionShape2D to ~40px. NEVER a ColorRect.`,
             );
         }
         if (assets.audio) {

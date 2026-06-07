@@ -47,6 +47,7 @@ export default makeCodeGenTool({
         "\tplayer.add_child(shape)\n" +
         "\tvar spr := Sprite2D.new()\n" +
         "\tspr.texture = _tex(\"res://assets/sprites/sprite_gen.png\", Vector2(32, 32), Color.RED)\n" +
+        "\t_fit(spr, 40.0)  # scale to ~40px tall — a 1024px asset would be GIANT raw\n" +
         "\tplayer.add_child(spr)\n" +
         "\tvar cam := Camera2D.new()\n" +
         "\tplayer.add_child(cam)  # camera follows the player\n\n" +
@@ -62,6 +63,15 @@ export default makeCodeGenTool({
         "\tvar img := Image.create(maxi(1, int(size.x)), maxi(1, int(size.y)), false, Image.FORMAT_RGBA8)\n" +
         "\timg.fill(fallback)\n" +
         "\treturn ImageTexture.create_from_image(img)\n\n" +
+        "# Scale a Sprite2D to a target on-screen HEIGHT in px, whatever the source\n" +
+        "# resolution. Catalog/FLUX assets vary wildly (16px tile .. 1024px render):\n" +
+        "# raw they come out tiny or screen-filling. ALWAYS _fit() every gameplay\n" +
+        "# sprite (player ~40, enemy ~36, pickup ~20). Backgrounds are handled\n" +
+        "# separately (stretch to the viewport), not via _fit.\n" +
+        "func _fit(spr: Sprite2D, target_h: float) -> void:\n" +
+        "\tif spr.texture == null: return\n" +
+        "\tvar th := spr.texture.get_height()\n" +
+        "\tif th > 0: spr.scale = Vector2.ONE * (target_h / float(th))\n\n" +
         "func _physics_process(delta: float) -> void:\n" +
         "\tplayer.velocity.y += GRAVITY * delta\n" +
         "\tif player.is_on_floor():\n" +
