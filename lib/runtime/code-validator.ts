@@ -67,7 +67,7 @@ async function validateGodot(rawCode: string): Promise<string | null> {
         // Filter those out — they're not fatal (untyped var, inferred type,
         // unsafe access). Only keep genuine parse/runtime failures, so we don't
         // burn a retry on a warning the build would never reject.
-        const WARNING_NOISE = /Cannot infer the type|doesn't have a set type|inferred to be|unsafe|narrowing conversion|standalone (expression|ternary)|return value .* discarded|never (used|assigned)|shadow/i;
+        const WARNING_NOISE = /Cannot infer the type|doesn't have a set type|inferred to be|inferred from a Variant|being inferred|typed as Variant|Variant value|unsafe|narrowing conversion|standalone (expression|ternary)|return value .* discarded|never (used|assigned)|shadow/i;
         const errors = out
             .split("\n")
             .filter((l) => /SCRIPT ERROR|Parse Error|ERROR:.*main\.gd|error\(|USER ERROR|Cannot convert|can't be assigned|Null instance|nonexistent (function|signal)|Invalid (call|get index|set index)/i.test(l))

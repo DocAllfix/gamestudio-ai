@@ -57,7 +57,7 @@ export default makeCodeGenTool({
         "\t# MUST check existence first — load() on a missing res:// path throws\n" +
         "\t# 'No loader found' (fatal, grey screen), it does NOT return null.\n" +
         "\tif ResourceLoader.exists(path):\n" +
-        "\t\tvar t := load(path) as Texture2D\n" +
+        "\t\tvar t: Texture2D = load(path)\n" +
         "\t\tif t: return t\n" +
         "\tvar img := Image.create(maxi(1, int(size.x)), maxi(1, int(size.y)), false, Image.FORMAT_RGBA8)\n" +
         "\timg.fill(fallback)\n" +
