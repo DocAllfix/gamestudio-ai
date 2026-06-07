@@ -72,7 +72,37 @@ async function validateGodot(rawCode: string): Promise<string | null> {
             .split("\n")
             .filter((l) => /SCRIPT ERROR|Parse Error|ERROR:.*main\.gd|error\(|USER ERROR|Cannot convert|can't be assigned|Null instance|nonexistent (function|signal)|Invalid (call|get index|set index)/i.test(l))
             .filter((l) => !WARNING_NOISE.test(l));
-        return errors.length > 0 ? errors.slice(0, 8).join("\n") : null;
+        if (errors.length > 0) return errors.slice(0, 8).join("\n");
+
+        // Playability check IN the self-heal: read the headless __GS__ state
+        // lines. If the player is off-screen/lost early and stays lost, fix it
+        // here (one code_gen retry) instead of letting the playtest fail and
+        // trigger a whole-DAG regeneration. Same signal the Playtester uses.
+        const gs = out.split("\n")
+            .map((l) => l.match(/__GS__ alive=(\w+) on=\w+ y=(-?[\d.]+) t=([\d.]+)/))
+            .filter((m): m is RegExpMatchArray => m !== null);
+        if (gs.length >= 8) {
+            // Scale-free judgement (no magic y thresholds — those depend on
+            // gravity/viewport/frame count and kept misfiring). A player on the
+            // ground SETTLES: its y stops changing. A falling/launched player
+            // NEVER settles — y keeps moving the same way the whole window. So:
+            // "lost" = y is still moving monotonically (never came to rest) AND
+            // it traveled a large distance from start.
+            const ys = gs.map((m) => Number(m[2]));
+            // Scale-free + time-robust: a player on solid ground SETTLES — its y
+            // stops changing in the last third of the run (range ~0). A
+            // falling/launched player is STILL moving at the end (range large).
+            // The headless window is short, so use "did it come to rest", not
+            // total travel (which depends on frame count). Verified: healthy
+            // tailRange ~0; free-falling tailRange ~120.
+            const tail = ys.slice(-Math.max(5, Math.floor(ys.length / 3)));
+            const tailRange = Math.max(...tail) - Math.min(...tail);
+            const allDead = gs.slice(-4).every((m) => m[1] === "False");
+            if (allDead || tailRange > 60) {
+                return "PLAYABILITY: the player never comes to rest — it keeps falling/moving and never lands on solid ground (no platform under the spawn). Create the ground/platform BEFORE the player, spawn the player directly ON it, and add a Camera2D that follows it.";
+            }
+        }
+        return null;
     } catch (error) {
         console.error("validateGodot failed (skipping validation): " + (error instanceof Error ? error.message : String(error)));
         return null;

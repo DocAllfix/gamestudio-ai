@@ -53,9 +53,12 @@ export default makeCodeGenTool({
         "```gdscript\n" +
         "var _t := 0.0\n" +
         "func _publish_state() -> void:\n" +
-        "\tif not JavaScriptBridge.has_method(\"eval\"): return\n" +
+        "\t_t += get_process_delta_time()\n" +
         "\tvar vp := get_viewport_rect().size\n" +
-        "\tvar on := player.position.x >= -50 and player.position.x <= vp.x + 50 and player.position.y <= vp.y + 200\n" +
+        "\tvar on := player.position.x >= -50 and player.position.x <= vp.x + 50 and player.position.y >= -100 and player.position.y <= vp.y + 100\n" +
+        "\t# Headless line the validator reads (no window there); keep it.\n" +
+        "\tprint(\"__GS__ alive=%s on=%s y=%.0f t=%.1f\" % [is_instance_valid(player), on, player.position.y, _t])\n" +
+        "\tif not JavaScriptBridge.has_method(\"eval\"): return\n" +
         "\tvar st := {\"player_alive\": is_instance_valid(player), \"player_on_screen\": on, " +
         "\"player_x\": player.position.x, \"player_y\": player.position.y, \"score\": score, " +
         "\"goal_reached\": false, \"game_over\": false, \"elapsed_seconds\": _t, \"status\": \"\"}\n" +
