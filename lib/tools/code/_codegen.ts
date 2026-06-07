@@ -171,7 +171,12 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
             );
         }
         if (assets.audio) {
-            lines.push(`BACKGROUND MUSIC: play "res://assets/audio/bgm_gen.ogg" via an AudioStreamPlayer (if it loads).`);
+            lines.push(
+                `BACKGROUND AUDIO: in _ready, add an AudioStreamPlayer and play ` +
+                `"res://assets/audio/bgm_gen.mp3" (var s := load("res://assets/audio/bgm_gen.mp3"); ` +
+                `if s: var ap := AudioStreamPlayer.new(); ap.stream = s; add_child(ap); ap.play()). ` +
+                `Skip silently if the load returns null.`,
+            );
         }
     }
 

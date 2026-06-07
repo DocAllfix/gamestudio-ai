@@ -214,16 +214,20 @@ function outputToFiles(
     return [];
 }
 
-/** A sandbox-relative path for a fetched asset, by tool family. */
-function assetPath(toolId: string, url: string): string {
-    const ext = url.split("?")[0].split(".").pop() ?? "bin";
-    const safeExt = /^[a-z0-9]{1,5}$/i.test(ext) ? ext : "bin";
-    const dir = toolId.includes("audio") || toolId.includes("bgm") || toolId.includes("sfx")
-        ? "audio"
-        : toolId.includes("3d") || toolId.includes("model")
-            ? "models"
-            : "sprites";
-    return `/project/assets/${dir}/${toolId}.${safeExt}`;
+/** A sandbox-relative path for a fetched asset, by tool family. DETERMINISTIC:
+ * fixed dir + extension per family (the source URL's extension is unreliable —
+ * e.g. freesound's .../download/ has none), and the SAME path describeLevel
+ * tells the LLM to load. Toolid normalized to the family stem so the code's
+ * res:// path matches regardless of the concrete tool variant. */
+function assetPath(toolId: string, _url: string): string {
+    const isAudio = toolId.includes("audio") || toolId.includes("bgm") || toolId.includes("sfx") || toolId.includes("voice");
+    const is3d = toolId.includes("3d") || toolId.includes("model");
+    if (isAudio) {
+        const stem = toolId.includes("sfx") ? "sfx_gen" : "bgm_gen";
+        return `/project/assets/audio/${stem}.mp3`;
+    }
+    if (is3d) return `/project/assets/models/model_3d_gen.glb`;
+    return `/project/assets/sprites/sprite_gen.png`;
 }
 
 export const executionOrchestrator: ExecutionOrchestrator = {
