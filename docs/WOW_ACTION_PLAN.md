@@ -105,7 +105,90 @@ Obiettivo: Sonnet non solo scrive, ma dirige la pipeline e cura la qualità.
 
 ---
 
-## I 30 tool Sorceress — inventario esplicito (per FASE B/C, non dimenticare)
+## FASE E — Asset Library + Studio componibile (la visione "game lab", proposta utente 2026-06-07)
+**Principio cardine (utente):** tre capability — (1) **Libreria** asset CC0 sfogliabile, (2) **Studio**
+(tool Sorceress per creare/modificare asset), (3) **Generazione** — funzionano OGNUNA da sola, ma
+UNITE permettono di costruire "il tuo gruppo di asset" → poi generare il gioco esattamente come lo
+vuoi. Componibilità: prendi una sprite dalla libreria → la modifichi coi tool Sorceress → la usi nella
+generazione. Più asset curati hai pronti, più la generazione è facile/fedele/veloce (l'AI ASSEMBLA,
+non inventa). Tutto su UN modello dati condiviso (`project_assets`) — vedi B4.
+
+### E1. Libreria asset CC0 sfogliabile
+- **Cosa c'è già (verificato DB):** `asset_library_index` = 2.488 audio_sfx + 1.238 sprite + 554
+  model_3d + 35 tileset + 16 icon (CC0, allowlist licenze hard-enforced) + RPC `match_assets` +
+  embedding (pgvector). Buchi: **audio_music=0, animation=0**, tileset/UI pochi.
+- **Cosa manca:** la UI di browsing + più contenuti + metadata di categorizzazione.
+
+### E2. Fonti CC0 da ingerire (verificate online, riempiono i buchi) — stesso pattern Fase 1
+| Fonte | Copre | Riempie |
+|---|---|---|
+| **Kenney.nl** (40k+ CC0) | sprite, tileset, 3D, UI, audio, font | tileset, UI, musica |
+| **OpenGameArt** (CC0/CC-BY) | 2D, **musica**, sfx | audio_music (0) |
+| **Quaternius** (CC0) | 3D low-poly **riggati+animati** | model_3d + animation |
+| **Quaternius Universal Animation Library** (CC0, compat Mixamo) | animazioni 3D | **animation (0)** |
+| **Mixamo** (gratis Adobe, riggato) | animazioni humanoid 3D | animation |
+| **RancidMilk** (CC0 su rig Quaternius) | anim 3D | animation |
+| **ambientCG / Poly Haven** (CC0) | materiali PBR, HDRI, texture | texture/PBR (per 3D) |
+| **itch.io tag CC0** | sprite animati, tile, pack | sprite/tile/anim |
+> Licenze: mantenere l'allowlist hard-enforced (`asset_library_index` la già impone). CC0 prima;
+> CC-BY/OFL solo con attribuzione tracciata; mai GPL/sconosciute ([[feedback_dataset_no_pollution]]).
+
+### E3. Categorizzazione + ricerca (migration additiva)
+- Aggiungere a `asset_library_index`: `style` (pixel/low-poly/realistic/hand-drawn/voxel…),
+  `dimension` (2d/3d), `genre_affinity` (text[]), `tags` (text[]). L'`embedding` c'è già.
+- **Ricerca SEMANTICA (per significato, non keyword)** — già la nostra tecnologia (pgvector +
+  embedding, come code_knowledge/LoRA/reference-games). L'utente scrive "robot spaventoso da dungeon"
+  e trova mech/teschi/mostri anche senza quelle parole esatte. **DOPPIO USO:** (a) barra di ricerca
+  manuale nello Studio; (b) **match automatico in generazione** — l'asset_resolver cerca
+  semanticamente gli asset coerenti col design ("platformer cyberpunk") e li usa/propone da solo.
+  Costo embedding all'ingestione: ~$0.00002/asset (trascurabile).
+
+### E4. Mappe/livelli pronti — cosa esiste DAVVERO (onesto, verificato)
+- **2D:** formato standard **Tiled (.tmx/.tmj)** + importer **YATI** (Godot 4) + editor **Sprite
+  Fusion** (export Godot/JSON/TMX). Esistono pack di livelli-tile CC0 (itch.io). → I livelli 2D
+  pronti SONO un input valido: importati come tilemap, il code_gen ci costruisce la logica sopra. NON
+  sono "giochi pronti".
+- **3D:** NON esistono livelli 3D plug-and-play. Esistono **kit modulari** (KayKit dungeon, Kenney) =
+  pezzi da assemblare → li compone il nostro `level_layout_3d`. Gestire l'aspettativa: kit, non livelli.
+- **Incastro:** mappe/kit pronti sono INPUT agli algoritmi-mappa del piano B4 (rot-js/WFC/Perlin), non
+  sostituti. Un livello-tile CC0 può essere lo "skeleton" che l'LLM rifinisce.
+
+### E5. Animazioni — esistono (verificato)
+- 2D: sprite-sheet animati (Kenney, Ninja Adventure, RGS modular). 3D: Quaternius Universal Animation
+  Library (CC0) + Mixamo (gratis) + RancidMilk (CC0). → Riempie `animation=0`. Si infilano come asset
+  tipizzati (slot "animation") nello stesso modello.
+
+### E6. Composizione (il ponte, già metà fatto)
+- `asset_resolver` legge `project_assets` come PRIMA fonte (asset curati dall'utente: presi dalla
+  libreria, modificati in Studio, o BYOA), poi catalogo CC0, poi generativo paywall. Un asset preso
+  dalla libreria → ritoccato coi tool Sorceress → salvato in `project_assets` → usato in generazione.
+  Libreria + Studio + Generazione = stesso `project_assets`, tre porte.
+
+### Effetto utente (per livello)
+- Casual: prompt → gioco con asset CC0 coerenti di default (più bello senza sforzo).
+- Intermedio: sfoglia libreria, sceglie stile, genera → "è mio".
+- Esperto: cura un set (libreria + ritocco Sorceress + BYOA) → genera esattamente ciò che vuole = il moat "game lab".
+
+### Vantaggi (onesti)
+Meno allucinazioni (assembla asset reali) · più fedeltà ("è mio") · più veloce per convergenza (meno
+FLUX/retry) · costo più basso (CC0 gratis) · anti-slop (pain #1 r/aigamedev) · componibilità =
+facilità per il casual + profondità per l'esperto.
+
+### Onestà / vincoli
+Lavoro grosso (ingestione + UI + metadata = settimane). "Livelli 3D pronti" non esistono (solo kit).
+Licenze per-asset da verificare (allowlist esiste). Da fare DOPO che il loop base (generazione→gioco
+giocabile) è solido. Si appoggia a: piano Sorceress (`docs/research/SORCERESS_*.md`), B4 (modello
+asset condiviso + preset), Fetta 3 (Studio shell + `project_assets`).
+
+### Fonti verificate
+[awesome-cc0](https://github.com/madjin/awesome-cc0) · [Kenney](https://kenney.nl) ·
+[Quaternius Universal Animation Library CC0](https://quaternius.itch.io/universal-animation-library) ·
+[YATI Tiled→Godot](https://github.com/Kiamo2/YATI) · [Sprite Fusion](https://www.spritefusion.com/) ·
+[OpenGameArt CC0](https://opengameart.org/content/cc0-resources) · [ambientCG] · [Mixamo].
+
+---
+
+## I 30 tool Sorceress — inventario esplicito (per FASE B/C/E, non dimenticare)
 Fonte: `docs/research/SORCERESS_30_TOOLS.md` (inventario+mapping completo). Sorceress = pura
 orchestrazione (no modelli propri). Vantaggio nostro: le porte esagonali esistono già
 (ImageGenPort/Model3DPort/AudioGenPort) → integrarli = riempire porte, non riscrivere.
