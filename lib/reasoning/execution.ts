@@ -163,10 +163,18 @@ function wireInputs(
         const entities = fromAny("entities");
         if (layout) input.level_layout = layout;
         if (entities) input.entities = entities;
-        // Asset urls produced upstream (sprite/audio), keyed for the prompt.
+        // Asset urls by SLOT, keyed off the producing node id (so the player
+        // sprite, platform tileset, enemy sprite and background each land in the
+        // right slot — not all collapsed onto "sprite"). The code_gen prompt
+        // turns these into Sprite2D/TileMap instead of colored rectangles.
         const assets: Record<string, unknown> = {};
-        for (const o of allOutputs) {
-            if (typeof o.image_url === "string") assets.sprite = o.image_url;
+        const slotForNode = (id: string): string =>
+            id.includes("tileset") || id.includes("platform") ? "tileset"
+            : id.includes("enemy") ? "enemy"
+            : id.includes("background") || id.includes("bg") ? "background"
+            : "sprite"; // hero/player default
+        for (const [nodeId, o] of Object.entries(nodeOutputs)) {
+            if (typeof o.image_url === "string") assets[slotForNode(nodeId)] = o.image_url;
             if (typeof o.audio_url === "string") assets.audio = o.audio_url;
         }
         if (Object.keys(assets).length > 0) input.assets = assets;
@@ -191,6 +199,7 @@ type ToolFile = AssemblerInput["tool_outputs"][string]["files"][number];
 function outputToFiles(
     toolId: string,
     output: Record<string, unknown> | null,
+    nodeId = "",
 ): ToolFile[] {
     if (!output) return [];
 
@@ -208,7 +217,7 @@ function outputToFiles(
         (typeof output.model_url === "string" && output.model_url) ||
         (typeof output.download_url === "string" && output.download_url);
     if (assetUrl) {
-        return [{ path: assetPath(toolId, assetUrl), content: assetUrl, encoding: "url-ref" }];
+        return [{ path: assetPath(toolId, assetUrl, nodeId), content: assetUrl, encoding: "url-ref" }];
     }
 
     return [];
@@ -219,7 +228,7 @@ function outputToFiles(
  * e.g. freesound's .../download/ has none), and the SAME path describeLevel
  * tells the LLM to load. Toolid normalized to the family stem so the code's
  * res:// path matches regardless of the concrete tool variant. */
-function assetPath(toolId: string, _url: string): string {
+function assetPath(toolId: string, _url: string, nodeId = ""): string {
     const isAudio = toolId.includes("audio") || toolId.includes("bgm") || toolId.includes("sfx") || toolId.includes("voice");
     const is3d = toolId.includes("3d") || toolId.includes("model");
     if (isAudio) {
@@ -227,7 +236,13 @@ function assetPath(toolId: string, _url: string): string {
         return `/project/assets/audio/${stem}.mp3`;
     }
     if (is3d) return `/project/assets/models/model_3d_gen.glb`;
-    return `/project/assets/sprites/sprite_gen.png`;
+    // Image SLOT from the node id, so multiple sprite_gen nodes don't collide.
+    // These stems mirror the res:// paths describeLevel tells the LLM to load.
+    const stem = nodeId.includes("tileset") || nodeId.includes("platform") ? "tileset"
+        : nodeId.includes("enemy") ? "enemy"
+        : nodeId.includes("background") || nodeId.includes("bg") ? "background"
+        : "sprite_gen";
+    return `/project/assets/sprites/${stem}.png`;
 }
 
 export const executionOrchestrator: ExecutionOrchestrator = {
@@ -298,7 +313,7 @@ export const executionOrchestrator: ExecutionOrchestrator = {
                 if (status === "failed") failed.add(result.node_id);
                 else {
                     if (result.output) nodeOutputs[result.node_id] = result.output;
-                    const files = outputToFiles(result.tool_id, result.output);
+                    const files = outputToFiles(result.tool_id, result.output, result.node_id);
                     if (files.length > 0) {
                         toolOutputs[result.node_id] = {
                             tool_id: result.tool_id,

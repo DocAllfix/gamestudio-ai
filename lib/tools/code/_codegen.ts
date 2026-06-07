@@ -156,6 +156,16 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         lines.push(`Place these entities at these px positions: ${summary}.`);
     }
 
+    if (assets && (assets.tileset || assets.enemy || assets.background)) {
+        lines.push(
+            "USE THESE TEXTURES — do NOT draw plain ColorRect for platforms/enemies/background:",
+        );
+        if (assets.background) lines.push(`- BACKGROUND: a Sprite2D with load("res://assets/sprites/background.png"), behind everything, sized to the view.`);
+        if (assets.tileset) lines.push(`- PLATFORMS: give EACH platform StaticBody2D a Sprite2D with load("res://assets/sprites/tileset.png") (tile/stretch it to the platform rect) instead of a ColorRect.`);
+        if (assets.enemy) lines.push(`- ENEMIES: a Sprite2D with load("res://assets/sprites/enemy.png") for each enemy instead of a ColorRect.`);
+        lines.push("If a texture fails to load, fall back to a ColorRect for that element only.");
+    }
+
     if (assets && (assets.sprite || assets.audio)) {
         // The assembler fetches these URLs into the project before building, so
         // reference them by their in-project res:// path (a WASM build can't load

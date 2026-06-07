@@ -157,7 +157,15 @@ export function buildExecutionDag(args: {
   //    LLM level_layout produced empty/degenerate maps (entry=exit, no
   //    platforms). For these the code_gen designs the level itself (one
   //    coherent LLM) and the Playtester/reachability validates it.
+  // Visual asset nodes so the game LOOKS like a game (not ColorRect polygons):
+  // player + platform tileset + enemy sprite + background, all CC0-first and
+  // style-coherent (common carries style_pack_id/genre/engine → contextual
+  // match). wireInputs feeds their URLs to code_gen, which uses Sprite2D/TileMap
+  // instead of colored rectangles. design.* briefs keep them on-theme.
   nodes.push({ id: "hero-sprite", tool_id: "sprite_gen", input: { description: heroDesc, ...common }, depends_on: [] });
+  nodes.push({ id: "platform-tileset", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} platform/ground tile, seamless, top surface`, ...common }, depends_on: [] });
+  nodes.push({ id: "enemy-sprite", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} enemy character`, ...common }, depends_on: [] });
+  nodes.push({ id: "background", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} game background scenery`, ...common }, depends_on: [] });
   nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: musicDesc, ...common }, depends_on: [] });
   nodes.push({ id: "sfx", tool_id: "sfx_gen", input: { description: "jump/hit sfx", ...common }, depends_on: [] });
 
