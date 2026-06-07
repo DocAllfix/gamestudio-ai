@@ -49,6 +49,33 @@ const GENRE_DEFAULT_ENGINE: Record<Genre, Engine> = {
     visual_novel: "renpy",
 };
 
+/** Default style pack per genre — a REAL style_packs.id (A01-D08), not a
+ * free-form string. The previous `${genre}_default` produced ids like
+ * "hardcore_platformer_default" that exist in no catalog row, so the
+ * match_assets style filter (`p_style_pack = any(style_pack_compat)`) rejected
+ * EVERY asset → games fell back to placeholders. These map to the first pack
+ * whose `compatible_genres` includes the genre (migration 003 seed). */
+const GENRE_DEFAULT_STYLE: Record<Genre, string> = {
+    browser_arcade: "A03",
+    bullet_hell: "A01",
+    card_game: "D08",
+    hardcore_platformer: "A01",
+    jrpg: "A02",
+    metroidvania: "A01",
+    mobile_puzzle: "A02",
+    multiplayer_arena: "A08",
+    retro_8bit: "A03",
+    roguelike: "A01",
+    social_sim: "A02",
+    stride_action: "C03",
+    threejs_showcase: "C01",
+    visual_novel: "A06",
+};
+
+export function defaultStyleFor(genre: Genre): string {
+    return GENRE_DEFAULT_STYLE[genre];
+}
+
 /** The genre template id the plan was forked from. Mirrors the
  * `genre_templates` primary key convention `<genre>_<engine>`. */
 function templateOrigin(genre: Genre, engine: Engine): string {
@@ -76,7 +103,7 @@ export function templateSkeleton(
             title,
             genre,
             engine,
-            style_pack_id: `${genre}_default`,
+            style_pack_id: GENRE_DEFAULT_STYLE[genre],
             template_origin: templateOrigin(genre, engine),
             target_duration_minutes: 30,
             difficulty,

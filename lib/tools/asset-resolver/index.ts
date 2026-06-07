@@ -108,24 +108,44 @@ async function defaultMatchAssets(query: {
     try {
         const embedding = await embed(query.description);
         const supabase = createClient(url, key);
-        const { data, error } = await supabase.rpc("match_assets", {
-            p_query_embedding: `[${embedding.join(",")}]`,
-            p_asset_type: query.asset_type ?? null,
-            p_style_pack: query.style_pack ?? null,
-            p_genre: query.genre ?? null,
-            p_engine: query.engine ?? null,
-            // text-embedding-3-small scores even perfect matches ~0.60-0.65 on
-            // these descriptive CC0 captions, so the RPC's 0.75 default rejected
-            // everything (every game was mute / used no CC0 art). 0.45 is the
-            // realistic floor for "clearly relevant"; ranking still surfaces the
-            // best hit first.
-            p_match_threshold: 0.45,
-        });
-        if (error) {
-            console.error({ context: "asset_resolver.match_assets.rpc", query, error });
-            return [];
+        const p_query_embedding = `[${embedding.join(",")}]`;
+        // text-embedding-3-small scores even perfect matches ~0.60-0.65 on these
+        // descriptive CC0 captions, so the RPC's 0.75 default rejected everything
+        // (every game was mute / used no CC0 art). 0.45 is the realistic floor.
+        const p_match_threshold = 0.45;
+
+        // GRACEFUL WIDENING. style_pack and genre are HARD filters in the RPC
+        // (asset must contain the exact pack/genre), so a single drift — an
+        // invalid style_pack_id like "<genre>_default", or asset genre_affinity
+        // using a different vocabulary than the GenreEnum — makes the strict
+        // query return 0 and the slot degrades to a placeholder. Asset slots
+        // are visual enrichment: a same-type contextual hit (ranked by embedding
+        // similarity) beats an empty placeholder. So try strict first (best
+        // coherence), then progressively drop genre, then style, keeping the
+        // semantic ranking throughout. Engine + asset_type stay (a 3D model in a
+        // 2D slot would be wrong).
+        const attempts: Array<{ style_pack: string | null; genre: string | null }> = [
+            { style_pack: query.style_pack ?? null, genre: query.genre ?? null },
+            { style_pack: query.style_pack ?? null, genre: null },
+            { style_pack: null, genre: null },
+        ];
+        for (const a of attempts) {
+            const { data, error } = await supabase.rpc("match_assets", {
+                p_query_embedding,
+                p_asset_type: query.asset_type ?? null,
+                p_style_pack: a.style_pack,
+                p_genre: a.genre,
+                p_engine: query.engine ?? null,
+                p_match_threshold,
+            });
+            if (error) {
+                console.error({ context: "asset_resolver.match_assets.rpc", query, attempt: a, error });
+                return [];
+            }
+            const hits = (data ?? []) as MatchedAsset[];
+            if (hits.length > 0) return hits;
         }
-        return (data ?? []) as MatchedAsset[];
+        return [];
     } catch (error) {
         console.error({ context: "asset_resolver.defaultMatchAssets", query, error });
         return [];

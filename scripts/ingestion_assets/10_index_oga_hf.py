@@ -84,15 +84,19 @@ USE_CASE_RULES: list[tuple[str, re.Pattern[str]]] = [
     ("hud_element", re.compile(r"\b(hud|health|heart|bar|score)\b", re.I)),
     ("decoration", re.compile(r"\b(decoration|decor|plant|bush|flower)\b", re.I)),
 ]
-# --- genre_affinity from theme words ---
+# --- genre_affinity → MUST use the GenreEnum vocabulary (game-plan.contract.ts),
+# the same values the games request and existing assets use. Free-form genre
+# names ("platformer") match no game and get dropped by the resolver. ---
 GENRE_RULES: list[tuple[str, re.Pattern[str]]] = [
-    ("platformer", re.compile(r"\b(platform|platformer|jump|sidescroll)\b", re.I)),
-    ("rpg", re.compile(r"\b(rpg|jrpg|fantasy|dungeon|quest)\b", re.I)),
-    ("top_down_adventure", re.compile(r"\b(top-down|top down|overhead|zelda)\b", re.I)),
-    ("shooter", re.compile(r"\b(shooter|shoot|space|bullet|gun)\b", re.I)),
-    ("puzzle", re.compile(r"\b(puzzle|match|block)\b", re.I)),
-    ("arcade", re.compile(r"\b(arcade|retro|classic)\b", re.I)),
-    ("horror", re.compile(r"\b(horror|creepy|scary|undead)\b", re.I)),
+    ("hardcore_platformer", re.compile(r"\b(platform|platformer|jump|sidescroll)\b", re.I)),
+    ("metroidvania", re.compile(r"\b(metroidvania|metroid)\b", re.I)),
+    ("jrpg", re.compile(r"\b(rpg|jrpg|fantasy|dungeon|quest)\b", re.I)),
+    ("bullet_hell", re.compile(r"\b(shooter|shoot|bullet|shmup|danmaku)\b", re.I)),
+    ("mobile_puzzle", re.compile(r"\b(puzzle|match|block)\b", re.I)),
+    ("browser_arcade", re.compile(r"\b(arcade|classic)\b", re.I)),
+    ("retro_8bit", re.compile(r"\b(retro|8-bit|8 bit|nes|famicom)\b", re.I)),
+    ("roguelike", re.compile(r"\b(roguelike|rogue|dungeon crawl|top-down|top down|overhead)\b", re.I)),
+    ("visual_novel", re.compile(r"\b(horror|creepy|visual novel|undead)\b", re.I)),
 ]
 ANIM_RE = re.compile(r"\b(animat|spritesheet|sprite sheet|idle|run cycle|walk cycle|frames?)\b", re.I)
 DIRECT_IMG = re.compile(r"\.(png|jpg|jpeg|gif)$", re.I)
