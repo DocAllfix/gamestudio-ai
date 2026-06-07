@@ -141,9 +141,14 @@ export async function playtest(
         // ---- Deterministic guards (universal, no LLM) ----
         const statePublished = states.length > 0;
         if (!statePublished) {
-            // No state at all: either the game didn't publish it, or it never ran.
-            // Don't hard-fail on this alone (older games), but flag it.
-            return verdict(true, "no game state published; could not assess playability", {
+            // No state at all = the game did NOT run/render: every GameSmith build
+            // prints "__GS__ ..." each physics frame, so zero state means _ready
+            // or _physics_process aborted (a runtime error in over-complex
+            // generated code left the scene empty → the default-clear GREY screen
+            // the user keeps seeing). This MUST be a failure so the loop
+            // regenerates and ship-best picks an iteration that actually renders;
+            // marking it "playable" shipped the grey build.
+            return verdict(false, "no game state published — the game did not render (empty scene / runtime error in _ready); regenerate", {
                 state_published: false, samples: 0, player_lost_at: null, progressed: false, error_count: raw.errorCount,
             });
         }

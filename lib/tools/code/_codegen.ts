@@ -207,6 +207,24 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         }
     }
 
+    lines.push(
+        "ROBUSTNESS — non-negotiable (a blank scene ships as a GREY screen):\n" +
+        "- _ready() MUST build the CORE playable scene FIRST, in this order: player " +
+        "(CharacterBody2D + CollisionShape2D + Sprite2D + a child Camera2D), then the " +
+        "platforms, then the goal. ONLY AFTER that, add optional systems (HUD, audio, " +
+        "timers, stamina, moving/hidden platforms). A bug in an optional system must " +
+        "NEVER prevent the player+platforms from existing.\n" +
+        "- Keep it SIMPLE: do not invent elaborate subsystems (stamina drains, shifting " +
+        "platforms, reveal timers) unless the prompt explicitly asks. Fewer moving parts " +
+        "= it actually runs. Prefer a clean, working core over feature count.\n" +
+        "- _physics_process MUST start with `if not is_instance_valid(player): return` so " +
+        "a half-built frame can't crash every tick.\n" +
+        "- Publish state EVERY physics frame with exactly: " +
+        "`print(\"__GS__ alive=%s on=%s y=%.0f t=%.1f\" % [is_instance_valid(player), true, player.position.y, t])` " +
+        "(t = accumulated delta). This print is how the build is verified; without it the " +
+        "run is rejected as not-rendered.",
+    );
+
     return lines.join("\n");
 }
 
