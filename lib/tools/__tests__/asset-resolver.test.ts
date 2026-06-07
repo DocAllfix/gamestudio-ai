@@ -56,10 +56,12 @@ describe("asset_resolver handler", () => {
         expect(res.output?.fallback_generative).toBe(false);
     });
 
-    it("flags generative fallback when best match is between 0.78 and 0.85", async () => {
+    it("flags generative fallback when best match is between the RPC floor and CATALOG_THRESHOLD", async () => {
+        // text-embedding-3-small's real range on CC0 captions: serve straight
+        // from catalog above 0.55, flag generative fallback in 0.45..0.55.
         const res = await assetResolver.handler(
             { ...baseInvocation, input: { description: "a knight", asset_type: "sprite" } },
-            { matchAssets: matchAssetsReturning(0.8) },
+            { matchAssets: matchAssetsReturning(0.5) },
         );
         expect(res.output?.fallback_generative).toBe(true);
     });
