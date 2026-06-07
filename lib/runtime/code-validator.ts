@@ -52,14 +52,26 @@ async function validateGodot(rawCode: string): Promise<string | null> {
         // ONE command: --check-only (syntax) and, only if it parses, a short
         // headless RUN (catches "compiles but crashes" — bad signals, null refs,
         // wrong types). Single round-trip, single reused sandbox → fast + severe.
+        // Run BOTH --check-only (syntax) and a short headless run (runtime),
+        // unconditionally. --check-only's exit code can't gate the run because
+        // it flags non-fatal warnings; we decide fatality from the text after
+        // filtering warning noise. The run boots the scene → catches real
+        // runtime crashes (bad signals, null refs).
         const res = await sandbox.runCommand(
             "cd /check && GODOT_SILENCE_ROOT_WARNING=1 godot --headless --path /check --check-only --script main.gd 2>&1; " +
-            "if [ $? -eq 0 ]; then GODOT_SILENCE_ROOT_WARNING=1 timeout 25 godot --headless --path /check --quit-after 90 2>&1; fi; true",
+            "GODOT_SILENCE_ROOT_WARNING=1 timeout 25 godot --headless --path /check --quit-after 90 2>&1; true",
         );
         const out = `${res.stdout}\n${res.stderr}`;
+        // `--check-only --script` ignores the project's [debug] warnings config,
+        // so it still prints WARNING-level "errors" the real build accepts.
+        // Filter those out — they're not fatal (untyped var, inferred type,
+        // unsafe access). Only keep genuine parse/runtime failures, so we don't
+        // burn a retry on a warning the build would never reject.
+        const WARNING_NOISE = /Cannot infer the type|doesn't have a set type|inferred to be|unsafe|narrowing conversion|standalone (expression|ternary)|return value .* discarded|never (used|assigned)|shadow/i;
         const errors = out
             .split("\n")
-            .filter((l) => /SCRIPT ERROR|Parse Error|ERROR:.*main\.gd|error\(|USER ERROR|Cannot convert|can't be assigned|Null instance|nonexistent (function|signal)|Invalid (call|get index|set index)/i.test(l));
+            .filter((l) => /SCRIPT ERROR|Parse Error|ERROR:.*main\.gd|error\(|USER ERROR|Cannot convert|can't be assigned|Null instance|nonexistent (function|signal)|Invalid (call|get index|set index)/i.test(l))
+            .filter((l) => !WARNING_NOISE.test(l));
         return errors.length > 0 ? errors.slice(0, 8).join("\n") : null;
     } catch (error) {
         console.error("validateGodot failed (skipping validation): " + (error instanceof Error ? error.message : String(error)));
