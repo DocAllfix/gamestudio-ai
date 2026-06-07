@@ -162,10 +162,16 @@ export function buildExecutionDag(args: {
   // style-coherent (common carries style_pack_id/genre/engine → contextual
   // match). wireInputs feeds their URLs to code_gen, which uses Sprite2D/TileMap
   // instead of colored rectangles. design.* briefs keep them on-theme.
+  // Player can use generative (FLUX) — it's the hero, worth the cost. The
+  // secondary visuals (tileset/enemy/background) are CC0-ONLY (tier "free" →
+  // sprite_gen never calls FLUX): we have a categorized CC0 catalog for them,
+  // and 4 parallel FLUX calls saturate the Replicate rate limit (429). CC0 is
+  // free, instant, no throttle; missing → ColorRect fallback for that element.
+  const cc0only = { ...common, tier: "free" as const };
   nodes.push({ id: "hero-sprite", tool_id: "sprite_gen", input: { description: heroDesc, ...common }, depends_on: [] });
-  nodes.push({ id: "platform-tileset", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} platform/ground tile, seamless, top surface`, ...common }, depends_on: [] });
-  nodes.push({ id: "enemy-sprite", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} enemy character`, ...common }, depends_on: [] });
-  nodes.push({ id: "background", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} game background scenery`, ...common }, depends_on: [] });
+  nodes.push({ id: "platform-tileset", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} platform ground tile`, ...cc0only }, depends_on: [] });
+  nodes.push({ id: "enemy-sprite", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} enemy character`, ...cc0only }, depends_on: [] });
+  nodes.push({ id: "background", tool_id: "sprite_gen", input: { description: `${design?.mood ?? genre} background scenery`, ...cc0only }, depends_on: [] });
   nodes.push({ id: "music", tool_id: "bgm_gen", input: { description: musicDesc, ...common }, depends_on: [] });
   nodes.push({ id: "sfx", tool_id: "sfx_gen", input: { description: "jump/hit sfx", ...common }, depends_on: [] });
 
