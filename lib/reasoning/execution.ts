@@ -285,6 +285,10 @@ export const executionOrchestrator: ExecutionOrchestrator = {
                 ? await invokeToolBatchFn(invocations)
                 : [];
 
+            // node_id → the exact input the tool ran with, so the trace records
+            // the (input → generated_code) pair needed for the fine-tune dataset.
+            const inputByNode = new Map(invocations.map((inv) => [inv.node_id, inv.input]));
+
             for (const result of results) {
                 const status = mapStatus(result);
                 if (status === "failed") failed.add(result.node_id);
@@ -316,6 +320,10 @@ export const executionOrchestrator: ExecutionOrchestrator = {
                     tool_id: result.tool_id,
                     node_id: result.node_id,
                     status: status === "succeeded" ? "succeeded" : "failed",
+                    // The tool input = the prompt context; paired with
+                    // generated_code + qa_log (attempts/errors) it's a training
+                    // sample for the Godot fine-tune (see docs/FINE_TUNE_DATASET.md).
+                    input: inputByNode.get(result.node_id),
                     output: result.output,
                     generated_code: typeof out?.code === "string" ? out.code : undefined,
                     cost_usd: result.cost_usd,

@@ -26,15 +26,39 @@ async function validateGodot(rawCode: string): Promise<string | null> {
         // Minimal project so the script resolves as a Node2D scene script.
         await sandbox.writeFile("/check/project.godot", 'config_version=5\n[application]\nconfig/name="check"\n');
         await sandbox.writeFile("/check/main.gd", code);
-        const res = await sandbox.runCommand(
+        // 1. Syntax: --check-only (parses, doesn't run).
+        const checkRes = await sandbox.runCommand(
             "cd /check && GODOT_SILENCE_ROOT_WARNING=1 godot --headless --path /check --check-only --script main.gd 2>&1; true",
         );
-        const out = `${res.stdout}\n${res.stderr}`;
-        // Godot prints "SCRIPT ERROR" / "Parse Error" lines on failure.
-        const errorLines = out
+        const checkOut = `${checkRes.stdout}\n${checkRes.stderr}`;
+        const parseErrors = checkOut
             .split("\n")
             .filter((l) => /SCRIPT ERROR|Parse Error|ERROR:.*main\.gd|error\(/i.test(l));
-        return errorLines.length > 0 ? errorLines.join("\n") : null;
+        if (parseErrors.length > 0) return parseErrors.join("\n");
+
+        // 2. RUNTIME: actually run the scene headless for a moment. This is the
+        // universal catch for "compiles but crashes" errors (bad signal
+        // callbacks, null refs, wrong types, missing nodes) that --check-only
+        // can't see — instead of letting them reach the smoke and trigger a full
+        // regeneration, the self-heal sees the USER ERROR and retries here.
+        // A main scene so _ready/_process/_physics_process and signal wiring run.
+        await sandbox.writeFile(
+            "/check/main.tscn",
+            '[gd_scene load_steps=2 format=3]\n[ext_resource type="Script" path="res://main.gd" id="1"]\n[node name="Main" type="Node2D"]\nscript = ExtResource("1")\n',
+        );
+        await sandbox.writeFile(
+            "/check/project.godot",
+            'config_version=5\n[application]\nconfig/name="check"\nrun/main_scene="res://main.tscn"\n',
+        );
+        const runRes = await sandbox.runCommand(
+            // Run a few frames then quit; --quit-after exits after N frames (4.x).
+            "cd /check && GODOT_SILENCE_ROOT_WARNING=1 timeout 30 godot --headless --path /check --quit-after 120 2>&1; true",
+        );
+        const runOut = `${runRes.stdout}\n${runRes.stderr}`;
+        const runtimeErrors = runOut
+            .split("\n")
+            .filter((l) => /USER ERROR|SCRIPT ERROR|Cannot convert|can't be assigned|Null instance|nonexistent (function|signal)|Invalid (call|get index|set index)/i.test(l));
+        return runtimeErrors.length > 0 ? runtimeErrors.slice(0, 8).join("\n") : null;
     } catch (error) {
         console.error("validateGodot failed (skipping validation): " + (error instanceof Error ? error.message : String(error)));
         return null;
