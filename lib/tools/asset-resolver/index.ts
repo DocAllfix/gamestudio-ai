@@ -89,6 +89,20 @@ export const AssetResolverOutputSchema = ToolOutputBaseSchema.extend({
 });
 export type AssetResolverOutput = z.infer<typeof AssetResolverOutputSchema>;
 
+/** download_urls the engine build can actually load directly. Some catalog rows
+ * (especially older OpenGameArt imports) point at archives or source files
+ * (.zip/.7z/.psd/.blend/...), which the assembler rejects at build → the slot
+ * falls back to a placeholder even though a "match" was found. Reject those so a
+ * loadable hit ranks ahead of an unusable one. */
+const NON_LOADABLE_URL = /\.(zip|7z|rar|tar|gz|tgz|psd|xcf|blend|ai|kra|aseprite|ase|fla|tmx|tsx)(\?|#|$)/i;
+function preferLoadable(hits: MatchedAsset[]): MatchedAsset[] {
+    const loadable = hits.filter((h) => !NON_LOADABLE_URL.test(h.download_url ?? ""));
+    // Keep the original (similarity) order; only drop the unusable ones. Fall
+    // back to the raw hits if every match is an archive (better an archive the
+    // build skips than no signal at all — the slot placeholder still renders).
+    return loadable.length > 0 ? loadable : hits;
+}
+
 async function defaultMatchAssets(query: {
     description: string;
     asset_type?: string;
@@ -143,7 +157,7 @@ async function defaultMatchAssets(query: {
                 return [];
             }
             const hits = (data ?? []) as MatchedAsset[];
-            if (hits.length > 0) return hits;
+            if (hits.length > 0) return preferLoadable(hits);
         }
         return [];
     } catch (error) {

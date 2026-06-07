@@ -65,7 +65,7 @@ const MIME = { ".html":"text/html",".js":"text/javascript",".wasm":"application/
 const server = http.createServer((req,res)=>{ const f=path.join(dir, req.url==="/"?"index.html":req.url.split("?")[0]);
   fs.readFile(f,(e,d)=>{ if(e){res.writeHead(404);res.end();return;} res.writeHead(200,{"Content-Type":MIME[path.extname(f)]||"application/octet-stream","Cross-Origin-Opener-Policy":"same-origin","Cross-Origin-Embedder-Policy":"require-corp"}); res.end(d); }); });
 (async()=>{
-  const errors={}; const states=[]; let browser;
+  const errors={}; const states=[]; const gsLines=[]; let browser;
   await new Promise(r=>server.listen(PORT,r));
   try{
     // --disable-dev-shm-usage: containers (E2B) give /dev/shm only ~64MB; Godot
@@ -73,7 +73,12 @@ const server = http.createServer((req,res)=>{ const f=path.join(dir, req.url==="
     // routes shared memory to /tmp. --disable-gpu avoids the swiftshader path.
     browser=await chromium.launch({args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]});
     const page=await browser.newPage({viewport:{width:640,height:480}});
-    page.on("console",m=>{ if(m.type()==="error"){const k=m.text().slice(0,60);errors[k]=(errors[k]||0)+1;} });
+    // Godot 4 web runs the game in a Web Worker when threads are on, so
+    // JavaScriptBridge writes window.__GAME_STATE__ in a context page.evaluate
+    // can't read ("no game state published") even though the game IS running.
+    // The game ALSO prints "__GS__ alive=.. on=.. y=.. t=.." every frame to the
+    // console (which IS visible here) — capture it as a reliable state fallback.
+    page.on("console",m=>{ const t=m.text(); if(/__GS__/.test(t)) gsLines.push(t); else if(m.type()==="error"){const k=t.slice(0,60);errors[k]=(errors[k]||0)+1;} });
     page.on("pageerror",e=>{const k="pageerror: "+String(e.message).slice(0,50);errors[k]=(errors[k]||0)+1;});
     await page.goto("http://localhost:"+PORT+"/index.html",{waitUntil:"domcontentloaded",timeout:30000});
     await page.waitForTimeout(8000);
@@ -90,8 +95,17 @@ const server = http.createServer((req,res)=>{ const f=path.join(dir, req.url==="
     }
   }catch(e){ errors["runner: "+String(e&&e.message?e.message:e).slice(0,50)]=1; }
   finally{ if(browser) await browser.close().catch(()=>{}); server.close(); }
+  // Fallback: if window.__GAME_STATE__ gave nothing (threaded worker context),
+  // rebuild states from the console "__GS__ alive=.. on=.. y=.. t=.." prints so
+  // the verdict reflects the game that actually ran, not "no state".
+  const windowStates=states.filter(s=>s!==null);
+  let finalStates=windowStates;
+  if(windowStates.length===0 && gsLines.length>0){
+    finalStates=gsLines.map(l=>{ const m=l.match(/alive=(\\w+)\\s+on=(\\w+)\\s+y=(-?[\\d.]+)\\s+t=([\\d.]+)/i); if(!m)return null;
+      return { player_alive: /true/i.test(m[1]), player_on_screen: /true/i.test(m[2]), player_y: parseFloat(m[3]), elapsed_seconds: parseFloat(m[4]) }; }).filter(s=>s!==null);
+  }
   const top=Object.entries(errors).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>"x"+n+" "+k);
-  console.log(JSON.stringify({states, errorCount:Object.values(errors).reduce((a,b)=>a+b,0), topErrors:top}));
+  console.log(JSON.stringify({states:finalStates, errorCount:Object.values(errors).reduce((a,b)=>a+b,0), topErrors:top}));
 })();
 `;
 
