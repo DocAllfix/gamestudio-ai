@@ -64,6 +64,39 @@ function defaultDeps(): SpriteGenDeps {
                 asset: out?.asset ? { download_url: out.asset.download_url, license: out.asset.license } : null,
             };
         },
+        // Wire the real FLUX provider when a Replicate token is present, so paid
+        // (or paywall-disabled) runs generate real sprites instead of degrading
+        // to placeholders. Built lazily to avoid the import on free-tier paths.
+        imageGenPort: buildImageGenPort(),
+    };
+}
+
+/** Construct the Replicate FLUX ImageGenPort, or undefined if no token (→ the
+ * tool degrades to catalog/placeholder, unchanged). */
+function buildImageGenPort(): ImageGenPort | undefined {
+    const token = process.env.REPLICATE_API_TOKEN;
+    if (!token) return undefined;
+    return {
+        async generateSprite(input) {
+            const [{ ReplicateImagePort }, { ReplicateImageProvider }, { makeAdapterDeps }] = await Promise.all([
+                import("./generative.js"),
+                import("./replicate-provider.js"),
+                import("../_gating-default.js"),
+            ]);
+            // No per-user id in this internal path; the gate honors
+            // GENERATIVE_PAYWALL_DISABLED for the friends test.
+            const port = new ReplicateImagePort(makeAdapterDeps("system"), new ReplicateImageProvider(token));
+            return port.generateSprite(input);
+        },
+        async generateTileset(input) {
+            const [{ ReplicateImagePort }, { ReplicateImageProvider }, { makeAdapterDeps }] = await Promise.all([
+                import("./generative.js"),
+                import("./replicate-provider.js"),
+                import("../_gating-default.js"),
+            ]);
+            const port = new ReplicateImagePort(makeAdapterDeps("system"), new ReplicateImageProvider(token));
+            return port.generateTileset(input);
+        },
     };
 }
 

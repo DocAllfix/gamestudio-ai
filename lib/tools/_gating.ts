@@ -50,11 +50,15 @@ export async function gateGenerative(
     deps: GateDeps,
 ): Promise<QuotaVerdict> {
     const paywallOff = process.env.GENERATIVE_PAYWALL_DISABLED === "true";
-    if (!paywallOff) {
-        const tier = await deps.getUserTier(request.clerk_user_id);
-        if (!PAID_TIERS.has(tier)) {
-            return { allowed: false, reason: "generative_requires_paid_tier", games_used_this_month: 0 };
-        }
+    if (paywallOff) {
+        // Closed test: bypass BOTH the tier check and the quota RPC. The quota
+        // RPC keys on a real clerk user; internal/system callers (no real user)
+        // would otherwise be denied (e.g. account_suspended), blocking the test.
+        return { allowed: true, reason: null, games_used_this_month: 0 };
+    }
+    const tier = await deps.getUserTier(request.clerk_user_id);
+    if (!PAID_TIERS.has(tier)) {
+        return { allowed: false, reason: "generative_requires_paid_tier", games_used_this_month: 0 };
     }
     return deps.checkQuota(request);
 }
