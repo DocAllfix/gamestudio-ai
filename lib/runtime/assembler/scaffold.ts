@@ -222,6 +222,7 @@ export_path="build/web/index.html"
 [preset.0.options]
 
 variant/extensions_support=false
+variant/thread_support=false
 vram_texture_compression/for_desktop=true
 html/export_icon=true
 `;
