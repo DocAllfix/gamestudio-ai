@@ -38,10 +38,15 @@ describe("audio tools — CC0-first", () => {
     expect(audioPort.generateBgm).not.toHaveBeenCalled();
   });
 
-  it("free tier with no CC0 hit is rejected (no paid generation)", async () => {
-    const res = await sfxGenTool.handler(inv({ description: "laser zap", tier: "free" }), noHit);
-    expect(res.status).not.toBe("succeeded");
+  it("free tier with no CC0 hit degrades gracefully (no paid generation, no failure)", async () => {
+    // Audio is enrichment: its absence must NOT fail the node (a failed audio
+    // node was marking whole runs degraded). Free + no CC0 → null output but a
+    // passed qa_log, and the paid provider is never called.
+    const audioPort = { generateBgm: vi.fn(), generateSfx: vi.fn(), generateVoice: vi.fn() };
+    const res = await sfxGenTool.handler(inv({ description: "laser zap", tier: "free" }), { ...noHit, audioPort });
     expect(res.output).toBeNull();
+    expect(res.status).not.toBe("failed");
+    expect(audioPort.generateSfx).not.toHaveBeenCalled();
   });
 
   it("paid tier generates via the AudioGenPort when the catalog is weak", async () => {

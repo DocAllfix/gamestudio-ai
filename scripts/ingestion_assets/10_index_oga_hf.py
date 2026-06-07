@@ -100,6 +100,16 @@ GENRE_RULES: list[tuple[str, re.Pattern[str]]] = [
 ]
 ANIM_RE = re.compile(r"\b(animat|spritesheet|sprite sheet|idle|run cycle|walk cycle|frames?)\b", re.I)
 DIRECT_IMG = re.compile(r"\.(png|jpg|jpeg|gif)$", re.I)
+DIRECT_AUDIO = re.compile(r"\.(mp3|ogg|wav)$", re.I)
+
+# --- Music: use_case (what role the track plays) — the audio resolver reads these ---
+MUSIC_USE_RULES: list[tuple[str, re.Pattern[str]]] = [
+    ("battle_theme", re.compile(r"\b(battle|boss|combat|fight|action)\b", re.I)),
+    ("menu_theme", re.compile(r"\b(menu|title|main theme|intro)\b", re.I)),
+    ("ambient_loop", re.compile(r"\b(ambient|atmosphere|loop|background|exploration|overworld|field)\b", re.I)),
+    ("victory_jingle", re.compile(r"\b(victory|win|complete|jingle|fanfare)\b", re.I)),
+    ("tension_theme", re.compile(r"\b(tension|suspense|dark|horror|scary|dungeon)\b", re.I)),
+]
 
 
 def text_of(rec: dict[str, Any]) -> str:
@@ -192,6 +202,52 @@ def make_record(rec: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
+def make_music_record(rec: dict[str, Any]) -> dict[str, Any] | None:
+    """Music variant: asset_type=audio_bgm, role-based use_case, no image fields.
+    style_pack_compat is left empty (audio isn't a visual style); the resolver's
+    graceful widening drops the style filter so audio still matches by type+genre."""
+    licenses = [str(x) for x in (rec.get("licenses") or [])]
+    if not any("CC-BY" in lic and "4.0" in lic for lic in licenses):
+        return None
+    files = rec.get("files") or []
+    audio = next((f for f in files if DIRECT_AUDIO.search(str(f.get("url") or f.get("name") or ""))), None)
+    if not audio:
+        return None
+    download_url = str(audio["url"])
+    source_url = str(rec.get("url") or "")
+    if not source_url:
+        return None
+
+    text = text_of(rec)
+    use_cases = classify_multi(text, MUSIC_USE_RULES) or ["ambient_loop"]
+    genres = classify_multi(text, GENRE_RULES)
+    keywords = [str(t) for t in (rec.get("tags") or [])][:25]
+    title = str(rec.get("title") or "untitled track")
+    desc = str(rec.get("description") or "")[:500]
+    semantic = f"{title}. {desc}".strip()
+
+    return {
+        "source_library": "opengameart_hf",
+        "source_url": source_url,
+        "download_url": download_url,
+        "thumbnail_url": None,
+        "license": ALLOWED_LICENSE,
+        "attribution_required": True,
+        "creator_name": str(rec.get("author") or "unknown"),
+        "asset_type": "audio_bgm",
+        "file_format": download_url.split(".")[-1].lower(),
+        "style_pack_compat": [],
+        "genre_affinity": genres,
+        "use_case_tags": use_cases,
+        "engine_compat": ["godot", "phaser", "threejs", "babylon", "defold"],
+        "semantic_description": semantic[:1000],
+        "keywords": keywords,
+        "quality_score": 3,
+        "confidence_score": 85,
+        "embedding_type": "text",
+    }
+
+
 def embed(texts: list[str]) -> list[list[float]]:
     """Batch embeddings via OpenAI (same model as the rest of the KB)."""
     from openai import OpenAI
@@ -216,7 +272,8 @@ INSERT_COLS = [
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--jsonl", required=True, help="decompressed 2D_Art.jsonl path")
+    ap.add_argument("--jsonl", required=True, help="decompressed 2D_Art.jsonl or Music.jsonl path")
+    ap.add_argument("--mode", choices=["2d", "music"], default="2d", help="2d art or music")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--limit", type=int, default=0, help="cap records (0 = all)")
     args = ap.parse_args()
@@ -224,9 +281,10 @@ def main() -> None:
     with open(args.jsonl, encoding="utf-8") as fh:
         raw = [json.loads(line) for line in fh if line.strip()]
 
+    builder = make_music_record if args.mode == "music" else make_record
     records: list[dict[str, Any]] = []
     for rec in raw:
-        built = make_record(rec)
+        built = builder(rec)
         if built:
             records.append(built)
         if args.limit and len(records) >= args.limit:

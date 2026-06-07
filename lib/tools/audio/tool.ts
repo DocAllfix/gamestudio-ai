@@ -99,11 +99,14 @@ function makeHandler(kind: AudioKind) {
         // Free tier: CC0 only, never call a paid audio provider.
         if (input.tier === "free") {
             if (resolved.asset) return done("catalog", resolved.asset.download_url, resolved.asset.license);
+            // No CC0 match → DEGRADE gracefully (not an error). Audio is
+            // enrichment; its absence must not fail the node (a failed audio node
+            // was marking whole runs degraded). The code_gen guards the missing
+            // file with ResourceLoader.exists() and simply plays no sound.
             return makeResult({
                 invocation: { tool_id: kind, node_id: invocation.node_id, trace_id: invocation.trace_id },
                 output: null,
-                qa_log: [{ check: "cc0_available", passed: false, detail: `no CC0 ${ASSET_TYPE[kind]} for free tier` }],
-                error_message: "No CC0 audio found; generative audio requires a paid tier.",
+                qa_log: [{ check: "cc0_available", passed: true, detail: `no CC0 ${ASSET_TYPE[kind]}; degraded (silent)` }],
                 latency_ms: Date.now() - start,
             });
         }

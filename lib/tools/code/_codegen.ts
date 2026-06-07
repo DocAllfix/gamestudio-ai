@@ -186,10 +186,13 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         }
         if (assets.audio) {
             lines.push(
-                `BACKGROUND AUDIO: in _ready, add an AudioStreamPlayer and play ` +
-                `"res://assets/audio/bgm_gen.mp3" (var s := load("res://assets/audio/bgm_gen.mp3"); ` +
-                `if s: var ap := AudioStreamPlayer.new(); ap.stream = s; add_child(ap); ap.play()). ` +
-                `Skip silently if the load returns null.`,
+                `BACKGROUND AUDIO: in _ready, play bgm ONLY IF the file exists — ` +
+                `load() on a MISSING res:// path throws "No loader found" (degrades the build), ` +
+                `it does NOT return null, so you MUST guard with ResourceLoader.exists() first ` +
+                `and use an explicit type (not := which infers Variant and fails the parser):\n` +
+                `\tif ResourceLoader.exists("res://assets/audio/bgm_gen.mp3"):\n` +
+                `\t\tvar s: AudioStream = load("res://assets/audio/bgm_gen.mp3")\n` +
+                `\t\tif s: var ap := AudioStreamPlayer.new(); ap.stream = s; add_child(ap); ap.play()`,
             );
         }
     }
