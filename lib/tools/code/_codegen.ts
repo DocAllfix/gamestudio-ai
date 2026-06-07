@@ -196,7 +196,9 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
         // code and, on parse/compile errors, feed them back to the LLM and
         // retry. The LLM repeatedly mis-targets engine versions; validating
         // against the real toolchain is the only reliable guarantee.
-        const MAX_HEAL = deps.validateCode ? 5 : 1;
+        // 3 is enough with Claude + JSON mode (usually valid by attempt 1-2);
+        // each attempt now reuses one warm sandbox, so retries are cheap.
+        const MAX_HEAL = deps.validateCode ? 3 : 1;
         let userMsg = user;
         let generated!: z.infer<typeof GeneratedCodeSchema>;
         let totalCost = 0;
@@ -257,6 +259,14 @@ export function makeCodeGenTool(config: EngineConfig): Tool<CodeGenDeps> {
                     ? `\n\nAuthoritative ${config.name} API for the symbols above ` +
                       `(use these EXACT names/signatures):\n${errorGrounding.slice(0, 2500)}`
                     : "");
+        }
+
+        // Self-heal loop done: close the reused validator sandbox (best-effort).
+        if (deps.validateCode) {
+            try {
+                const { closeValidatorSandbox } = await import("../../runtime/code-validator.js");
+                await closeValidatorSandbox();
+            } catch { /* best-effort */ }
         }
 
         // Every attempt failed to even produce parseable code → fail cleanly

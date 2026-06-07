@@ -240,6 +240,11 @@ const GODOT_3_TO_4: ReadonlyArray<[RegExp, string | ((m: string, ...g: string[])
     [/(^|\n)\s*\w+\.(lock|unlock)\(\)\s*(?=\n)/g, "$1"],
     // instance() → instantiate().
     [/\.instance\(\)/g, ".instantiate()"],
+    // Typed inference: Godot 4 treats "Cannot infer type" as an error under
+    // warnings-as-errors. `var x = expr` (no type, plain `=`) → `var x := expr`
+    // so the type is inferred. Deterministic fix here = one fewer LLM retry.
+    // Only bare `var name = ` (not `:=`, not `var name: Type =`, not `const`).
+    [/(^|\n)(\s*)var\s+([A-Za-z_]\w*)\s*=\s*(?!=)/g, "$1$2var $3 := "],
 ];
 
 export function sanitizeGodot4(code: string): string {

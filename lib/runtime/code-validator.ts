@@ -14,56 +14,53 @@ import { bootSandbox } from "./sandbox/e2b.js";
  * the SCRIPT/parse errors, or null when the script is valid. Best-effort: on
  * any infrastructure error returns null (don't block generation on a flaky
  * sandbox — the build/smoke still gate later). */
+// One sandbox reused for the whole self-heal loop (booting E2B is ~15-20s; doing
+// it per attempt was the dominant cost). Booted lazily on first validate, closed
+// by closeValidatorSandbox() after the loop.
+let sharedSandbox: Awaited<ReturnType<typeof bootSandbox>> | null = null;
+async function getValidatorSandbox() {
+    if (sharedSandbox) return sharedSandbox;
+    const deps = createRealDeps();
+    sharedSandbox = await bootSandbox(deps.e2b);
+    // Project + scene written once; only main.gd changes per attempt.
+    await sharedSandbox.writeFile(
+        "/check/project.godot",
+        'config_version=5\n[application]\nconfig/name="check"\nrun/main_scene="res://main.tscn"\n',
+    );
+    await sharedSandbox.writeFile(
+        "/check/main.tscn",
+        '[gd_scene load_steps=2 format=3]\n[ext_resource type="Script" path="res://main.gd" id="1"]\n[node name="Main" type="Node2D"]\nscript = ExtResource("1")\n',
+    );
+    return sharedSandbox;
+}
+
+/** Close the reused validator sandbox. Call after the self-heal loop. */
+export async function closeValidatorSandbox(): Promise<void> {
+    await sharedSandbox?.close().catch(() => {});
+    sharedSandbox = null;
+}
+
 async function validateGodot(rawCode: string): Promise<string | null> {
-    // Validate the SAME sanitized code the scaffold will build, so the
-    // self-heal loop sees the real post-sanitizer errors.
     const { sanitizeGodot4 } = await import("./assembler/scaffold.js");
     const code = sanitizeGodot4(rawCode);
-    let sandbox;
     try {
-        const deps = createRealDeps();
-        sandbox = await bootSandbox(deps.e2b);
-        // Minimal project so the script resolves as a Node2D scene script.
-        await sandbox.writeFile("/check/project.godot", 'config_version=5\n[application]\nconfig/name="check"\n');
+        const sandbox = await getValidatorSandbox();
         await sandbox.writeFile("/check/main.gd", code);
-        // 1. Syntax: --check-only (parses, doesn't run).
-        const checkRes = await sandbox.runCommand(
-            "cd /check && GODOT_SILENCE_ROOT_WARNING=1 godot --headless --path /check --check-only --script main.gd 2>&1; true",
+        // ONE command: --check-only (syntax) and, only if it parses, a short
+        // headless RUN (catches "compiles but crashes" — bad signals, null refs,
+        // wrong types). Single round-trip, single reused sandbox → fast + severe.
+        const res = await sandbox.runCommand(
+            "cd /check && GODOT_SILENCE_ROOT_WARNING=1 godot --headless --path /check --check-only --script main.gd 2>&1; " +
+            "if [ $? -eq 0 ]; then GODOT_SILENCE_ROOT_WARNING=1 timeout 25 godot --headless --path /check --quit-after 90 2>&1; fi; true",
         );
-        const checkOut = `${checkRes.stdout}\n${checkRes.stderr}`;
-        const parseErrors = checkOut
+        const out = `${res.stdout}\n${res.stderr}`;
+        const errors = out
             .split("\n")
-            .filter((l) => /SCRIPT ERROR|Parse Error|ERROR:.*main\.gd|error\(/i.test(l));
-        if (parseErrors.length > 0) return parseErrors.join("\n");
-
-        // 2. RUNTIME: actually run the scene headless for a moment. This is the
-        // universal catch for "compiles but crashes" errors (bad signal
-        // callbacks, null refs, wrong types, missing nodes) that --check-only
-        // can't see — instead of letting them reach the smoke and trigger a full
-        // regeneration, the self-heal sees the USER ERROR and retries here.
-        // A main scene so _ready/_process/_physics_process and signal wiring run.
-        await sandbox.writeFile(
-            "/check/main.tscn",
-            '[gd_scene load_steps=2 format=3]\n[ext_resource type="Script" path="res://main.gd" id="1"]\n[node name="Main" type="Node2D"]\nscript = ExtResource("1")\n',
-        );
-        await sandbox.writeFile(
-            "/check/project.godot",
-            'config_version=5\n[application]\nconfig/name="check"\nrun/main_scene="res://main.tscn"\n',
-        );
-        const runRes = await sandbox.runCommand(
-            // Run a few frames then quit; --quit-after exits after N frames (4.x).
-            "cd /check && GODOT_SILENCE_ROOT_WARNING=1 timeout 30 godot --headless --path /check --quit-after 120 2>&1; true",
-        );
-        const runOut = `${runRes.stdout}\n${runRes.stderr}`;
-        const runtimeErrors = runOut
-            .split("\n")
-            .filter((l) => /USER ERROR|SCRIPT ERROR|Cannot convert|can't be assigned|Null instance|nonexistent (function|signal)|Invalid (call|get index|set index)/i.test(l));
-        return runtimeErrors.length > 0 ? runtimeErrors.slice(0, 8).join("\n") : null;
+            .filter((l) => /SCRIPT ERROR|Parse Error|ERROR:.*main\.gd|error\(|USER ERROR|Cannot convert|can't be assigned|Null instance|nonexistent (function|signal)|Invalid (call|get index|set index)/i.test(l));
+        return errors.length > 0 ? errors.slice(0, 8).join("\n") : null;
     } catch (error) {
         console.error("validateGodot failed (skipping validation): " + (error instanceof Error ? error.message : String(error)));
         return null;
-    } finally {
-        await sandbox?.close().catch(() => {});
     }
 }
 
