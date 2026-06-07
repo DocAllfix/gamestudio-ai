@@ -45,13 +45,20 @@ export default makeCodeGenTool({
         "\trect.size = Vector2(24, 32)\n" +
         "\tshape.shape = rect\n" +
         "\tplayer.add_child(shape)\n" +
-        "\tvar spr := ColorRect.new()\n" +
-        "\tspr.size = Vector2(24, 32)\n" +
-        "\tspr.position = Vector2(-12, -16)\n" +
-        "\tspr.color = Color.RED\n" +
+        "\tvar spr := Sprite2D.new()\n" +
+        "\tspr.texture = _tex(\"res://assets/sprites/sprite_gen.png\", Vector2(32, 32), Color.RED)\n" +
         "\tplayer.add_child(spr)\n" +
         "\tvar cam := Camera2D.new()\n" +
         "\tplayer.add_child(cam)  # camera follows the player\n\n" +
+        "# Texture helper — ALWAYS returns a texture, NEVER a ColorRect. Loads the\n" +
+        "# asset if present, else makes a solid-color placeholder texture. Use this\n" +
+        "# for EVERY visible thing (player, platforms, enemies, pickups, bg).\n" +
+        "func _tex(path: String, size: Vector2, fallback: Color) -> Texture2D:\n" +
+        "\tvar t := load(path) as Texture2D\n" +
+        "\tif t: return t\n" +
+        "\tvar img := Image.create(int(size.x), int(size.y), false, Image.FORMAT_RGBA8)\n" +
+        "\timg.fill(fallback)\n" +
+        "\treturn ImageTexture.create_from_image(img)\n\n" +
         "func _physics_process(delta: float) -> void:\n" +
         "\tplayer.velocity.y += GRAVITY * delta\n" +
         "\tif player.is_on_floor():\n" +

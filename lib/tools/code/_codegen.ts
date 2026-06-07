@@ -141,7 +141,7 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         lines.push(
             `USE THIS EXACT LEVEL — do NOT design your own, ignore any other "design a level" hint. ` +
             `World ${l.width * tile}x${l.height * tile} px. Build a StaticBody2D platform (with a ` +
-            `RectangleShape2D + a visible ColorRect) for EACH of these rectangles (x,y = top-left, px):\n` +
+            `RectangleShape2D + a visible Sprite2D using _tex(), see VISUALS rule) for EACH of these rectangles (x,y = top-left, px):\n` +
             plats.slice(0, 40).join("  ") + "\n" +
             `Spawn the player at ${entryPx}. Put the goal/exit at ${exitPx} (reaching it = win). ` +
             `Add a Camera2D as a child of the player so the wide level scrolls. The platforms are ` +
@@ -156,15 +156,18 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         lines.push(`Place these entities at these px positions: ${summary}.`);
     }
 
-    if (assets && (assets.tileset || assets.enemy || assets.background)) {
+        // ABSOLUTE rule: never ColorRect. Use Sprite2D + _tex() everywhere so a
+        // missing asset becomes a placeholder TEXTURE, never a bare rectangle.
         lines.push(
-            "USE THESE TEXTURES — do NOT draw plain ColorRect for platforms/enemies/background:",
+            "VISUALS — STRICT: NEVER use ColorRect for anything. EVERY visible element " +
+            "(player, platforms, enemies, pickups, background) MUST be a Sprite2D whose " +
+            "texture comes from the _tex(path, size, color) helper (it always returns a " +
+            "texture, loading the asset or a placeholder). Use these paths:",
         );
-        if (assets.background) lines.push(`- BACKGROUND: a Sprite2D with load("res://assets/sprites/background.png"), behind everything, sized to the view.`);
-        if (assets.tileset) lines.push(`- PLATFORMS: give EACH platform StaticBody2D a Sprite2D with load("res://assets/sprites/tileset.png") (tile/stretch it to the platform rect) instead of a ColorRect.`);
-        if (assets.enemy) lines.push(`- ENEMIES: a Sprite2D with load("res://assets/sprites/enemy.png") for each enemy instead of a ColorRect.`);
-        lines.push("If a texture fails to load, fall back to a ColorRect for that element only.");
-    }
+        lines.push(`- BACKGROUND: Sprite2D _tex("res://assets/sprites/background.png", view_size, Color(0.1,0.1,0.15)), behind everything.`);
+        lines.push(`- PLATFORMS: each platform StaticBody2D gets a Sprite2D _tex("res://assets/sprites/tileset.png", platform_size, Color(0.4,0.3,0.2)), stretched to the platform rect.`);
+        lines.push(`- ENEMIES: Sprite2D _tex("res://assets/sprites/enemy.png", Vector2(28,28), Color.CRIMSON) for each enemy.`);
+        lines.push(`- PICKUPS/coins: Sprite2D _tex("res://assets/sprites/sprite_gen.png", Vector2(16,16), Color.GOLD) or a small placeholder.`);
 
     if (assets && (assets.sprite || assets.audio)) {
         // The assembler fetches these URLs into the project before building, so
@@ -172,19 +175,10 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
         // an external URL at runtime). Paths mirror assetPath() in execution.ts.
         if (assets.sprite) {
             lines.push(
-                `PLAYER SPRITE: use the texture at "res://assets/sprites/sprite_gen.png" for the ` +
-                `player via a Sprite2D, NOT a ColorRect. The texture is large (~1024px) so you MUST ` +
-                `scale it down to the player's gameplay size (~48px tall). Do exactly this:\n` +
-                `\tvar tex := load("res://assets/sprites/sprite_gen.png") as Texture2D\n` +
-                `\tif tex:\n` +
-                `\t\tvar spr := Sprite2D.new()\n` +
-                `\t\tspr.texture = tex\n` +
-                `\t\tspr.scale = Vector2.ONE * (48.0 / float(tex.get_height()))  # fit to ~48px tall\n` +
-                `\t\tplayer.add_child(spr)\n` +
-                `\telse:\n` +
-                `\t\t# fallback to a ColorRect if the texture is missing\n` +
-                `\t\tpass\n` +
-                `Make the player's CollisionShape2D match that ~48px size, not the raw texture size.`,
+                `PLAYER SPRITE: a Sprite2D using _tex("res://assets/sprites/sprite_gen.png", Vector2(48,48), Color.RED). ` +
+                `The real texture is large (~1024px) — scale the Sprite2D to ~48px tall ` +
+                `(spr.scale = Vector2.ONE * (48.0 / float(spr.texture.get_height()))). ` +
+                `Match the player's CollisionShape2D to ~48px. NEVER a ColorRect.`,
             );
         }
         if (assets.audio) {
