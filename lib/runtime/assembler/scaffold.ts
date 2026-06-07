@@ -15,6 +15,7 @@
  */
 import type { AssemblerInput } from "../../contracts/assembly-pipeline.contract.js";
 import type { Engine } from "../../contracts/game-plan.contract.js";
+import { GODOT_FALLBACK_GAME } from "./_godot-fallback.js";
 
 /** One file to write into the sandbox FS. */
 export interface ScaffoldFile {
@@ -292,10 +293,17 @@ function ensureGodotExtendsNode2D(rawCode: string): string {
     return `extends Node2D\n\n${code}`;
 }
 
+/** A game needs a _ready() to build its scene; anything without one (empty
+ * string from a failed code_gen, or a bare `extends Node2D`) renders a grey
+ * empty scene. Treat that as "no game" → substitute the guaranteed template. */
+function godotCodeOrFallback(code: string): string {
+    return /func\s+_ready\s*\(/.test(code) ? code : GODOT_FALLBACK_GAME;
+}
+
 function godotScaffold(code: string, assets: ScaffoldFile[]): ScaffoldFile[] {
     return [
         { path: "/project/project.godot", content: GODOT_PROJECT, encoding: "utf-8" },
-        { path: "/project/main.gd", content: ensureGodotExtendsNode2D(code), encoding: "utf-8" },
+        { path: "/project/main.gd", content: ensureGodotExtendsNode2D(godotCodeOrFallback(code)), encoding: "utf-8" },
         { path: "/project/main.tscn", content: GODOT_MAIN_TSCN, encoding: "utf-8" },
         {
             path: "/project/export_presets.cfg",

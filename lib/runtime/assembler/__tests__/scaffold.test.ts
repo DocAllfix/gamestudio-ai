@@ -43,6 +43,19 @@ describe("scaffoldProject", () => {
         }
     });
 
+    it("godot: empty/no-game code falls back to the guaranteed-playable template", () => {
+        // The "100% playable" net: when code_gen produced nothing usable (LLM
+        // 402, exception, all heals failed), the scaffold must NOT ship a bare
+        // `extends Node2D` (empty scene → grey). It substitutes a real game.
+        for (const empty of ["", "extends Node2D", "extends Node2D\n\n", "   "]) {
+            const files = scaffoldProject("godot", { n1: codeNode("code_gen_godot_gdscript", empty) });
+            const gd = files.find((f) => f.path === "/project/main.gd");
+            expect(gd?.content).toContain("func _ready");
+            expect(gd?.content).toContain("func _physics_process");
+            expect(gd?.content).toContain("__GS__"); // publishes state → passes the gate
+        }
+    });
+
     it("sanitizeGodot4: rewrites the common Godot 3 → 4 patterns", () => {
         expect(sanitizeGodot4("onready var p = 1")).toContain("@onready var p");
         expect(sanitizeGodot4("export var hp = 100")).toContain("@export var hp");
