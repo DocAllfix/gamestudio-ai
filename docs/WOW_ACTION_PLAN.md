@@ -42,9 +42,53 @@ Obiettivo: il gioco riflette visibilmente il prompt specifico + asset coerenti.
   *(Modulo reference-games.ts già scritto; agganciarlo in intent.ts.)*
 - **B2. Asset provider reali** (Replicate FLUX sprite, Suno/ElevenLabs audio) cablati ai tool, così
   il gioco ha sprite/musica VERI (non quadrati). Gli URL già fluiscono a code_gen via describeLevel.
+  *(FLUX sprite cablato 2026-06-07: provider + gate fix; aspetta credito Replicate.)*
 - **B3. Le meccaniche specifiche del prompt nel code_gen.** Il design (`mechanics`) arriva già; far sì
   che il code_gen le IMPLEMENTI verificabilmente (la Playtester controlla che la meccanica esista
   nello stato — es. "hp cala raccogliendo monete" → state.player_hp scende).
+
+#### B4. Preset visivi (Higgsfield Cinema Studio style) + algoritmi-mappa per genere — IL "È MIO" completo
+Proposta utente (2026-06-07), analizzata e accolta. Due assi che l'utente può scegliere PRIMA di
+forgiare, che il Game Designer traduce in PARAMETRI/VINCOLI deterministici → meno allucinazioni, più
+fedeltà, meno retry. **Specifica vincolante:** NON un wizard. Il prompt-solo resta SEMPRE valido
+(come oggi); i preset sono un INVITO opzionale a ottenere di più. UX = stile **Higgsfield Cinema
+Studio / SOUL**: card-preset con ANTEPRIMA visiva (thumbnail dello stile), esplorabili, "scegli o
+lascia decidere all'AI". Default intelligenti ovunque (es. motore consigliato per genere).
+
+- **Gli assi-preset** (tutti opzionali, ognuno con anteprima):
+  - *Genere* videoludico → vincola il Designer (no inferenza sbagliata).
+  - *Motore* (con CONSIGLIO per genere: es. platformer→Godot/Phaser, visual-novel→Ren'Py).
+  - *Stile mappa* = scelta dell'ALGORITMO + parametri (vedi sotto), con anteprima del tipo di layout.
+  - *Difficoltà* → density/pacing dei tool.
+  - *Stile grafico* → `style_pack_id` + (quando accesi) `lora_hf_repo` deterministici + palette,
+    con anteprima dell'estetica. Qui vanno i LoRA ([[project_lora_status]]).
+  - + le altre personalizzazioni dei tool (audio mood, ecc.).
+- **Algoritmi-mappa per famiglia di genere (il fix dell'allucinazione-livello, liberie permissive).**
+  Principio (confermato da ricerca): l'LLM NON disegna la mappa (fa livelli ingiocabili); l'LLM/preset
+  pone i VINCOLI, un algoritmo costruisce la mappa valida+attraversabile, poi l'LLM ci mette il
+  CONTENUTO (nemici/pickup/tema). Adapter dietro la porta level (esagonale, già nostra):
+  - roguelike/dungeon/cave → **rot-js (BSP/cellular)** — GIÀ NOSTRO (porting di libtcod, Zlib/BSD).
+  - overworld/top-down/tile-coerenti → **WFC (Wave Function Collapse, MIT)** — DA AGGIUNGERE (gap reale:
+    regole tipo "acqua non tocca lava", strade connesse).
+  - platformer → **Perlin/noise 1D → height-array** `[2,2,3,4,3]` — DA AGGIUNGERE; è il "livello come
+    dati" robusto che evita il code_gen-inventa-il-livello (causa dei retry visti il 2026-06-07).
+  - reachability resta il giudice (mai un livello impossibile).
+- **Modello dati CONDIVISO (l'interconnessione):** preset+asset tipizzati per slot (sprite/tile/
+  personaggio/mappa/audio) sono lo STESSO modello usato da: (a) Generazione (preset→parametri),
+  (b) **BYOA** (l'utente porta l'asset nello slot invece di generarlo), (c) **Studio Sorceress**
+  (crea/modifica mappe/tile/animazioni/personaggi → diventano preset/asset riutilizzabili portati in
+  generazione). Un modello, tre funzionalità. Riusa `project_assets` (Fetta 3).
+- **Cosa ci dà (onesto):** meno allucinazioni (struttura algoritmica garantita), meno retry (il
+  livello non lo inventa l'LLM), più controllo/profondità, asset/preset riutilizzabili, LoRA/FLUX
+  precisi (lo stile è una chiave deterministica). NON più veloce sulla singola chiamata — più veloce
+  per CONVERGENZA (meno rigenerazioni).
+- **Sforzo (onesto):** sostanzioso — 2 nuovi adapter mappa (WFC, Perlin) + frontend preset-con-anteprima
+  (skill impeccable, stile Higgsfield, anteprime: generate noi o reference) + estensione contract
+  (`user_overrides` rispettati dal Designer) + style→pack/LoRA. Da fare DOPO che il loop base è stabile.
+- **UX refs (verificati):** Higgsfield Cinema Studio (pannelli genere/stile/camera, AI Director come
+  default, "scegli o lascia all'AI"), SOUL moodboards (card-preset con anteprima, +moodboard custom da
+  reference). https://higgsfield.ai/cinema-studio · https://higgsfield.ai/blog/create-custom-ai-moodboard-soul-2
+- **Librerie (licenze verificate):** rot-js (già nostro) · python-tcod BSD-2 (rif) · WFC MIT · Perlin (algoritmo).
 
 ### FASE C — Sonnet come ORCHESTRATORE più forte (la potenza piena)
 Obiettivo: Sonnet non solo scrive, ma dirige la pipeline e cura la qualità.
