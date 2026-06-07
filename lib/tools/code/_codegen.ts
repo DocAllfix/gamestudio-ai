@@ -121,32 +121,39 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
 
     if (l?.cells && l.width && l.height) {
         const tile = l.tile_px ?? 16;
+        // Exact PLATFORM RECTANGLES in pixels (extract contiguous "platform"
+        // runs per row). Precise + compact > ASCII art, which confused the LLM.
+        const plats: string[] = [];
+        for (let y = 0; y < l.cells.length; y++) {
+            const row = l.cells[y]!;
+            let x = 0;
+            while (x < row.length) {
+                if (row[x] === "platform" || row[x] === "floor") {
+                    let len = 0;
+                    while (x + len < row.length && (row[x + len] === "platform" || row[x + len] === "floor")) len++;
+                    plats.push(`{x:${x * tile}, y:${y * tile}, w:${len * tile}, h:${tile}}`);
+                    x += len;
+                } else x++;
+            }
+        }
+        const entryPx = l.entry ? `(${l.entry.x * tile}, ${l.entry.y * tile})` : "(50, 50)";
+        const exitPx = l.exit ? `(${l.exit.x * tile}, ${l.exit.y * tile})` : "the last platform";
         lines.push(
-            `BUILD THE GAME ON THIS GENERATED LEVEL (do NOT invent your own level). ` +
-            `Grid ${l.width}x${l.height} cells, ${tile}px each → world size ` +
-            `${l.width * tile}x${l.height * tile} px.`,
-        );
-        if (l.entry) lines.push(`Player START (entry) at cell (${l.entry.x}, ${l.entry.y}) → place the player there.`);
-        if (l.exit) lines.push(`GOAL/EXIT at cell (${l.exit.x}, ${l.exit.y}) → reaching it = win.`);
-        // Compact row map so the LLM can lay out platforms/walls/hazards.
-        const legend = "legend: .=empty #=wall =floor P=platform ^=hazard E=exit S=entry o=pickup x=enemy";
-        const sym: Record<string, string> = {
-            empty: ".", wall: "#", floor: "_", platform: "P", hazard: "^",
-            exit: "E", entry: "S", pickup_slot: "o", enemy_slot: "x", door: "D", decor: ",",
-        };
-        const rows = l.cells.slice(0, 24).map((row) => row.slice(0, 64).map((c) => sym[c] ?? "?").join(""));
-        lines.push(legend + "\nMAP:\n" + rows.join("\n"));
-        lines.push(
-            `Create solid ground/platforms where the map shows _/P (CharacterBody2D/StaticBody2D), ` +
-            `walls at #, hazards at ^. The level is wider than the screen — add a Camera2D that ` +
-            `follows the player so it never leaves the view.`,
+            `USE THIS EXACT LEVEL — do NOT design your own, ignore any other "design a level" hint. ` +
+            `World ${l.width * tile}x${l.height * tile} px. Build a StaticBody2D platform (with a ` +
+            `RectangleShape2D + a visible ColorRect) for EACH of these rectangles (x,y = top-left, px):\n` +
+            plats.slice(0, 40).join("  ") + "\n" +
+            `Spawn the player at ${entryPx}. Put the goal/exit at ${exitPx} (reaching it = win). ` +
+            `Add a Camera2D as a child of the player so the wide level scrolls. The platforms are ` +
+            `already spaced within jump reach — just place them exactly.`,
         );
     }
 
     const ents = entities as Array<{ kind?: string; x?: number; y?: number }> | undefined;
     if (Array.isArray(ents) && ents.length > 0) {
-        const summary = ents.slice(0, 20).map((e) => `${e.kind}@(${e.x},${e.y})`).join(", ");
-        lines.push(`Place these entities (cell coords): ${summary}.`);
+        const tile = l?.tile_px ?? 16;
+        const summary = ents.slice(0, 20).map((e) => `${e.kind}@(${(e.x ?? 0) * tile},${(e.y ?? 0) * tile})`).join(", ");
+        lines.push(`Place these entities at these px positions: ${summary}.`);
     }
 
     if (assets && (assets.sprite || assets.audio)) {
