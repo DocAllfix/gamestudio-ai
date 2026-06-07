@@ -54,9 +54,12 @@ export default makeCodeGenTool({
         "# asset if present, else makes a solid-color placeholder texture. Use this\n" +
         "# for EVERY visible thing (player, platforms, enemies, pickups, bg).\n" +
         "func _tex(path: String, size: Vector2, fallback: Color) -> Texture2D:\n" +
-        "\tvar t := load(path) as Texture2D\n" +
-        "\tif t: return t\n" +
-        "\tvar img := Image.create(int(size.x), int(size.y), false, Image.FORMAT_RGBA8)\n" +
+        "\t# MUST check existence first — load() on a missing res:// path throws\n" +
+        "\t# 'No loader found' (fatal, grey screen), it does NOT return null.\n" +
+        "\tif ResourceLoader.exists(path):\n" +
+        "\t\tvar t := load(path) as Texture2D\n" +
+        "\t\tif t: return t\n" +
+        "\tvar img := Image.create(maxi(1, int(size.x)), maxi(1, int(size.y)), false, Image.FORMAT_RGBA8)\n" +
         "\timg.fill(fallback)\n" +
         "\treturn ImageTexture.create_from_image(img)\n\n" +
         "func _physics_process(delta: float) -> void:\n" +
