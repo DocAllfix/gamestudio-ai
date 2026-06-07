@@ -73,7 +73,10 @@ const server = http.createServer((req, res) => {
   let crash = null, browser;
   await new Promise((r) => server.listen(PORT, r));
   try {
-    browser = await chromium.launch({ args: ["--no-sandbox"] });
+    // --disable-dev-shm-usage: the E2B container's /dev/shm is ~64MB; Godot WASM
+    // exceeds it and Chromium kills the tab ("Target crashed") → smoke marked the
+    // build degraded even when the game was fine. Route shm to /tmp; skip GPU.
+    browser = await chromium.launch({ args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"] });
     const page = await browser.newPage();
     const fail = (t) => { if (!crash && /USER ERROR|SCRIPT ERROR|can't be assigned|instance_create|Failed to instantiate/i.test(t)) crash = t.slice(0, 200); };
     page.on("console", (m) => fail(m.text()));

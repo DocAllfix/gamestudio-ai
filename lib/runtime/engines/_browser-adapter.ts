@@ -65,7 +65,9 @@ const DURATION_MS = ${SMOKE_DURATION_MS};
   let crash = null;
   let browser;
   try {
-    browser = await chromium.launch({ args: ["--no-sandbox"] });
+    // --disable-dev-shm-usage: the container's /dev/shm is ~64MB; WASM games
+    // exceed it and Chromium kills the tab ("Target crashed"). Route shm to /tmp.
+    browser = await chromium.launch({ args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"] });
     const page = await browser.newPage();
     page.on("console", (m) => { if (m.type() === "error" && !crash) crash = "console.error: " + m.text().slice(0, 200); });
     page.on("pageerror", (e) => { if (!crash) crash = "pageerror: " + String(e.message).slice(0, 200); });

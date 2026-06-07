@@ -168,7 +168,15 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
             "to fill their area. NEVER render a sprite at raw native size (it comes out " +
             "tiny or screen-filling). Use these paths and sizes:",
         );
-        lines.push(`- BACKGROUND: a Sprite2D with _tex("res://assets/sprites/background.png", view_size, Color(0.1,0.1,0.15)), behind everything, centered; STRETCH it to cover the viewport (spr.scale = view_size / spr.texture.get_size()). Do NOT _fit it.`);
+        lines.push(
+            `- BACKGROUND: MUST be screen-fixed, not world-fixed — a world Sprite2D stays ` +
+            `behind when the Camera2D scrolls and only covers the first screen (leaving grey). ` +
+            `Put it in a CanvasLayer at layer = -100 so it stays glued to the screen: ` +
+            `var bgLayer := CanvasLayer.new(); bgLayer.layer = -100; add_child(bgLayer); ` +
+            `var bg := Sprite2D.new(); bg.texture = _tex("res://assets/sprites/background.png", get_viewport_rect().size, Color(0.1,0.1,0.15)); ` +
+            `bg.centered = false; bg.position = Vector2.ZERO; ` +
+            `bg.scale = get_viewport_rect().size / bg.texture.get_size(); bgLayer.add_child(bg). Do NOT _fit it.`,
+        );
         lines.push(`- PLATFORMS: each platform StaticBody2D gets a Sprite2D _tex("res://assets/sprites/tileset.png", platform_size, Color(0.4,0.3,0.2)); STRETCH to the platform rect (spr.scale = platform_size / spr.texture.get_size()).`);
         lines.push(`- ENEMIES: Sprite2D _tex("res://assets/sprites/enemy.png", Vector2(36,36), Color.CRIMSON); then _fit(spr, 36.0).`);
         lines.push(`- PICKUPS/coins: Sprite2D _tex("res://assets/sprites/sprite_gen.png", Vector2(20,20), Color.GOLD); then _fit(spr, 20.0).`);

@@ -68,7 +68,10 @@ const server = http.createServer((req,res)=>{ const f=path.join(dir, req.url==="
   const errors={}; const states=[]; let browser;
   await new Promise(r=>server.listen(PORT,r));
   try{
-    browser=await chromium.launch({args:["--no-sandbox"]});
+    // --disable-dev-shm-usage: containers (E2B) give /dev/shm only ~64MB; Godot
+    // WASM blows past it and Chromium kills the tab ("Target crashed"). This
+    // routes shared memory to /tmp. --disable-gpu avoids the swiftshader path.
+    browser=await chromium.launch({args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]});
     const page=await browser.newPage({viewport:{width:640,height:480}});
     page.on("console",m=>{ if(m.type()==="error"){const k=m.text().slice(0,60);errors[k]=(errors[k]||0)+1;} });
     page.on("pageerror",e=>{const k="pageerror: "+String(e.message).slice(0,50);errors[k]=(errors[k]||0)+1;});
@@ -77,9 +80,13 @@ const server = http.createServer((req,res)=>{ const f=path.join(dir, req.url==="
     const keys=["ArrowRight","ArrowRight","Space","ArrowRight","ArrowLeft","ArrowUp","Space"];
     for(let i=0;i<SECONDS;i++){
       const k=keys[i%keys.length];
-      await page.keyboard.down(k); await page.waitForTimeout(450); await page.keyboard.up(k);
-      const st=await page.evaluate(()=>window["${GAME_STATE_GLOBAL}"]||null);
-      states.push(st);
+      // Per-iteration guard: if the tab crashes mid-run we keep the states
+      // gathered so far (the judge can still assess) instead of losing all.
+      try{
+        await page.keyboard.down(k); await page.waitForTimeout(450); await page.keyboard.up(k);
+        const st=await page.evaluate(()=>window["${GAME_STATE_GLOBAL}"]||null);
+        states.push(st);
+      }catch(loopErr){ errors["runner-loop: "+String(loopErr&&loopErr.message?loopErr.message:loopErr).slice(0,40)]=1; break; }
     }
   }catch(e){ errors["runner: "+String(e&&e.message?e.message:e).slice(0,50)]=1; }
   finally{ if(browser) await browser.close().catch(()=>{}); server.close(); }
