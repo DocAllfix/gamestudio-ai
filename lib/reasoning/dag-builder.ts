@@ -63,13 +63,19 @@ const ENGINE_IS_3D: Partial<Record<Engine, boolean>> = {
   stride: true,
 };
 
-/** Genres whose level is best made by rot-js procedural generation (random
- * but well-formed maps ARE the genre). Everything else 2D is "curated": the
- * code_gen designs the level itself (the LLM level_layout made empty maps). */
+/** Genres that have a real ALGORITHMIC level generator in level_layout_2d
+ * (deterministic + reachability/jump-validated) → the code_gen builds ON the
+ * generated level instead of inventing it (which produced impossible jumps).
+ *  - roguelike/retro_8bit/jrpg → rot-js (dungeon/cave/rooms)
+ *  - platformer genres → the jump-reach-aware "platform" generator (FASE 1)
+ * Genres NOT here (grid_puzzle/arena, etc.) still fall to the LLM-designs-level
+ * path until their algorithm lands. */
 const PROCEDURAL_GENRES: ReadonlySet<string> = new Set([
-    "roguelike",   // rotjs_uniform — dungeon
-    "retro_8bit",  // rotjs_cellular — cave
-    "jrpg",        // rotjs_digger — connected rooms
+    "roguelike",
+    "retro_8bit",
+    "jrpg",
+    "hardcore_platformer", // → strategy "platform"
+    "metroidvania",        // → strategy "platform"
 ]);
 function usesProceduralMap(genre: Genre): boolean {
     return PROCEDURAL_GENRES.has(genre);
@@ -156,10 +162,14 @@ export function buildExecutionDag(args: {
   nodes.push({ id: "sfx", tool_id: "sfx_gen", input: { description: "jump/hit sfx", ...common }, depends_on: [] });
 
   if (usesProceduralMap(genre)) {
-    nodes.push({ id: "level", tool_id: "level_layout_2d", input: { size: "m", difficulty, ...common }, depends_on: [] });
+    nodes.push({ id: "level", tool_id: "level_layout_2d", input: { size: "l", difficulty, ...common }, depends_on: [] });
     nodes.push({ id: "tilemap", tool_id: "tilemap_populate", input: { ...common }, depends_on: ["level"] });
-    nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["tilemap"] });
-    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["tilemap", "enemies"] });
+    nodes.push({ id: "enemies", tool_id: "entity_placement", input: { difficulty, ...common }, depends_on: ["level"] });
+    // code_gen depends ONLY on the LEVEL (the essential structure). tilemap is
+    // graphic enrichment that can fail (e.g. its BFS-reachability check rejects
+    // a platformer's gap-separated platforms) — it must NOT skip code_gen.
+    // entity is also non-essential. wireInputs feeds level/entities when present.
+    nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine }, depends_on: ["level"] });
   } else {
     // Curated: code_gen designs + builds the level (no empty level_layout).
     nodes.push({ id: "game-code", tool_id: codeGen, input: { mechanic: codeBrief, context: codeContext, engine, design_the_level: true }, depends_on: [] });

@@ -18,6 +18,7 @@ import {
     walkableGridFromLayout,
 } from "../_shared-map.js";
 import { isReachable, type Point } from "../_reachability.js";
+import { jumpReachCells, DEFAULT_PLATFORMER_PHYSICS } from "../_platformer-physics.js";
 import {
     dimsForSize,
     isNonSpatial,
@@ -113,10 +114,19 @@ async function handler(invocation: ToolInvocation, deps: LayoutDeps = defaultDep
         totalCost += candidate.cost;
         layout = candidate.layout;
 
-        const grid = walkableGridFromLayout(layout);
-        const goals: Point[] = [layout.exit, ...layout.entity_slots.filter((s) => s.required).map((s) => ({ x: s.x, y: s.y }))];
-        const reachable = deps.isReachable(grid, layout.entry, goals);
-        qa_log.push({ check: `layout_reachable_attempt_${attempt}`, passed: reachable, detail: reachable ? null : "entry cannot reach exit/required slots" });
+        // Platformer reachability is JUMP-based (platforms separated by gaps),
+        // not 4-dir BFS — so validate the platform chain against the jump reach
+        // instead. Other strategies use the walkable BFS moat.
+        let reachable: boolean;
+        if (strategy === "platform") {
+            reachable = isJumpReachable(layout);
+            qa_log.push({ check: `jump_reachable_attempt_${attempt}`, passed: reachable, detail: reachable ? null : "a platform is beyond jump reach" });
+        } else {
+            const grid = walkableGridFromLayout(layout);
+            const goals: Point[] = [layout.exit, ...layout.entity_slots.filter((s) => s.required).map((s) => ({ x: s.x, y: s.y }))];
+            reachable = deps.isReachable(grid, layout.entry, goals);
+            qa_log.push({ check: `layout_reachable_attempt_${attempt}`, passed: reachable, detail: reachable ? null : "entry cannot reach exit/required slots" });
+        }
         if (reachable) break;
     }
 
@@ -157,6 +167,18 @@ async function generate(strategy: LayoutStrategy, args: GenArgs, deps: LayoutDep
         return { layout, cost: 0 };
     }
 
+    // Platformer: deterministic, jump-reach-aware generator (free, no LLM). The
+    // platforms are spaced within the controller's jump distance, so the level
+    // is always completable. The LLM never sets these gaps.
+    if (strategy === "platform") {
+        const { generatePlatformLayout } = await import("../_strategies.js");
+        const layout = generatePlatformLayout({
+            node: input.node, width, height, genre: input.genre, theme: input.theme,
+            density: input.density, difficulty: input.difficulty, seed, tile_px: input.tile_px,
+        });
+        return { layout, cost: 0 };
+    }
+
     // LLM strategies (llm / platform / grid_puzzle / arena): Claude Sonnet plans
     // the abstract grid directly. The router omits temperature for claude-*.
     const completion = await deps.complete({
@@ -178,6 +200,51 @@ async function generate(strategy: LayoutStrategy, args: GenArgs, deps: LayoutDep
 
     const parsed = parseLlmLayout(completion.output, input, strategy, width, height, seed);
     return { layout: parsed, cost: completion.cost_usd };
+}
+
+/**
+ * Jump-reachability for platformer layouts: the BFS walkable moat can't model
+ * jumps (platforms are separated by empty gaps). Instead, extract platform runs,
+ * sort left→right, and confirm each platform is reachable from a previous one
+ * within the controller's jump reach (gap & rise from the physics profile). The
+ * generator already places them within reach; this is the guard that proves it.
+ */
+function isJumpReachable(layout: AbstractLayout): boolean {
+    // Collect every platform/entry/exit cell as a standable point.
+    const stand: Point[] = [];
+    for (let y = 0; y < layout.cells.length; y++) {
+        const row = layout.cells[y]!;
+        for (let x = 0; x < row.length; x++) {
+            const c = row[x];
+            if (c === "platform" || c === "entry" || c === "exit") stand.push({ x, y });
+        }
+    }
+    if (stand.length === 0) return false;
+    const reach = jumpReachCells(DEFAULT_PLATFORMER_PHYSICS, layout.tile_px);
+    // BFS over standable points where an edge exists if two points are within
+    // one jump (horizontal gap <= maxGapX, vertical rise <= maxRiseY going up;
+    // any drop going down). Start from entry, must reach exit.
+    const key = (p: Point) => `${p.x},${p.y}`;
+    const byKey = new Map(stand.map((p) => [key(p), p]));
+    const canHop = (a: Point, b: Point): boolean => {
+        const dx = Math.abs(a.x - b.x);
+        const dyUp = a.y - b.y; // positive = b is higher
+        if (dx > reach.maxGapX) return false;
+        if (dyUp > reach.maxRiseY) return false; // too high to jump up to
+        return true; // dropping down or within rise
+    };
+    const start = byKey.get(key(layout.entry)) ?? stand[0]!;
+    const seen = new Set<string>([key(start)]);
+    const queue: Point[] = [start];
+    while (queue.length) {
+        const cur = queue.shift()!;
+        if (cur.x === layout.exit.x && cur.y === layout.exit.y) return true;
+        for (const p of stand) {
+            if (seen.has(key(p))) continue;
+            if (canHop(cur, p)) { seen.add(key(p)); queue.push(p); }
+        }
+    }
+    return seen.has(key(layout.exit));
 }
 
 /** Coerce the LLM JSON into an AbstractLayout, clamping to bounds. */

@@ -176,3 +176,105 @@ function scanFloors(floor: boolean[][]): { x: number; y: number }[] {
     }
     return found;
 }
+
+// --- Platformer generator (deterministic, jump-reach-aware) -----------------
+// Lays a left→right chain of platforms where every gap to the next platform is
+// within the controller's jump reach (from the shared physics profile), so the
+// level is always completable. The LLM never sets these distances. Validated
+// afterward by the tool's reachability + jump-reachability checks.
+
+import { jumpReachCells, DEFAULT_PLATFORMER_PHYSICS } from "./_platformer-physics.js";
+
+/** Tiny seeded RNG (mulberry32) for deterministic placement. */
+function rng(seed: number): () => number {
+    let a = seed >>> 0;
+    return () => {
+        a |= 0; a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+export function generatePlatformLayout(args: {
+    node: GameGraphNode;
+    width: number;
+    height: number;
+    genre: string;
+    theme: string | null;
+    density: number;
+    difficulty: string;
+    seed: number;
+    tile_px: number;
+}): AbstractLayout {
+    const { width, height, node, tile_px, seed } = args;
+    const rand = rng(seed);
+    const cells: SemanticCell[][] = Array.from({ length: height }, () =>
+        Array.from({ length: width }, () => "empty" as SemanticCell));
+
+    const reach = jumpReachCells(DEFAULT_PLATFORMER_PHYSICS, tile_px);
+    // Keep each hop a bit under the max so it's comfortably clearable.
+    const maxGap = Math.max(2, reach.maxGapX - 1);
+    const maxRise = Math.max(1, reach.maxRiseY - 1);
+    const groundY = height - 2;            // first platform near the bottom
+    const platLen = Math.max(3, Math.floor(maxGap * 0.8)); // platform width in cells
+
+    // Build the chain of platform tops as (x, y) of the left edge.
+    const platforms: { x: number; y: number; len: number }[] = [];
+    let x = 1;
+    let y = groundY;
+    while (x + platLen < width - 1) {
+        const len = platLen + Math.floor(rand() * 3);
+        platforms.push({ x, y, len: Math.min(len, width - 1 - x) });
+        // Next platform: jumpable gap to the right, a small vertical change.
+        const gap = 1 + Math.floor(rand() * maxGap);
+        const dy = Math.floor((rand() * 2 - 1) * maxRise); // up or down, within rise
+        x = x + len + gap;
+        y = Math.min(height - 2, Math.max(2, y + dy));
+    }
+    if (platforms.length === 0) platforms.push({ x: 1, y: groundY, len: Math.min(platLen, width - 2) });
+
+    // Paint platforms as "platform" cells.
+    for (const p of platforms) {
+        for (let i = 0; i < p.len && p.x + i < width; i++) {
+            if (cells[p.y]) cells[p.y]![p.x + i] = "platform";
+        }
+    }
+
+    // Entry on the first platform, exit on the last (one cell above the top).
+    const first = platforms[0]!;
+    const last = platforms[platforms.length - 1]!;
+    const entry = { x: first.x, y: Math.max(0, first.y - 1) };
+    const exit = { x: Math.min(width - 1, last.x + last.len - 1), y: Math.max(0, last.y - 1) };
+    if (cells[entry.y]) cells[entry.y]![entry.x] = "entry";
+    if (cells[exit.y]) cells[exit.y]![exit.x] = "exit";
+
+    // Pickups: required grants on platforms (above the surface, reachable);
+    // plus a few coins; a light sprinkle of enemies on wider platforms.
+    const entity_slots: AbstractLayout["entity_slots"] = [];
+    node.grants.forEach((grant, i) => {
+        const p = platforms[Math.min(platforms.length - 1, 1 + i)] ?? first;
+        const sx = p.x + Math.floor(p.len / 2);
+        const sy = Math.max(0, p.y - 1);
+        if (cells[sy]) cells[sy]![sx] = "pickup_slot";
+        entity_slots.push({ id: `pickup_${grant}`, kind: "pickup", x: sx, y: sy, required: true, grants: [grant] });
+    });
+    for (let i = 0; i < platforms.length; i++) {
+        const p = platforms[i]!;
+        if (i > 0 && rand() < 0.6) { // coin above a platform
+            const cx = p.x + Math.floor(p.len / 2);
+            const cy = Math.max(0, p.y - 1);
+            if (cells[cy]?.[cx] === "empty") { cells[cy]![cx] = "pickup_slot"; entity_slots.push({ id: `coin_${i}`, kind: "pickup", x: cx, y: cy, required: false, grants: [] }); }
+        }
+        if (i > 1 && p.len >= 4 && rand() < 0.4) { // enemy on a wider platform
+            const ex = p.x + 1;
+            const ey = Math.max(0, p.y - 1);
+            if (cells[ey]?.[ex] === "empty") { cells[ey]![ex] = "enemy_slot"; entity_slots.push({ id: `enemy_${i}`, kind: "enemy", x: ex, y: ey, required: false, grants: [] }); }
+        }
+    }
+
+    return {
+        node_id: node.id, width, height, tile_px, cells, entity_slots, entry, exit,
+        meta: { genre: args.genre, strategy: "platform", theme: args.theme, density: args.density, difficulty: args.difficulty, seed },
+    };
+}
