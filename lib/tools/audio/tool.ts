@@ -31,6 +31,9 @@ export const AudioToolInputSchema = ToolInputBaseSchema.extend({
     duration_seconds: z.number().min(0.1).max(300).default(10),
     voice: z.string().optional(),
     tier: z.enum(["free", "creator", "studio"]).default("free"),
+    // Context for the contextual CC0 match (filters match_assets by the game).
+    genre: z.string().optional(),
+    engine: z.string().optional(),
 });
 export type AudioToolInput = z.infer<typeof AudioToolInputSchema>;
 
@@ -48,7 +51,7 @@ interface ResolvedAudio {
 }
 
 export interface AudioToolDeps {
-    resolveAsset(query: { description: string; asset_type: string; style_pack?: string }): Promise<ResolvedAudio>;
+    resolveAsset(query: { description: string; asset_type: string; style_pack?: string; genre?: string; engine?: string }): Promise<ResolvedAudio>;
     /** Paid-tier only; absent on free tier (never invoked there). */
     audioPort?: AudioGenPort;
 }
@@ -89,6 +92,8 @@ function makeHandler(kind: AudioKind) {
             description: input.description,
             asset_type: ASSET_TYPE[kind],
             style_pack: input.style_pack_id,
+            genre: input.genre,
+            engine: input.engine,
         });
 
         // Free tier: CC0 only, never call a paid audio provider.

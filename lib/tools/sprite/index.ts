@@ -22,6 +22,10 @@ export const SpriteToolInputSchema = ToolInputBaseSchema.extend({
     style_pack_id: z.string().min(1),
     tier: z.enum(["free", "creator", "studio"]).default("free"),
     lora_hf_repo: z.string().optional(),
+    // Context for the CC0 match (contextual assets, not just text-similar):
+    // genre/engine filter match_assets so we pull assets coherent with the game.
+    genre: z.string().optional(),
+    engine: z.string().optional(),
 });
 export type SpriteToolInput = z.infer<typeof SpriteToolInputSchema>;
 
@@ -39,7 +43,7 @@ export interface ResolvedAsset {
 }
 
 export interface SpriteGenDeps {
-    resolveAsset(query: { description: string; asset_type: string; style_pack?: string }): Promise<ResolvedAsset>;
+    resolveAsset(query: { description: string; asset_type: string; style_pack?: string; genre?: string; engine?: string }): Promise<ResolvedAsset>;
     /** Only constructed/used on paid tiers. Optional so free-tier callers
      * never need to wire a generative provider. */
     imageGenPort?: ImageGenPort;
@@ -113,6 +117,8 @@ async function handler(invocation: ToolInvocation, deps: SpriteGenDeps = default
         description: input.description,
         asset_type: "sprite",
         style_pack: input.style_pack_id,
+        genre: input.genre,
+        engine: input.engine,
     });
 
     // Free tier: CC0 only. Never invoke FLUX — even when the catalog hit
