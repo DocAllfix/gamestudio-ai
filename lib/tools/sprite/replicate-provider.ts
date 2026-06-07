@@ -54,7 +54,38 @@ export class ReplicateImageProvider implements ImageProvider {
         const url = Array.isArray(body.output) ? body.output[0] : body.output;
         if (!url) throw new Error("Replicate FLUX returned no image");
 
-        // flux-schnell ≈ $0.003/img, flux-dev-lora ≈ $0.04/img (rough).
-        return { image_url: url, width: 1024, height: 1024, cost_usd: useLora ? 0.04 : 0.003 };
+        // Sprites need a transparent background — FLUX always paints one. Run
+        // rembg to cut the subject out → PNG with alpha. Best-effort: if it
+        // fails, keep the opaque image rather than failing the whole sprite.
+        const cut = await this.removeBackground(url);
+
+        // flux-schnell ≈ $0.003/img, flux-dev-lora ≈ $0.04/img; rembg ≈ $0.001.
+        return { image_url: cut.url, width: 1024, height: 1024, cost_usd: (useLora ? 0.04 : 0.003) + cut.cost };
+    }
+
+    private async removeBackground(imageUrl: string): Promise<{ url: string; cost: number }> {
+        try {
+            // 851-labs/background-remover: maintained rembg model → alpha PNG.
+            // Use the model endpoint (no version pin to chase) like FLUX above.
+            const r = await fetch("https://api.replicate.com/v1/models/851-labs/background-remover/predictions", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${this.token}`,
+                    "Content-Type": "application/json",
+                    Prefer: "wait",
+                },
+                body: JSON.stringify({ input: { image: imageUrl, format: "png" } }),
+            });
+            if (!r.ok) {
+                console.error("rembg failed: " + r.status + " " + (await r.text()).slice(0, 120));
+                return { url: imageUrl, cost: 0 };
+            }
+            const j = (await r.json()) as { output?: string | string[]; error?: string };
+            const out = Array.isArray(j.output) ? j.output[0] : j.output;
+            return out ? { url: out, cost: 0.001 } : { url: imageUrl, cost: 0 };
+        } catch (e) {
+            console.error("rembg error: " + (e instanceof Error ? e.message : String(e)));
+            return { url: imageUrl, cost: 0 }; // keep opaque image on failure
+        }
     }
 }

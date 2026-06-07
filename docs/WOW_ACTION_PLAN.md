@@ -9,6 +9,19 @@ Il WOW nasce dalla **combinazione**, non da un pezzo. Tutto guidato dai dati (ru
 2. **"È MIO"** — il gioco riflette il prompt specifico ("monete che drenano HP" si vede) + asset coerenti.
 3. **"Lo modifico mentre gioco"** — Fetta 4 play+edit (il differenziante "Higgsfield dei giochi").
 
+## STRATEGIA MOTORI (decisione 2026-06-07 — vale per TUTTE le fasi)
+**Stato reale verificato:** SOLO **Godot** è completo (gold example + level design + self-heal
+godot --check-only/runtime + Playtester `__GAME_STATE__` + sprite res:// + scaling). Gli altri 4
+(phaser/threejs/babylon/defold) hanno Claude + build ma **0 qualità** (nessun validator → `return
+null`, nessun `__GAME_STATE__` → playtest cieco, describeLevel/sprite sono SINTASSI GODOT, Defold
+manca pure il webDir playtest). **Decisione: portare GODOT all'eccellenza come percorso di DEFAULT**
+(è il più potente: 2D+3D, WASM, headless validabile), POI replicare il pattern motore-per-motore
+(prossimo: phaser, 2D web). NON spalmarsi ora su 5 motori mezzi-fatti = 5 esperienze mediocri + 5×
+manutenzione su ogni fase nuova. **Cosa è già engine-agnostic** (vale per tutti senza riscrivere):
+Asset Library, sprite/audio CC0, ricerca semantica, preset (genere/difficoltà), le GRIGLIE degli
+algoritmi-mappa. **Cosa è per-engine** (da riscrivere per ciascuno quando lo si attiva): come il
+code_gen CONSUMA sprite/livello/stato (sintassi), il validator, il `__GAME_STATE__`.
+
 ## Stato accertato oggi (col dato)
 - ✅ Game Designer → design ricco (mechanics/loop/win/lose). Modello: gpt-4.1-mini (Azure).
 - ✅ Design ricco ARRIVA al code_gen (`codeContext` nel DAG).
