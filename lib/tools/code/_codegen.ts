@@ -150,8 +150,20 @@ function describeLevel(layout: unknown, entities: unknown, assets: Record<string
     }
 
     if (assets && (assets.sprite || assets.audio)) {
-        if (assets.sprite) lines.push(`Player/sprite texture URL: ${assets.sprite} (load it; fallback to a colored rect if it fails).`);
-        if (assets.audio) lines.push(`Background audio URL: ${assets.audio}.`);
+        // The assembler fetches these URLs into the project before building, so
+        // reference them by their in-project res:// path (a WASM build can't load
+        // an external URL at runtime). Paths mirror assetPath() in execution.ts.
+        if (assets.sprite) {
+            lines.push(
+                `PLAYER SPRITE: load the texture at "res://assets/sprites/sprite_gen.png" ` +
+                `(var tex := load("res://assets/sprites/sprite_gen.png")) and use a Sprite2D ` +
+                `with it for the player instead of a ColorRect. If the load returns null, ` +
+                `fall back to a ColorRect.`,
+            );
+        }
+        if (assets.audio) {
+            lines.push(`BACKGROUND MUSIC: play "res://assets/audio/bgm_gen.ogg" via an AudioStreamPlayer (if it loads).`);
+        }
     }
 
     return lines.join("\n");

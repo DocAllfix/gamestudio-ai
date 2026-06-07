@@ -86,7 +86,24 @@ export async function assemble(
         // for tool *execution*, which is W1's job, not assembly's).
         const projectFiles = scaffoldProject(parsed.engine, parsed.tool_outputs);
         for (const file of projectFiles) {
-            await adapter.writeFile(sandbox, file.path, file.content);
+            if (file.encoding === "url-ref") {
+                // The asset's content is a URL (FLUX sprite, R2 audio). Fetch the
+                // real bytes and write them into the project so the game can load
+                // the asset from res:// — a Godot WASM build can't fetch an
+                // external URL at runtime. Best-effort: on a failed fetch, skip
+                // the asset (the code falls back to a placeholder).
+                try {
+                    const r = await fetch(file.content);
+                    if (!r.ok) throw new Error(`asset fetch ${r.status}`);
+                    const buf = Buffer.from(await r.arrayBuffer());
+                    await adapter.writeFile(sandbox, file.path, buf);
+                    logParts.push(`[asset fetched ${file.path} ${buf.length}B]`);
+                } catch (e) {
+                    logParts.push(`[asset skipped ${file.path}: ${(e as Error).message}]`);
+                }
+            } else {
+                await adapter.writeFile(sandbox, file.path, file.content);
+            }
         }
 
         // 3. Build.
