@@ -402,9 +402,13 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             iframe_url: build.iframe_url ?? null,
             node_results: nodeResults,
             smoke_test_report: smokeReport,
+            // Expose the playtest verdict so the Hermes loop can stop on the
+            // first PLAYABLE result (the real signal), not on overall_passed
+            // (false for non-fatal smoke "degraded").
+            playtest_playable: build.playtest?.ran === true ? build.playtest.playable : null,
             total_cost_usd: totalCost,
             total_latency_ms: totalLatency,
             memory: input.memory,
-        };
+        } as Awaited<ReturnType<ExecutionOrchestrator["materialize"]>> & { playtest_playable: boolean | null };
     },
 };

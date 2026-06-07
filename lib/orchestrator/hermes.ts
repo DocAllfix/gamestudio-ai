@@ -183,7 +183,15 @@ async function runInner(
             report = evaluation.report;
             push("evaluation", `iter=${iter} overall_passed=${report.overall_passed}`);
 
-            if (report.overall_passed || evaluation.refinement_request === null || iter === MAX_GEN_ITERS) {
+            // STOP as soon as the game is PLAYABLE. The playtest verdict is the
+            // real "is it a good game" signal; only regenerate when the player
+            // is actually lost/unplayable. Previously we kept iterating on
+            // `!overall_passed` (which is false for non-fatal smoke "degraded"),
+            // so a run that was already playable on iter 2 got regenerated into a
+            // WORSE iter 3 — wasting a full build cycle AND shipping the broken
+            // one. Keep the first playable result.
+            const playtestPlayable = (execution as { playtest_playable?: boolean | null }).playtest_playable === true;
+            if (playtestPlayable || report.overall_passed || evaluation.refinement_request === null || iter === MAX_GEN_ITERS) {
                 break;
             }
             // Not playable → regenerate with the specific reason. Stored in
