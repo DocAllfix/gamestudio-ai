@@ -6,19 +6,21 @@
  * Deterministic, zero-dependency, pure on RGBA (same contract as slicer/pixel-snap):
  * the caller decodes the PNG to {data,width,height}; this module owns the math.
  *
- * Method (no FFT dependency): pixel-art tile boundaries are strong colour
- * discontinuities at every multiple of the tile size. We build a per-column /
- * per-row EDGE profile (sum of neighbour colour deltas) and, for each candidate
- * size `s` that tiles the sheet cleanly, score how the boundary energy lines up
- * with multiples of `s`:
- *   coverage(s)  = fraction of total edge energy sitting on lines k·s   (favours small s)
- *   peakRatio(s) = how much stronger those lines are than the average   (favours large s)
- * Their product peaks at the FUNDAMENTAL period: a sub-multiple (s/2) keeps high
- * coverage but samples weak interior lines (low peakRatio); a super-multiple (2s)
- * keeps high peakRatio but misses half the boundaries (low coverage).
+ * Method: AUTOCORRELATION of the edge profile. We build a per-column / per-row
+ * EDGE profile (sum of neighbour colour deltas) and autocorrelate it; a tiled
+ * sheet repeats its boundary pattern every `tile_size` pixels, so the normalized
+ * autocorrelation has its first dominant peak at the tile size. Autocorrelation
+ * is OFFSET-INVARIANT (the grid need not start at x=0, and a 1px gutter doesn't
+ * break it) and robust to busy in-tile texture (interior detail is not periodic
+ * at the tile scale), which a "boundary energy at multiples of s" heuristic is
+ * not — real catalog tilesets are textured, not flat-colour blocks.
  *
- * Anti-hallucination: a non-grid image (a single sprite, a gradient) scores ~0
- * and yields `tile_size: null` with low `confidence`, plus the ranked candidates.
+ * A period is only scored on an axis that spans >=3 tiles (>=2 interior
+ * boundaries), since autocorrelation needs repeats to mean anything; when both
+ * axes are rich the square-tile period must agree on both (min), guarding
+ * against 1-D stripes. Anti-hallucination: a non-grid image (single sprite,
+ * gradient, textured illustration) has a weak peak → `tile_size: null` with low
+ * `confidence`, plus the ranked candidates.
  */
 
 export interface ImageRGBA {
@@ -36,22 +38,29 @@ export interface TileSizeOptions {
 
 export interface TileSizeCandidate {
     size: number;
-    /** coverage × peakRatio, combined over both axes (higher = better). */
+    /** Normalized autocorrelation at this period, combined over axes (0..1). */
     score: number;
 }
 
 export interface TileSizeResult {
     /** Best grid size, or null when no periodic grid is confidently detected. */
     tile_size: number | null;
-    /** 0-100. >=50 means a grid was detected (tile_size non-null). */
+    /** 0-100. >=CONFIDENCE_FLOOR means a grid was detected (tile_size non-null). */
     confidence: number;
     /** All tested sizes, ranked by score (descending). candidates[0] is the winner. */
     candidates: TileSizeCandidate[];
 }
 
 const EPS = 1e-9;
-/** Confidence at/above which a detection is trusted (tile_size non-null). */
-const CONFIDENCE_FLOOR = 50;
+/** Confidence at/above which a detection is trusted. Calibrated against the real
+ * catalog: clean synthetic grids score ~50-67, textured real tilesets ~30-50,
+ * non-grid illustrations <25. */
+const CONFIDENCE_FLOOR = 30;
+/** Min tiles an axis must span for its autocorrelation to be meaningful. */
+const MIN_TILES_RICH = 3;
+/** A near-tie band: among periods within this fraction of the max score, prefer
+ * the smallest (the fundamental, not a harmonic). */
+const FUNDAMENTAL_BAND = 0.96;
 
 /** Sum of absolute RGBA channel deltas between two pixels at offsets i, j. */
 function pixelDelta(d: Uint8ClampedArray | number[], i: number, j: number): number {
@@ -90,34 +99,26 @@ function rowEdges(img: ImageRGBA): number[] {
     return edges;
 }
 
-/** coverage + peakRatio of period `s` over an edge profile of length `len`
- * (lines 1..len-1 are interior; line 0 and `len` are the sheet border). */
-function axisStats(edges: number[], len: number, s: number): { coverage: number; peakRatio: number } {
-    let sumAll = 0;
-    for (let x = 1; x < len; x++) sumAll += edges[x];
-    if (sumAll <= EPS) return { coverage: 0, peakRatio: 0 };
-
-    let sumSampled = 0;
-    let nSampled = 0;
-    for (let k = 1; k * s < len; k++) {
-        sumSampled += edges[k * s];
-        nSampled++;
+/** Normalized autocorrelation of a profile for lags 0..maxLag (out[0]=1). */
+function autocorrelation(e: number[], maxLag: number): Float64Array {
+    const n = e.length;
+    const out = new Float64Array(maxLag + 1);
+    let mean = 0;
+    for (let i = 0; i < n; i++) mean += e[i];
+    mean /= n;
+    const c = new Float64Array(n);
+    let a0 = 0;
+    for (let i = 0; i < n; i++) {
+        c[i] = e[i] - mean;
+        a0 += c[i] * c[i];
     }
-    if (nSampled === 0) return { coverage: 0, peakRatio: 0 };
-
-    const meanAll = sumAll / (len - 1);
-    const meanSampled = sumSampled / nSampled;
-    return { coverage: sumSampled / sumAll, peakRatio: meanSampled / meanAll };
-}
-
-/** Candidate sizes that tile the sheet cleanly with at least 2 tiles per axis. */
-function candidateSizes(width: number, height: number, minTile: number, maxTile: number): number[] {
-    const sizes: number[] = [];
-    const hi = Math.min(maxTile, Math.floor(width / 2), Math.floor(height / 2));
-    for (let s = minTile; s <= hi; s++) {
-        if (width % s === 0 && height % s === 0) sizes.push(s);
+    if (a0 <= EPS) return out; // flat signal — no structure
+    for (let L = 0; L <= maxLag; L++) {
+        let s = 0;
+        for (let i = 0; i + L < n; i++) s += c[i] * c[i + L];
+        out[L] = s / a0;
     }
-    return sizes;
+    return out;
 }
 
 export function detectTileSize(img: ImageRGBA, options: TileSizeOptions = {}): TileSizeResult {
@@ -125,37 +126,39 @@ export function detectTileSize(img: ImageRGBA, options: TileSizeOptions = {}): T
     const maxTile = options.maxTile ?? 128;
     const { width, height } = img;
 
-    const sizes = candidateSizes(width, height, minTile, maxTile);
-    if (sizes.length === 0) return { tile_size: null, confidence: 0, candidates: [] };
+    const hi = Math.min(maxTile, width - 1, height - 1);
+    if (hi < minTile) return { tile_size: null, confidence: 0, candidates: [] };
 
-    const cols = columnEdges(img);
-    const rows = rowEdges(img);
+    const aCol = autocorrelation(columnEdges(img), Math.min(maxTile, width - 1));
+    const aRow = autocorrelation(rowEdges(img), Math.min(maxTile, height - 1));
 
-    const scored = sizes.map((size) => {
-        const c = axisStats(cols, width, size);
-        const r = axisStats(rows, height, size);
-        const colScore = c.coverage * c.peakRatio;
-        const rowScore = r.coverage * r.peakRatio;
-        return {
-            size,
-            score: Math.min(colScore, rowScore),
-            coverage: Math.min(c.coverage, r.coverage),
-            peakRatio: Math.min(c.peakRatio, r.peakRatio),
-        };
-    });
+    const scored: TileSizeCandidate[] = [];
+    for (let L = minTile; L <= maxTile; L++) {
+        const richCol = width / L >= MIN_TILES_RICH;
+        const richRow = height / L >= MIN_TILES_RICH;
+        const cv = L < aCol.length ? Math.max(0, aCol[L]) : -1;
+        const rv = L < aRow.length ? Math.max(0, aRow[L]) : -1;
+
+        let score: number;
+        if (richCol && richRow) score = Math.min(cv, rv); // square tile: both axes agree
+        else if (richCol) score = cv;
+        else if (richRow) score = rv;
+        else continue; // not enough tiles on either axis to trust a period
+        scored.push({ size: L, score });
+    }
+    if (scored.length === 0) return { tile_size: null, confidence: 0, candidates: [] };
+
     scored.sort((a, b) => b.score - a.score);
+    const maxScore = scored[0].score;
+    // Among near-ties, prefer the fundamental (smallest period).
+    const winner = scored
+        .filter((c) => c.score >= maxScore * FUNDAMENTAL_BAND)
+        .reduce((min, c) => (c.size < min.size ? c : min));
 
-    const winner = scored[0];
-    // peakRatio is normalized against a "clear grid" reference of ~10× the mean.
-    const confidence = Math.round(
-        100 *
-            Math.max(0, Math.min(1, winner.coverage)) *
-            Math.max(0, Math.min(1, (winner.peakRatio - 1) / 9)),
-    );
-
+    const confidence = Math.round(100 * Math.max(0, Math.min(1, winner.score)));
     return {
         tile_size: confidence >= CONFIDENCE_FLOOR ? winner.size : null,
         confidence,
-        candidates: scored.map(({ size, score }) => ({ size, score })),
+        candidates: scored,
     };
 }
