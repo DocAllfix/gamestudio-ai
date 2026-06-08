@@ -35,6 +35,9 @@ export interface MatchedAsset {
     semantic_description: string;
     quality_score: number;
     success_score: number;
+    /** Whether the sprite's background is transparent (migration 012). Required
+     * for character slots so no in-game character shows a background box. */
+    has_alpha?: boolean;
     similarity: number;
 }
 
@@ -51,6 +54,8 @@ export interface AssetResolverDeps {
         style_pack?: string;
         genre?: string;
         engine?: string;
+        /** Serve only transparent sprites (character slots → no in-game box). */
+        require_alpha?: boolean;
     }): Promise<MatchedAsset[]>;
     /** Optional: the user's personal Studio library (project_assets). When it
      * returns an asset, it wins over catalog/generative (curated library feeds
@@ -109,6 +114,7 @@ async function defaultMatchAssets(query: {
     style_pack?: string;
     genre?: string;
     engine?: string;
+    require_alpha?: boolean;
 }): Promise<MatchedAsset[]> {
     const { createClient } = await import("@supabase/supabase-js");
     const { embed } = await import("../../llm/embed.js");
@@ -151,6 +157,8 @@ async function defaultMatchAssets(query: {
                 p_genre: a.genre,
                 p_engine: query.engine ?? null,
                 p_match_threshold,
+                // Kept across the style/genre widening: NEVER serve a boxed sprite.
+                p_require_alpha: query.require_alpha ?? false,
             });
             if (error) {
                 console.error({ context: "asset_resolver.match_assets.rpc", query, attempt: a, error });
@@ -222,13 +230,15 @@ async function handler(
         }
     }
 
-    // 2) CC0 catalog.
+    // 2) CC0 catalog. Sprites are in-game characters/objects → require a
+    // transparent background so none ever shows a box in scene.
     const hits = await deps.matchAssets({
         description: input.description,
         asset_type: input.asset_type,
         style_pack: input.style_pack,
         genre: input.genre,
         engine: input.engine,
+        require_alpha: input.asset_type === "sprite",
     });
     const best = hits[0] ?? null;
 
