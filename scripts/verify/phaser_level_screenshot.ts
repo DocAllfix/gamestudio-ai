@@ -11,16 +11,18 @@ import { join } from "node:path";
 
 import { build } from "esbuild";
 import { chromium } from "playwright";
+import { PNG } from "pngjs";
 
 import { composeFor } from "../../lib/runtime/composer/index.js";
 import { buildPlatformerLevel } from "../../lib/runtime/composer/sample-level.js";
+import { analyzeSprite } from "../../lib/studio/sprite-sheet.js";
 import { DEFAULT_PLATFORMER_PHYSICS } from "../../lib/tools/level/_platformer-physics.js";
 import type { SideScrollerSpec } from "../../lib/contracts/game-spec.contract.js";
 
 const W = 40, H = 20, TILE = 16;
 const solid = buildPlatformerLevel({ width: W, height: H, tilePx: TILE, physics: DEFAULT_PLATFORMER_PHYSICS });
-/** A verified-transparent CC0 character (has_alpha, 16x16 single frame). */
-const PLAYER_ASSET_URL = "https://opengameart.org/sites/default/files/pixilart-drawing_1_2.png";
+/** The goblin SHEET that rendered as a scramble — now sliced to one frame. */
+const PLAYER_ASSET_URL = "https://opengameart.org/sites/default/files/goblin_0.png";
 
 const SPEC: SideScrollerSpec = {
     archetype: "side_scroller_platform",
@@ -46,7 +48,12 @@ async function main(): Promise<void> {
     // the headless page; in production the assembler writes the file).
     const res0 = await fetch(PLAYER_ASSET_URL);
     if (!res0.ok) throw new Error(`player asset HTTP ${res0.status}`);
-    const dataUrl = `data:image/png;base64,${Buffer.from(await res0.arrayBuffer()).toString("base64")}`;
+    const buf = Buffer.from(await res0.arrayBuffer());
+    const dataUrl = `data:image/png;base64,${buf.toString("base64")}`;
+    // Detect sheet-vs-single → tell the composer the frame size (problem 1).
+    const png = PNG.sync.read(buf, { checkCRC: false });
+    const sheet = analyzeSprite({ data: new Uint8ClampedArray(png.data), width: png.width, height: png.height });
+    console.log(`player ${png.width}x${png.height} → ${sheet.is_sheet ? `SHEET ${sheet.frame_w}x${sheet.frame_h} (${sheet.frame_count}f)` : "single"}`);
     const playerSlot = SPEC.asset_slots.find((s) => s.slot === "player");
     if (playerSlot) {
         playerSlot.binding = {
@@ -55,6 +62,9 @@ async function main(): Promise<void> {
             download_url: dataUrl, license: "CC0-1.0",
             attribution_required: false, creator_name: null,
         };
+        if (sheet.is_sheet) {
+            playerSlot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, fps: 8, anchor: { x: 0.5, y: 1 } };
+        }
     }
 
     const scene = composeFor(SPEC);

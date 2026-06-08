@@ -22,6 +22,7 @@ import type {
     BackgroundSpec,
     CameraSpec,
     EntitySpec,
+    FrameMeta,
     GoalSpec,
     HudSpec,
     MechanicsSpec,
@@ -69,6 +70,7 @@ export class PhaserComposer implements EngineComposer {
     private solidTiles: number[][] | null = null;
     private slots = new Map<string, AssetSlot>();
     private playerTextureUrl: string | null = null;
+    private playerFrame: FrameMeta | null = null;
     private pixelArt = false;
     private entities: EntityPlacement[] = [];
     private warnings: string[] = [];
@@ -106,7 +108,9 @@ export class PhaserComposer implements EngineComposer {
         this.spawnY = player.spawn_tile.y * this.tilePx;
         this.hitboxW = player.hitbox_px.w;
         this.hitboxH = player.hitbox_px.h;
-        this.playerTextureUrl = slotUrl(this.slots.get(player.asset_slot));
+        const ps = this.slots.get(player.asset_slot);
+        this.playerTextureUrl = slotUrl(ps);
+        this.playerFrame = ps?.frame ?? null; // a sheet → load one frame, not the whole image
     }
 
     addEntity(entity: EntitySpec): void {
@@ -176,8 +180,16 @@ export class PhaserComposer implements EngineComposer {
             // Pixel art scales to an INTEGER factor (crisp, no shimmer); smooth
             // art fits the hitbox height exactly.
             const scaleExpr = this.pixelArt ? "Math.max(1, Math.round(HBH / this.player.height))" : "HBH / this.player.height";
-            preloadBlock = `  preload() { this.load.image("player", ${JSON.stringify(this.playerTextureUrl)}); }\n`;
-            playerCreate = `    this.player = this.physics.add.sprite(SPAWN_X, SPAWN_Y, "player");
+            const url = JSON.stringify(this.playerTextureUrl);
+            // A sheet → load ONE frame (no scramble); a single image → load whole.
+            const loadCall = this.playerFrame
+                ? `this.load.spritesheet("player", ${url}, { frameWidth: ${this.playerFrame.w}, frameHeight: ${this.playerFrame.h} })`
+                : `this.load.image("player", ${url})`;
+            const spriteCall = this.playerFrame
+                ? `this.physics.add.sprite(SPAWN_X, SPAWN_Y, "player", 0)`
+                : `this.physics.add.sprite(SPAWN_X, SPAWN_Y, "player")`;
+            preloadBlock = `  preload() { ${loadCall}; }\n`;
+            playerCreate = `    this.player = ${spriteCall};
     if (this.player.height > 0) this.player.setScale(${scaleExpr});`;
         }
 
