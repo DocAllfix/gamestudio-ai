@@ -94,6 +94,30 @@ function countFrames(profile: number[], len: number, minFrame: number): { frames
     return { frames, frameSize, evenness };
 }
 
+/** Once an axis is known to be framed, pick the EXACT frame size: the divisor of
+ * the dimension whose frame boundaries fall in the LOWEST-content positions (the
+ * gaps between frames), so a boundary never cuts through the subject. Works for
+ * square and non-square frames; a small bias keeps it near the rough run count.
+ */
+function refineFrameSize(profile: number[], len: number, roughFrames: number, minFrame: number): { frames: number; frameSize: number } {
+    let maxC = 0;
+    for (const v of profile) if (v > maxC) maxC = v;
+    if (maxC <= 0) return { frames: roughFrames, frameSize: Math.round(len / roughFrames) };
+    let best = roughFrames;
+    let bestScore = Infinity;
+    for (let n = 2; n <= Math.floor(len / minFrame); n++) {
+        if (len % n !== 0) continue; // frames must tile the sheet exactly
+        let boundary = 0;
+        for (let k = 1; k < n; k++) boundary += profile[k * (len / n)] / maxC;
+        const score = boundary / (n - 1) + Math.abs(n - roughFrames) * 0.02;
+        if (score < bestScore) {
+            bestScore = score;
+            best = n;
+        }
+    }
+    return { frames: best, frameSize: len / best };
+}
+
 export function analyzeSprite(img: ImageRGBA, options: SpriteSheetOptions = {}): SpriteSheetResult {
     const minFrame = options.minFrame ?? 8;
     const aT = options.alphaThreshold ?? 16;
@@ -110,8 +134,15 @@ export function analyzeSprite(img: ImageRGBA, options: SpriteSheetOptions = {}):
     // half of it).
     const framedX = x.frames >= 3 || (x.frames === 2 && y.frames >= 3);
     const framedY = y.frames >= 3 || (y.frames === 2 && x.frames >= 3);
-    const framesX = framedX ? x.frames : 1;
-    const framesY = framedY ? y.frames : 1;
+
+    // For a framed axis, refine to the EXACT divisor whose boundaries sit in the
+    // gaps (so a frame edge never cuts through a character).
+    let framesX = 1;
+    let frameW = width;
+    if (framedX) { const r = refineFrameSize(col, width, x.frames, minFrame); framesX = r.frames; frameW = r.frameSize; }
+    let framesY = 1;
+    let frameH = height;
+    if (framedY) { const r = refineFrameSize(row, height, y.frames, minFrame); framesY = r.frames; frameH = r.frameSize; }
 
     const frame_count = framesX * framesY;
     const is_sheet = frame_count >= 2;
@@ -120,12 +151,5 @@ export function analyzeSprite(img: ImageRGBA, options: SpriteSheetOptions = {}):
     const evenness = is_sheet ? Math.max(framedX ? x.evenness : 0, framedY ? y.evenness : 0) : 1;
     const confidence = Math.round(100 * evenness);
 
-    return {
-        is_sheet,
-        frame_w: framedX ? x.frameSize : width,
-        frame_h: framedY ? y.frameSize : height,
-        frame_count,
-        layout,
-        confidence,
-    };
+    return { is_sheet, frame_w: frameW, frame_h: frameH, frame_count, layout, confidence };
 }
