@@ -97,14 +97,21 @@ describe("Godot real level (solid_tiles)", () => {
     });
 });
 
-describe("Godot frame-aware player (sheet → one frame)", () => {
+describe("Godot frame-aware player (sheet → one frame + walk anim)", () => {
     const s = spec("godot");
-    s.asset_slots.find((a) => a.slot === "player")!.frame = { w: 64, h: 64, count: 55, fps: 8, anchor: { x: 0.5, y: 1 } };
+    s.asset_slots.find((a) => a.slot === "player")!.frame = { w: 64, h: 64, count: 55, cols: 11, fps: 8, anchor: { x: 0.5, y: 1 } };
     const gd = composeScene(s, makeGodotComposer()).files.find((f) => f.path.endsWith("main.gd"))!.content;
 
     it("shows ONE frame via a region rect, not the whole scrambled sheet", () => {
         expect(gd).toContain("region_enabled = true");
         expect(gd).toContain("region_rect = Rect2(0, 0, 64, 64)");
+    });
+
+    it("animates the walk cycle over the first row when moving", () => {
+        expect(gd).toContain("const ANIM_COLS := 11");
+        expect(gd).toContain("var _anim_t");
+        expect(gd).toContain("int(_anim_t * ANIM_FPS) % ANIM_COLS");
+        expect(gd).toContain("aps.flip_h = player.velocity.x < 0.0");
     });
 });
 
@@ -164,6 +171,22 @@ describe("real level + asset binding (Phaser)", () => {
         const js = phaserJs(s);
         expect(js).toContain('this.load.image("player"');
         expect(js).toContain("physics.add.sprite");
+    });
+
+    it("animates a sheet player (walk anim over frames 0..cols-1)", () => {
+        const s = spec("phaser");
+        const ps = s.asset_slots.find((a) => a.slot === "player")!;
+        ps.binding = {
+            source: "catalog", slot: "player", asset_library_id: "00000000-0000-4000-8000-000000000003",
+            download_url: "https://x/p.png", license: "CC0-1.0", attribution_required: false, creator_name: null,
+        };
+        ps.frame = { w: 64, h: 64, count: 55, cols: 11, fps: 8, anchor: { x: 0.5, y: 1 } };
+        const js = phaserJs(s);
+        expect(js).toContain('this.load.spritesheet("player"');
+        expect(js).toContain('this.anims.create({ key: "walk"');
+        expect(js).toContain("generateFrameNumbers");
+        expect(js).toContain('this.player.anims.play("walk"');
+        expect(js).toContain("setFlipX");
     });
 
     it("falls back to a flat floor + rectangle player with no tilemap/binding", () => {

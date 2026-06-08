@@ -63,7 +63,7 @@ async function main(): Promise<void> {
             attribution_required: false, creator_name: null,
         };
         if (sheet.is_sheet) {
-            playerSlot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, fps: 8, anchor: { x: 0.5, y: 1 } };
+            playerSlot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, cols: Math.round(png.width / sheet.frame_w), fps: 8, anchor: { x: 0.5, y: 1 } };
         }
     }
 

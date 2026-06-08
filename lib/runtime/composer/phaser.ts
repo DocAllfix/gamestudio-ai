@@ -174,6 +174,7 @@ export class PhaserComposer implements EngineComposer {
         // Player: a real sprite when the slot has a bound (transparent) asset,
         // else a placeholder rectangle. Aspect preserved, scaled to hitbox height.
         let preloadBlock = "";
+        let walkUpdate = "";
         let playerCreate = `    this.player = this.add.rectangle(SPAWN_X, SPAWN_Y, HBW, HBH, 0xe54d4d);
     this.physics.add.existing(this.player);`;
         if (this.playerTextureUrl) {
@@ -191,6 +192,15 @@ export class PhaserComposer implements EngineComposer {
             preloadBlock = `  preload() { ${loadCall}; }\n`;
             playerCreate = `    this.player = ${spriteCall};
     if (this.player.height > 0) this.player.setScale(${scaleExpr});`;
+            if (this.playerFrame) {
+                // Walk = cycle frames 0..cols-1 (the first row); play it when
+                // moving, freeze frame 0 idle, flip by facing.
+                const walkEnd = (this.playerFrame.cols ?? this.playerFrame.count) - 1;
+                playerCreate += `\n    this.anims.create({ key: "walk", frames: this.anims.generateFrameNumbers("player", { start: 0, end: ${walkEnd} }), frameRate: ${this.playerFrame.fps}, repeat: -1 });`;
+                walkUpdate = `    const _vx = this.player.body.velocity.x;
+    if (_vx !== 0) { this.player.anims.play("walk", true); this.player.setFlipX(_vx < 0); } else { this.player.anims.stop(); this.player.setFrame(0); }
+`;
+            }
         }
 
         return `import Phaser from "phaser";
@@ -225,7 +235,7 @@ ${ents}
     const left = this.cursors.left.isDown || this.keys.A.isDown;
     const right = this.cursors.right.isDown || this.keys.D.isDown;
     b.setVelocityX(((right ? 1 : 0) - (left ? 1 : 0)) * MOVE_SPEED);
-    const up = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+${walkUpdate}    const up = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
     if (up && b.blocked.down) b.setVelocityY(-JUMP_VELOCITY);
     if (this.player.y > WORLD_H + 400) { this.player.setPosition(SPAWN_X, SPAWN_Y); b.setVelocity(0, 0); }
     this.t += delta / 1000;

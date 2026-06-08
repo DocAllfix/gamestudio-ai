@@ -98,6 +98,9 @@ export const FrameMetaSchema = z.object({
     w: z.number().int().min(1),
     h: z.number().int().min(1),
     count: z.number().int().min(1),
+    /** Frames per animation row (a grid sheet's width). The composer cycles
+     * frames 0..cols-1 as the walk loop; absent → cycle all `count` (a strip). */
+    cols: z.number().int().min(1).optional(),
     fps: z.number().min(1).max(60).default(8),
     /** Anchor as a 0-1 fraction of the frame (feet = {0.5, 1.0}). */
     anchor: Vec2Schema.default({ x: 0.5, y: 1.0 }),

@@ -60,8 +60,12 @@ const server = http.createServer((req,res)=>{ const f = path.join(dir, req.url==
     browser = await chromium.launch({ args:["--no-sandbox","--disable-dev-shm-usage","--enable-unsafe-swiftshader","--use-gl=angle","--use-angle=swiftshader"] });
     const page = await browser.newPage({ viewport:{ width:640, height:360 } });
     await page.goto("http://localhost:"+PORT+"/index.html",{ waitUntil:"domcontentloaded", timeout:30000 });
-    await page.waitForTimeout(9000);
+    await page.waitForTimeout(8000);
+    try { await page.mouse.click(320, 180); } catch(e) {}   // focus the Godot canvas
+    await page.keyboard.down("ArrowRight");                  // walk → trigger the anim
+    await page.waitForTimeout(1800);
     await page.screenshot({ path: out });
+    await page.keyboard.up("ArrowRight");
     console.log("SHOT_OK");
   }catch(e){ console.log("SHOT_ERR "+(e&&e.message?e.message:e)); }
   finally{ if(browser) await browser.close().catch(()=>{}); server.close(); }
@@ -78,7 +82,7 @@ async function main(): Promise<void> {
     console.log(`[shot] player ${png.width}x${png.height} → ${sheet.is_sheet ? `SHEET ${sheet.frame_w}x${sheet.frame_h} (${sheet.frame_count}f)` : "single"}`);
     const playerSlot = SPEC.asset_slots.find((s) => s.slot === "player");
     if (playerSlot && sheet.is_sheet) {
-        playerSlot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, fps: 8, anchor: { x: 0.5, y: 1 } };
+        playerSlot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, cols: Math.round(png.width / sheet.frame_w), fps: 8, anchor: { x: 0.5, y: 1 } };
     }
 
     const scene = composeFor(SPEC);

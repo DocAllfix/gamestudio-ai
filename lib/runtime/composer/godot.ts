@@ -68,6 +68,9 @@ interface Controller {
     /** Player sheet frame size (sheet → show one frame). Null → whole image. */
     playerFrameW: number | null;
     playerFrameH: number | null;
+    /** Walk-cycle length + rate (cycle frames 0..cols-1 when moving). */
+    playerCols: number;
+    playerFps: number;
 }
 
 const GROUND_THICKNESS = 64;
@@ -83,6 +86,7 @@ export class GodotComposer implements EngineComposer {
         hitboxW: 28, hitboxH: 38,
         solidTiles: null, tilePx: 16,
         playerFrameW: null, playerFrameH: null,
+        playerCols: 1, playerFps: 8,
     };
     private slotFrames = new Map<string, FrameMeta>();
     private warnings: string[] = [];
@@ -155,7 +159,12 @@ export class GodotComposer implements EngineComposer {
         this.ctrl.hitboxH = player.hitbox_px.h;
         this.ctrl.playerPath = this.resPath(player.asset_slot);
         const pf = this.slotFrames.get(player.asset_slot);
-        if (pf) { this.ctrl.playerFrameW = pf.w; this.ctrl.playerFrameH = pf.h; }
+        if (pf) {
+            this.ctrl.playerFrameW = pf.w;
+            this.ctrl.playerFrameH = pf.h;
+            this.ctrl.playerCols = pf.cols ?? pf.count;
+            this.ctrl.playerFps = pf.fps;
+        }
 
         const id = "PlayerShape";
         this.subres.push({ id, type: "RectangleShape2D", props: { size: `Vector2(${player.hitbox_px.w}, ${player.hitbox_px.h})` } });
@@ -284,18 +293,34 @@ export class GodotComposer implements EngineComposer {
 \tps.scale = Vector2.ONE * ${pScale}`
             : `\tps.texture = _tex("${c.playerPath}", Vector2(${c.hitboxW}, ${c.hitboxH}), Color(0.90, 0.30, 0.30))
 \t_fit(ps, ${c.hitboxH.toFixed(1)})`;
+        // Walk animation: cycle the region rect across frames 0..cols-1 of the
+        // first row when moving, frame 0 idle, flip by facing.
+        const animConsts = c.playerFrameW !== null
+            ? `\nconst FRAME_W := ${c.playerFrameW}\nconst FRAME_H := ${c.playerFrameH}\nconst ANIM_COLS := ${c.playerCols}\nconst ANIM_FPS := ${c.playerFps.toFixed(1)}`
+            : "";
+        const animVar = c.playerFrameW !== null ? "\nvar _anim_t := 0.0" : "";
+        const animUpdate = c.playerFrameW !== null
+            ? `\tvar aps := $Player/PlayerSprite as Sprite2D
+\tif absf(player.velocity.x) > 1.0:
+\t\t_anim_t += delta
+\t\taps.region_rect = Rect2((int(_anim_t * ANIM_FPS) % ANIM_COLS) * FRAME_W, 0, FRAME_W, FRAME_H)
+\t\taps.flip_h = player.velocity.x < 0.0
+\telse:
+\t\taps.region_rect = Rect2(0, 0, FRAME_W, FRAME_H)
+`
+            : "";
         return `extends Node2D
 
 const GRAVITY := ${c.gravity.toFixed(1)}
 const JUMP_VELOCITY := ${(-c.jumpVelocity).toFixed(1)}
 const MOVE_SPEED := ${c.moveSpeed.toFixed(1)}
 const SPAWN := Vector2(${c.spawnX}, ${c.spawnY})
-const WORLD_H := ${c.worldH.toFixed(1)}${levelConst}
+const WORLD_H := ${c.worldH.toFixed(1)}${levelConst}${animConsts}
 
 @onready var player: CharacterBody2D = $Player
 @onready var status_label: Label = $HUD/Status
 var won := false
-var _t := 0.0
+var _t := 0.0${animVar}
 
 func _ready() -> void:
 	var bg := $Background/BgSprite as Sprite2D
@@ -346,7 +371,7 @@ func _physics_process(delta: float) -> void:
 	if (Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_UP)) and player.is_on_floor():
 		player.velocity.y = JUMP_VELOCITY
 	player.move_and_slide()
-	if player.position.y > WORLD_H + 400.0:
+${animUpdate}	if player.position.y > WORLD_H + 400.0:
 		player.position = SPAWN
 		player.velocity = Vector2.ZERO
 	_t += delta
