@@ -46,7 +46,7 @@ export interface FrameAnalyzerOptions {
     fps?: number;
 }
 
-interface Component {
+export interface Component {
     minX: number;
     minY: number;
     maxX: number;
@@ -106,12 +106,13 @@ function floodFill(
     return comp;
 }
 
-export function analyzeFrames(img: ImageRGBA, options: FrameAnalyzerOptions = {}): FrameAnalysis {
+/** Connected components (8-connectivity) over the alpha mask, above a noise
+ * floor — the shared primitive for frame analysis and pack segmentation. */
+export function findComponents(img: ImageRGBA, options: { alphaThreshold?: number; minArea?: number } = {}): Component[] {
     const alphaThreshold = options.alphaThreshold ?? 128;
     const minArea = options.minArea ?? 4;
-    const fps = options.fps ?? 8;
     const { data, width, height } = img;
-    if (width === 0 || height === 0) return { ...EMPTY, fps };
+    if (width === 0 || height === 0) return [];
 
     const solid = new Uint8Array(width * height);
     for (let i = 0; i < width * height; i++) {
@@ -129,6 +130,12 @@ export function analyzeFrames(img: ImageRGBA, options: FrameAnalyzerOptions = {}
             }
         }
     }
+    return comps;
+}
+
+export function analyzeFrames(img: ImageRGBA, options: FrameAnalyzerOptions = {}): FrameAnalysis {
+    const fps = options.fps ?? 8;
+    const comps = findComponents(img, { alphaThreshold: options.alphaThreshold ?? 128, minArea: options.minArea ?? 4 });
     if (comps.length === 0) return { ...EMPTY, fps };
 
     const frames: FrameRect[] = comps.map((c) => ({
