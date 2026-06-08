@@ -145,6 +145,14 @@ export const WorldSpecSchema = z.object({
     tmj_path: z.string().min(1),
     /** Asset slot id of the tileset image. */
     tileset_slot: z.string().min(1),
+    /** The level geometry, interpreted for THIS archetype. For a platformer
+     * (side_scroller) the .tmj's top-down floor/wall semantics don't apply —
+     * what matters is solid vs air: 1 = a solid tile the player stands on,
+     * 0 = air the player falls through. Row-major: solid_tiles[y][x]. When
+     * present the composer renders a real tiled level; absent → a flat floor.
+     * (A platformer-aware generator produces this with jumpReachCells spacing;
+     * the composer is agnostic to where it came from.) */
+    solid_tiles: z.array(z.array(z.number().int().min(0).max(1))).optional(),
 });
 export type WorldSpec = z.infer<typeof WorldSpecSchema>;
 

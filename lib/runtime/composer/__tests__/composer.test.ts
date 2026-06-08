@@ -114,6 +114,37 @@ describe("Phaser composer", () => {
     });
 });
 
+describe("real level + asset binding (Phaser)", () => {
+    const phaserJs = (s: SideScrollerSpec) => composeFor(s).files.find((f) => f.path.endsWith("main.js"))!.content;
+
+    it("renders a tile layer from solid_tiles", () => {
+        const s = spec("phaser");
+        s.world.solid_tiles = [[1, 1, 1], [0, 0, 0]];
+        const js = phaserJs(s);
+        expect(js).toContain("make.tilemap");
+        expect(js).toContain("setCollisionByExclusion([-1])");
+        expect(js).toContain("const SOLID =");
+    });
+
+    it("loads a real sprite when the player slot is bound", () => {
+        const s = spec("phaser");
+        const ps = s.asset_slots.find((a) => a.slot === "player")!;
+        ps.binding = {
+            source: "catalog", slot: "player", asset_library_id: "00000000-0000-4000-8000-000000000002",
+            download_url: "https://x/p.png", license: "CC0-1.0", attribution_required: false, creator_name: null,
+        };
+        const js = phaserJs(s);
+        expect(js).toContain('this.load.image("player"');
+        expect(js).toContain("physics.add.sprite");
+    });
+
+    it("falls back to a flat floor + rectangle player with no tilemap/binding", () => {
+        const js = phaserJs(spec("phaser"));
+        expect(js).toContain("this.add.rectangle(WORLD_W / 2"); // flat floor
+        expect(js).toContain("this.player = this.add.rectangle"); // placeholder player
+    });
+});
+
 describe("driver dispatch", () => {
     it("the same spec drives both engines (cross-engine port holds)", () => {
         const s = spec("godot");

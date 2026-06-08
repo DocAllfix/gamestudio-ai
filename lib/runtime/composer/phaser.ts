@@ -18,6 +18,7 @@ import type {
     SceneInit,
 } from "../../contracts/engine-composer.contract.js";
 import type {
+    AssetSlot,
     BackgroundSpec,
     CameraSpec,
     EntitySpec,
@@ -29,6 +30,14 @@ import type {
     PlayerSpec,
     WorldSpec,
 } from "../../contracts/game-spec.contract.js";
+
+/** A loadable image URL for a slot's bound asset (catalog/user/generative). */
+function slotUrl(slot: AssetSlot | undefined): string | null {
+    const b = slot?.binding;
+    if (!b) return null;
+    if (b.source === "generative") return b.output_url;
+    return b.download_url; // catalog | user_prepared
+}
 
 interface EntityPlacement {
     x: number;
@@ -57,6 +66,9 @@ export class PhaserComposer implements EngineComposer {
     private zoom = 1;
     private clamp = true;
     private hudText = "Reach the goal!";
+    private solidTiles: number[][] | null = null;
+    private slots = new Map<string, AssetSlot>();
+    private playerTextureUrl: string | null = null;
     private entities: EntityPlacement[] = [];
     private warnings: string[] = [];
 
@@ -64,6 +76,7 @@ export class PhaserComposer implements EngineComposer {
         this.gravity = init.gravity;
         this.viewW = init.viewport.width;
         this.viewH = init.viewport.height;
+        for (const s of init.assetSlots) this.slots.set(s.slot, s);
     }
 
     addBackground(_bg: BackgroundSpec): void {
@@ -80,6 +93,7 @@ export class PhaserComposer implements EngineComposer {
         this.tilePx = world.tile_px;
         this.worldW = world.width_tiles * world.tile_px;
         this.worldH = world.height_tiles * world.tile_px;
+        this.solidTiles = world.solid_tiles ?? null;
     }
 
     addPlayer(player: PlayerSpec, physics: PhysicsSpec, _mechanics: MechanicsSpec): void {
@@ -90,6 +104,7 @@ export class PhaserComposer implements EngineComposer {
         this.spawnY = player.spawn_tile.y * this.tilePx;
         this.hitboxW = player.hitbox_px.w;
         this.hitboxH = player.hitbox_px.h;
+        this.playerTextureUrl = slotUrl(this.slots.get(player.asset_slot));
     }
 
     addEntity(entity: EntitySpec): void {
@@ -129,6 +144,38 @@ export class PhaserComposer implements EngineComposer {
         const ents = this.entities
             .map((e) => `    const e = this.add.rectangle(${e.x}, ${e.y}, 24, 24, ${e.color}); this.physics.add.existing(e, true);`)
             .join("\n");
+
+        // Level: a real tile layer from solid_tiles (platformer collision: solid
+        // tiles to stand on, air to fall through), or a flat-floor fallback.
+        // Tiles map solid→0 / air→-1; setCollisionByExclusion([-1]) makes every
+        // solid tile stand-on.
+        let levelConst = "";
+        let level: string;
+        if (this.solidTiles) {
+            const data = this.solidTiles.map((row) => row.map((c) => (c === 1 ? 0 : -1)));
+            levelConst = `const TILE = ${this.tilePx};\nconst SOLID = ${JSON.stringify(data)};\n`;
+            level = `    const g = this.add.graphics(); g.fillStyle(0x4d6b47, 1).fillRect(0, 0, TILE, TILE); g.lineStyle(1, 0x3a5238, 1).strokeRect(0, 0, TILE, TILE); g.generateTexture("tile", TILE, TILE); g.destroy();
+    const map = this.make.tilemap({ data: SOLID, tileWidth: TILE, tileHeight: TILE });
+    const layer = map.createLayer(0, map.addTilesetImage("tile"), 0, 0);
+    layer.setCollisionByExclusion([-1]);
+    this.physics.add.collider(this.player, layer);`;
+        } else {
+            level = `    this.ground = this.add.rectangle(WORLD_W / 2, WORLD_H - THICK / 2, WORLD_W, THICK, 0x4d6b47);
+    this.physics.add.existing(this.ground, true);
+    this.physics.add.collider(this.player, this.ground);`;
+        }
+
+        // Player: a real sprite when the slot has a bound (transparent) asset,
+        // else a placeholder rectangle. Aspect preserved, scaled to hitbox height.
+        let preloadBlock = "";
+        let playerCreate = `    this.player = this.add.rectangle(SPAWN_X, SPAWN_Y, HBW, HBH, 0xe54d4d);
+    this.physics.add.existing(this.player);`;
+        if (this.playerTextureUrl) {
+            preloadBlock = `  preload() { this.load.image("player", ${JSON.stringify(this.playerTextureUrl)}); }\n`;
+            playerCreate = `    this.player = this.physics.add.sprite(SPAWN_X, SPAWN_Y, "player");
+    if (this.player.height > 0) this.player.setScale(HBH / this.player.height);`;
+        }
+
         return `import Phaser from "phaser";
 
 const WORLD_W = ${this.worldW}, WORLD_H = ${this.worldH}, THICK = ${GROUND_THICKNESS};
@@ -136,16 +183,13 @@ const GRAVITY = ${this.gravity}, MOVE_SPEED = ${this.moveSpeed}, JUMP_VELOCITY =
 const SPAWN_X = ${this.spawnX}, SPAWN_Y = ${this.spawnY};
 const HBW = ${this.hitboxW}, HBH = ${this.hitboxH};
 const GOAL_X = ${this.goalX}, GOAL_Y = ${this.goalY};
-
+${levelConst}
 class MainScene extends Phaser.Scene {
   constructor() { super("main"); this.won = false; this.t = 0; }
-  create() {
+${preloadBlock}  create() {
     this.cameras.main.setBackgroundColor("#6aa0db"); // sky — never a void
-    this.ground = this.add.rectangle(WORLD_W / 2, WORLD_H - THICK / 2, WORLD_W, THICK, 0x4d6b47);
-    this.physics.add.existing(this.ground, true);
-    this.player = this.add.rectangle(SPAWN_X, SPAWN_Y, HBW, HBH, 0xe54d4d);
-    this.physics.add.existing(this.player);
-    this.physics.add.collider(this.player, this.ground);
+${playerCreate}
+${level}
     this.goal = this.add.rectangle(GOAL_X, GOAL_Y, 36, 50, 0xf2d933);
     this.physics.add.existing(this.goal, true);
     this.physics.add.overlap(this.player, this.goal, () => { this.won = true; this.status.setText("You win!"); });
