@@ -13,6 +13,8 @@ import { writeFileSync } from "node:fs";
 import { createE2bClient } from "../../lib/runtime/sandbox/real-clients.js";
 import { GodotAdapter, GODOT_EXPORT_DIR } from "../../lib/runtime/engines/godot.js";
 import { composeFor } from "../../lib/runtime/composer/index.js";
+import { buildPlatformerLevel } from "../../lib/runtime/composer/sample-level.js";
+import { DEFAULT_PLATFORMER_PHYSICS } from "../../lib/tools/level/_platformer-physics.js";
 import type { R2Client } from "../../lib/runtime/sandbox/r2.js";
 import type { SandboxSession } from "../../lib/runtime/sandbox/e2b.js";
 import type { SideScrollerSpec } from "../../lib/contracts/game-spec.contract.js";
@@ -20,7 +22,7 @@ import type { SideScrollerSpec } from "../../lib/contracts/game-spec.contract.js
 const SPEC: SideScrollerSpec = {
     archetype: "side_scroller_platform",
     meta: { project_id: "00000000-0000-4000-8000-000000000000", plan_version: 1, engine: "godot", style_pack_id: "pixel-art-dark", title: "Godot Shot" },
-    world: { width_tiles: 60, height_tiles: 24, tile_px: 16, tmj_path: "/project/assets/maps/level1.tmj", tileset_slot: "tileset" },
+    world: { width_tiles: 60, height_tiles: 24, tile_px: 16, tmj_path: "/project/assets/maps/level1.tmj", tileset_slot: "tileset", solid_tiles: buildPlatformerLevel({ width: 60, height: 24, tilePx: 16, physics: DEFAULT_PLATFORMER_PHYSICS }) },
     physics: { gravity: 1200, jump_velocity: 450, move_speed: 300 },
     player: { spawn_tile: { x: 2, y: 18 }, asset_slot: "player", hitbox_px: { w: 28, h: 38 }, facing: "right" },
     entities: [{ id: "coin-1", kind: "pickup", tile: { x: 18, y: 20 }, asset_slot: "coin", patrol_tiles: [], grants: [] }],

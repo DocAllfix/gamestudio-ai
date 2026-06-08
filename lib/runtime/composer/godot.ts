@@ -61,6 +61,9 @@ interface Controller {
     goalPath: string;
     hitboxW: number;
     hitboxH: number;
+    /** Real level collision/visual grid (1=solid, 0=air). Null → flat floor. */
+    solidTiles: number[][] | null;
+    tilePx: number;
 }
 
 const GROUND_THICKNESS = 64;
@@ -74,6 +77,7 @@ export class GodotComposer implements EngineComposer {
         spawnX: 64, spawnY: 64, worldW: 960, worldH: 384, thickness: GROUND_THICKNESS,
         hudText: "Reach the goal!", bgPath: "", playerPath: "", tilesetPath: "", goalPath: "",
         hitboxW: 28, hitboxH: 38,
+        solidTiles: null, tilePx: 16,
     };
     private warnings: string[] = [];
     private pixelArt = false;
@@ -113,11 +117,18 @@ export class GodotComposer implements EngineComposer {
 
     addTileMap(world: WorldSpec): void {
         this._tilePx = world.tile_px;
+        this.ctrl.tilePx = world.tile_px;
         this.ctrl.worldW = world.width_tiles * world.tile_px;
         this.ctrl.worldH = world.height_tiles * world.tile_px;
         this.ctrl.tilesetPath = this.resPath(world.tileset_slot);
-        // FASE 2 tracer bullet: a solid floor spanning the world (real .tmj →
-        // TileMap import is the next refinement). Proves "solid land, not a void".
+        if (world.solid_tiles) {
+            // Real level: collision (merged solid runs) + tile visuals are built
+            // procedurally in _ready from the grid — a platformer needs
+            // solid-to-stand-on / air-to-fall-through, not a flat slab.
+            this.ctrl.solidTiles = world.solid_tiles;
+            return;
+        }
+        // Flat-floor fallback when no level is supplied — "solid land, not a void".
         const id = "GroundShape";
         this.subres.push({ id, type: "RectangleShape2D", props: { size: `Vector2(${this.ctrl.worldW}, ${this.ctrl.thickness})` } });
         const gy = this.ctrl.worldH - this.ctrl.thickness / 2;
@@ -245,13 +256,19 @@ export class GodotComposer implements EngineComposer {
 
     private buildController(): string {
         const c = this.ctrl;
+        const hasLevel = c.solidTiles !== null;
+        const levelConst = hasLevel ? `\nconst TILE := ${c.tilePx}\nconst SOLID := ${JSON.stringify(c.solidTiles)}` : "";
+        const groundSetup = hasLevel
+            ? "\t_build_level()"
+            : `\t_stretch($Ground/GroundSprite, "${c.tilesetPath}", Vector2(${c.worldW}, ${c.thickness}), Color(0.30, 0.42, 0.28))`;
+        const levelFuncs = hasLevel ? LEVEL_FUNCS : "";
         return `extends Node2D
 
 const GRAVITY := ${c.gravity.toFixed(1)}
 const JUMP_VELOCITY := ${(-c.jumpVelocity).toFixed(1)}
 const MOVE_SPEED := ${c.moveSpeed.toFixed(1)}
 const SPAWN := Vector2(${c.spawnX}, ${c.spawnY})
-const WORLD_H := ${c.worldH.toFixed(1)}
+const WORLD_H := ${c.worldH.toFixed(1)}${levelConst}
 
 @onready var player: CharacterBody2D = $Player
 @onready var status_label: Label = $HUD/Status
@@ -264,7 +281,7 @@ func _ready() -> void:
 	bg.centered = false
 	var bs := bg.texture.get_size()
 	if bs.x > 0.0 and bs.y > 0.0: bg.scale = get_viewport_rect().size / bs
-	_stretch($Ground/GroundSprite, "${c.tilesetPath}", Vector2(${c.worldW}, ${c.thickness}), Color(0.30, 0.42, 0.28))
+${groundSetup}
 	var ps := $Player/PlayerSprite as Sprite2D
 	ps.texture = _tex("${c.playerPath}", Vector2(${c.hitboxW}, ${c.hitboxH}), Color(0.90, 0.30, 0.30))
 	_fit(ps, ${c.hitboxH.toFixed(1)})
@@ -273,7 +290,7 @@ func _ready() -> void:
 	_fit(qs, 50.0)
 	$Goal.body_entered.connect(_on_goal)
 	status_label.text = ${JSON.stringify(c.hudText)}
-
+${levelFuncs}
 func _stretch(spr: Sprite2D, path: String, size: Vector2, fallback: Color) -> void:
 	spr.texture = _tex(path, size, fallback)
 	spr.centered = true
@@ -321,6 +338,43 @@ func _physics_process(delta: float) -> void:
 `;
     }
 }
+
+// Real-level builder, appended to main.gd when world.solid_tiles is present.
+// Collision = merged horizontal runs of solid tiles (few StaticBody2D shapes,
+// not one per tile); visuals = _draw of each solid tile. Tabs, to match the
+// rest of the GDScript in the controller.
+const LEVEL_FUNCS = `
+func _build_level() -> void:
+	var body := StaticBody2D.new()
+	add_child(body)
+	for y in SOLID.size():
+		var row: Array = SOLID[y]
+		var x := 0
+		while x < row.size():
+			if int(row[x]) == 1:
+				var x0 := x
+				while x < row.size() and int(row[x]) == 1:
+					x += 1
+				var run := x - x0
+				var col := CollisionShape2D.new()
+				var rect := RectangleShape2D.new()
+				rect.size = Vector2(run * TILE, TILE)
+				col.shape = rect
+				col.position = Vector2((x0 + run / 2.0) * TILE, (y + 0.5) * TILE)
+				body.add_child(col)
+			else:
+				x += 1
+	queue_redraw()
+
+func _draw() -> void:
+	for y in SOLID.size():
+		var row: Array = SOLID[y]
+		for x in row.size():
+			if int(row[x]) == 1:
+				var r := Rect2(x * TILE, y * TILE, TILE, TILE)
+				draw_rect(r, Color(0.30, 0.42, 0.28))
+				draw_rect(r, Color(0.23, 0.33, 0.22), false, 1.0)
+`;
 
 const GODOT_PROJECT = `; Engine configuration, GameSmith composer.
 config_version=5

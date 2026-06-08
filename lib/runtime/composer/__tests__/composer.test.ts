@@ -80,6 +80,23 @@ describe("Godot composer", () => {
     });
 });
 
+describe("Godot real level (solid_tiles)", () => {
+    const s = spec("godot");
+    s.world.solid_tiles = [[0, 0, 0], [1, 1, 1], [1, 1, 1]];
+    const scene = composeScene(s, makeGodotComposer());
+    const gd = scene.files.find((f) => f.path.endsWith("main.gd"))!.content;
+    const tscn = scene.files.find((f) => f.path.endsWith("main.tscn"))!.content;
+
+    it("renders the grid as procedural collision + _draw, not a flat floor", () => {
+        expect(gd).toContain("const SOLID := [[0,0,0],[1,1,1],[1,1,1]]");
+        expect(gd).toContain("func _build_level()");
+        expect(gd).toContain("func _draw()");
+        expect(gd).toContain("StaticBody2D.new()"); // procedural collision body
+        expect(gd).toContain("_build_level()"); // called from _ready
+        expect(tscn).not.toContain('name="Ground"'); // flat-floor node replaced
+    });
+});
+
 describe("Phaser composer", () => {
     const scene = composeFor(spec("phaser"));
     const js = scene.files.find((f) => f.path.endsWith("main.js"))!.content;
