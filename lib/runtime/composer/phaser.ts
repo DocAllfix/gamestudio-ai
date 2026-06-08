@@ -69,6 +69,7 @@ export class PhaserComposer implements EngineComposer {
     private solidTiles: number[][] | null = null;
     private slots = new Map<string, AssetSlot>();
     private playerTextureUrl: string | null = null;
+    private pixelArt = false;
     private entities: EntityPlacement[] = [];
     private warnings: string[] = [];
 
@@ -76,6 +77,7 @@ export class PhaserComposer implements EngineComposer {
         this.gravity = init.gravity;
         this.viewW = init.viewport.width;
         this.viewH = init.viewport.height;
+        this.pixelArt = init.pixelArt;
         for (const s of init.assetSlots) this.slots.set(s.slot, s);
     }
 
@@ -171,9 +173,12 @@ export class PhaserComposer implements EngineComposer {
         let playerCreate = `    this.player = this.add.rectangle(SPAWN_X, SPAWN_Y, HBW, HBH, 0xe54d4d);
     this.physics.add.existing(this.player);`;
         if (this.playerTextureUrl) {
+            // Pixel art scales to an INTEGER factor (crisp, no shimmer); smooth
+            // art fits the hitbox height exactly.
+            const scaleExpr = this.pixelArt ? "Math.max(1, Math.round(HBH / this.player.height))" : "HBH / this.player.height";
             preloadBlock = `  preload() { this.load.image("player", ${JSON.stringify(this.playerTextureUrl)}); }\n`;
             playerCreate = `    this.player = this.physics.add.sprite(SPAWN_X, SPAWN_Y, "player");
-    if (this.player.height > 0) this.player.setScale(HBH / this.player.height);`;
+    if (this.player.height > 0) this.player.setScale(${scaleExpr});`;
         }
 
         return `import Phaser from "phaser";
@@ -222,6 +227,7 @@ new Phaser.Game({
   width: ${this.viewW},
   height: ${this.viewH},
   parent: "game",
+  pixelArt: ${this.pixelArt},
   physics: { default: "arcade", arcade: { gravity: { y: GRAVITY } } },
   scene: MainScene,
 });

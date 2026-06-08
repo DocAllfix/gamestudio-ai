@@ -76,6 +76,7 @@ export class GodotComposer implements EngineComposer {
         hitboxW: 28, hitboxH: 38,
     };
     private warnings: string[] = [];
+    private pixelArt = false;
 
     private resPath(slot: string): string {
         return this.slots.get(slot) ?? `res://assets/sprites/${slot}.png`;
@@ -87,6 +88,7 @@ export class GodotComposer implements EngineComposer {
             const ext = s.role === "audio" ? "mp3" : "png";
             this.slots.set(s.slot, `res://assets/${sub}/${s.slot}.${ext}`);
         }
+        this.pixelArt = init.pixelArt;
         this.ctrl.gravity = init.gravity;
         this.nodes.push({ name: "Main", type: "Node2D", parent: null, props: { script: 'ExtResource("1")' } });
     }
@@ -196,7 +198,7 @@ export class GodotComposer implements EngineComposer {
             engine: "godot",
             entry_scene: "res://main.tscn",
             files: [
-                { path: "/project/project.godot", content: GODOT_PROJECT, encoding: "utf-8" },
+                { path: "/project/project.godot", content: this.buildProject(), encoding: "utf-8" },
                 { path: "/project/main.tscn", content: tscn, encoding: "utf-8" },
                 { path: "/project/main.gd", content: gd, encoding: "utf-8" },
                 { path: "/project/export_presets.cfg", content: GODOT_EXPORT_PRESETS, encoding: "utf-8" },
@@ -210,6 +212,16 @@ export class GodotComposer implements EngineComposer {
     private _tilePx = 16;
     private tilePx(): number {
         return this._tilePx;
+    }
+
+    /** project.godot, with nearest-neighbour canvas filtering for pixel art
+     * (crisp, not blurry). 0 = Nearest in Godot's default_texture_filter. */
+    private buildProject(): string {
+        if (!this.pixelArt) return GODOT_PROJECT;
+        return GODOT_PROJECT.replace(
+            'renderer/rendering_method="gl_compatibility"',
+            'renderer/rendering_method="gl_compatibility"\ntextures/canvas_textures/default_texture_filter=0',
+        );
     }
 
     private buildTscn(): string {
