@@ -1,0 +1,205 @@
+/**
+ * Phaser EngineComposer — turns a GameSpec into a Phaser 3 scene (FASE 2,
+ * side_scroller tracer bullet). The SAME GameSpec the Godot composer renders,
+ * proving the EngineComposer port abstracts both engines (the anti-leak test).
+ *
+ * Emits the file tree the browser EngineAdapter.build() expects
+ * (/project/src/main.js bundled by esbuild + /project/dist/index.html), so it
+ * slots into the existing browser build/smoke path.
+ *
+ * Robust by construction: the scene is built from colored arcade-physics
+ * rectangles (placeholders that always render — no asset 404 in the headless
+ * smoke), with a sky background (never a void), and publishes
+ * window.__GAME_STATE__ every frame for the playable gate.
+ */
+import type {
+    ComposedScene,
+    EngineComposer,
+    SceneInit,
+} from "../../contracts/engine-composer.contract.js";
+import type {
+    BackgroundSpec,
+    CameraSpec,
+    EntitySpec,
+    GoalSpec,
+    HudSpec,
+    MechanicsSpec,
+    ParallaxLayer,
+    PhysicsSpec,
+    PlayerSpec,
+    WorldSpec,
+} from "../../contracts/game-spec.contract.js";
+
+interface EntityPlacement {
+    x: number;
+    y: number;
+    color: number;
+    kind: string;
+}
+
+const GROUND_THICKNESS = 64;
+
+export class PhaserComposer implements EngineComposer {
+    private gravity = 1200;
+    private moveSpeed = 300;
+    private jumpVelocity = 450;
+    private tilePx = 16;
+    private worldW = 960;
+    private worldH = 384;
+    private viewW = 640;
+    private viewH = 360;
+    private spawnX = 64;
+    private spawnY = 64;
+    private hitboxW = 28;
+    private hitboxH = 38;
+    private goalX = 0;
+    private goalY = 0;
+    private zoom = 1;
+    private clamp = true;
+    private hudText = "Reach the goal!";
+    private entities: EntityPlacement[] = [];
+    private warnings: string[] = [];
+
+    beginScene(init: SceneInit): void {
+        this.gravity = init.gravity;
+        this.viewW = init.viewport.width;
+        this.viewH = init.viewport.height;
+    }
+
+    addBackground(_bg: BackgroundSpec): void {
+        // Sky color is set on the camera in the template (never a void).
+    }
+
+    addParallax(layers: ParallaxLayer[]): void {
+        if (layers.length > 0) {
+            this.warnings.push(`parallax (${layers.length} layers) not yet rendered in Phaser tracer bullet`);
+        }
+    }
+
+    addTileMap(world: WorldSpec): void {
+        this.tilePx = world.tile_px;
+        this.worldW = world.width_tiles * world.tile_px;
+        this.worldH = world.height_tiles * world.tile_px;
+    }
+
+    addPlayer(player: PlayerSpec, physics: PhysicsSpec, _mechanics: MechanicsSpec): void {
+        this.moveSpeed = physics.move_speed;
+        this.jumpVelocity = physics.jump_velocity;
+        this.gravity = physics.gravity;
+        this.spawnX = player.spawn_tile.x * this.tilePx;
+        this.spawnY = player.spawn_tile.y * this.tilePx;
+        this.hitboxW = player.hitbox_px.w;
+        this.hitboxH = player.hitbox_px.h;
+    }
+
+    addEntity(entity: EntitySpec): void {
+        const color = entity.kind === "pickup" ? 0xf2d933 : entity.kind === "hazard" ? 0xd13b3b : 0x8a5cf2;
+        this.entities.push({ x: entity.tile.x * this.tilePx, y: entity.tile.y * this.tilePx, color, kind: entity.kind });
+    }
+
+    addCamera(camera: CameraSpec, world: WorldSpec): void {
+        this.zoom = camera.zoom;
+        this.clamp = camera.clamp_to_world;
+        this.worldW = world.width_tiles * world.tile_px;
+        this.worldH = world.height_tiles * world.tile_px;
+    }
+
+    addHud(hud: HudSpec): void {
+        this.hudText = hud.elements.find((e) => e.text)?.text ?? "Reach the goal!";
+    }
+
+    addGoal(goal: GoalSpec): void {
+        this.goalX = (goal.exit_tile?.x ?? 0) * this.tilePx;
+        this.goalY = (goal.exit_tile?.y ?? 0) * this.tilePx;
+    }
+
+    finalize(): ComposedScene {
+        return {
+            engine: "phaser",
+            entry_scene: "index.html",
+            files: [
+                { path: "/project/src/main.js", content: this.buildScene(), encoding: "utf-8" },
+                { path: "/project/dist/index.html", content: BROWSER_INDEX_HTML, encoding: "utf-8" },
+            ],
+            warnings: this.warnings,
+        };
+    }
+
+    private buildScene(): string {
+        const ents = this.entities
+            .map((e) => `    const e = this.add.rectangle(${e.x}, ${e.y}, 24, 24, ${e.color}); this.physics.add.existing(e, true);`)
+            .join("\n");
+        return `import Phaser from "phaser";
+
+const WORLD_W = ${this.worldW}, WORLD_H = ${this.worldH}, THICK = ${GROUND_THICKNESS};
+const GRAVITY = ${this.gravity}, MOVE_SPEED = ${this.moveSpeed}, JUMP_VELOCITY = ${this.jumpVelocity};
+const SPAWN_X = ${this.spawnX}, SPAWN_Y = ${this.spawnY};
+const HBW = ${this.hitboxW}, HBH = ${this.hitboxH};
+const GOAL_X = ${this.goalX}, GOAL_Y = ${this.goalY};
+
+class MainScene extends Phaser.Scene {
+  constructor() { super("main"); this.won = false; this.t = 0; }
+  create() {
+    this.cameras.main.setBackgroundColor("#6aa0db"); // sky — never a void
+    this.ground = this.add.rectangle(WORLD_W / 2, WORLD_H - THICK / 2, WORLD_W, THICK, 0x4d6b47);
+    this.physics.add.existing(this.ground, true);
+    this.player = this.add.rectangle(SPAWN_X, SPAWN_Y, HBW, HBH, 0xe54d4d);
+    this.physics.add.existing(this.player);
+    this.physics.add.collider(this.player, this.ground);
+    this.goal = this.add.rectangle(GOAL_X, GOAL_Y, 36, 50, 0xf2d933);
+    this.physics.add.existing(this.goal, true);
+    this.physics.add.overlap(this.player, this.goal, () => { this.won = true; this.status.setText("You win!"); });
+${ents}
+    this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H + 2000);
+    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setZoom(${this.zoom});
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys("W,A,D,SPACE");
+    this.status = this.add.text(16, 12, ${JSON.stringify(this.hudText)}, { color: "#fff", fontFamily: "monospace", fontSize: "14px" }).setScrollFactor(0);
+    window.__GAME_STATE__ = { player_alive: true, player_on_screen: true, player_x: SPAWN_X, player_y: SPAWN_Y, score: 0, goal_reached: false, game_over: false, elapsed_seconds: 0 };
+  }
+  update(time, delta) {
+    const b = this.player.body;
+    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const right = this.cursors.right.isDown || this.keys.D.isDown;
+    b.setVelocityX(((right ? 1 : 0) - (left ? 1 : 0)) * MOVE_SPEED);
+    const up = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+    if (up && b.blocked.down) b.setVelocityY(-JUMP_VELOCITY);
+    if (this.player.y > WORLD_H + 400) { this.player.setPosition(SPAWN_X, SPAWN_Y); b.setVelocity(0, 0); }
+    this.t += delta / 1000;
+    window.__GAME_STATE__ = { player_alive: true, player_on_screen: this.player.x >= -100, player_x: this.player.x, player_y: this.player.y, score: 0, goal_reached: this.won, game_over: false, elapsed_seconds: this.t };
+    console.log("__GS__ x=" + Math.round(this.player.x) + " y=" + Math.round(this.player.y) + " won=" + this.won);
+  }
+}
+
+new Phaser.Game({
+  type: Phaser.AUTO,
+  width: ${this.viewW},
+  height: ${this.viewH},
+  parent: "game",
+  physics: { default: "arcade", arcade: { gravity: { y: GRAVITY } } },
+  scene: MainScene,
+});
+`;
+    }
+}
+
+const BROWSER_INDEX_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GameSmith</title>
+<style>html,body{margin:0;height:100%;background:#0E0F12;overflow:hidden}canvas{display:block;margin:0 auto}</style>
+</head>
+<body>
+<div id="game"></div>
+<script src="./bundle.js"></script>
+</body>
+</html>
+`;
+
+export function makePhaserComposer(): PhaserComposer {
+    return new PhaserComposer();
+}
