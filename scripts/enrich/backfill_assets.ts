@@ -60,12 +60,56 @@ function client(): SupabaseClient {
     return createClient(url, key, { auth: { persistSession: false } });
 }
 
-async function fetchImage(url: string): Promise<ImageRGBA> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    const png = PNG.sync.read(buf); // throws on non-PNG / corrupt
-    return { data: new Uint8ClampedArray(png.data), width: png.width, height: png.height };
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Memory guards: PNG.sync.read allocates width*height*4 bytes (+ pngjs
+ * overhead), so a multi-thousand-pixel sheet OOMs the process. The detectors
+ * gain nothing from giant images, so skip them before decoding. */
+const MAX_BYTES = 25_000_000; // 25 MB download
+const MAX_PIXELS = 8_000_000; // ~2828x2828
+
+/** Read width/height from the PNG IHDR (offset 16-23) without decoding. */
+function pngDimensions(buf: Buffer): { w: number; h: number } | null {
+    if (buf.length < 24) return null;
+    return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
+
+/** Some CC0 PNGs carry trailing bytes after the IEND chunk, which pngjs strict
+ * mode rejects ("unrecognised content at end of stream"). Truncate to the end of
+ * IEND so the otherwise-valid image decodes. */
+function sanitizePng(buf: Buffer): Buffer {
+    const iend = buf.indexOf("IEND", 0, "ascii");
+    if (iend === -1) return buf;
+    const end = iend + 4 + 4; // IEND chunk: type(4) + zero-length data + crc(4)
+    return end < buf.length ? buf.subarray(0, end) : buf;
+}
+
+/** Transient (worth retrying) vs permanent (decode) failure. The catalog burst
+ * hits OpenGameArt rate-limiting/timeouts, not corrupt files. */
+function isTransient(err: unknown): boolean {
+    return /HTTP (4|5)|fetch|timeout|terminated|ECONN|network|aborted/i.test(String(err));
+}
+
+async function fetchImage(url: string, attempts = 3): Promise<ImageRGBA> {
+    let lastErr: unknown;
+    for (let a = 0; a < attempts; a++) {
+        try {
+            const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const len = Number(res.headers.get("content-length") ?? 0);
+            if (len > MAX_BYTES) throw new Error(`skip: too large (${len}B)`);
+            const buf = sanitizePng(Buffer.from(await res.arrayBuffer()));
+            const dims = pngDimensions(buf);
+            if (dims && dims.w * dims.h > MAX_PIXELS) throw new Error(`skip: too large (${dims.w}x${dims.h})`);
+            const png = PNG.sync.read(buf, { checkCRC: false });
+            return { data: new Uint8ClampedArray(png.data), width: png.width, height: png.height };
+        } catch (err) {
+            lastErr = err;
+            if (!isTransient(err)) throw err; // a real decode failure: don't retry
+            await sleep(500 * (a + 1)); // backoff on rate-limit / timeout
+        }
+    }
+    throw lastErr;
 }
 
 /** Run the detectors relevant to this asset_type and build the DB patch. */
@@ -148,6 +192,7 @@ async function main(): Promise<void> {
             console.error({ context: "backfill.row", id: row.id, url: row.download_url, error: String(err) });
         }
         if ((i + 1) % 25 === 0) console.log(`[backfill] ${i + 1}/${rows.length}…`);
+        await sleep(120); // be polite to the source CDNs (avoid burst rate-limiting)
     }
 
     console.log(`[backfill] done — enriched=${enriched} skipped=${skipped} failed=${failed}`);
