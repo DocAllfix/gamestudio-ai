@@ -97,6 +97,17 @@ describe("Godot real level (solid_tiles)", () => {
     });
 });
 
+describe("Godot frame-aware player (sheet → one frame)", () => {
+    const s = spec("godot");
+    s.asset_slots.find((a) => a.slot === "player")!.frame = { w: 64, h: 64, count: 55, fps: 8, anchor: { x: 0.5, y: 1 } };
+    const gd = composeScene(s, makeGodotComposer()).files.find((f) => f.path.endsWith("main.gd"))!.content;
+
+    it("shows ONE frame via a region rect, not the whole scrambled sheet", () => {
+        expect(gd).toContain("region_enabled = true");
+        expect(gd).toContain("region_rect = Rect2(0, 0, 64, 64)");
+    });
+});
+
 describe("Phaser composer", () => {
     const scene = composeFor(spec("phaser"));
     const js = scene.files.find((f) => f.path.endsWith("main.js"))!.content;

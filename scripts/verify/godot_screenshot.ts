@@ -10,12 +10,18 @@
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
 
+import { PNG } from "pngjs";
+
 import { createE2bClient } from "../../lib/runtime/sandbox/real-clients.js";
 import { GodotAdapter, GODOT_EXPORT_DIR } from "../../lib/runtime/engines/godot.js";
 import { composeFor } from "../../lib/runtime/composer/index.js";
 import { buildPlatformerLevel } from "../../lib/runtime/composer/sample-level.js";
+import { analyzeSprite } from "../../lib/studio/sprite-sheet.js";
 import { DEFAULT_PLATFORMER_PHYSICS } from "../../lib/tools/level/_platformer-physics.js";
 import type { R2Client } from "../../lib/runtime/sandbox/r2.js";
+
+/** The goblin SHEET (transparent) — sliced to one frame, the Godot parity test. */
+const PLAYER_ASSET_URL = "https://opengameart.org/sites/default/files/goblin_0.png";
 import type { SandboxSession } from "../../lib/runtime/sandbox/e2b.js";
 import type { SideScrollerSpec } from "../../lib/contracts/game-spec.contract.js";
 
@@ -63,12 +69,25 @@ const server = http.createServer((req,res)=>{ const f = path.join(dir, req.url==
 `;
 
 async function main(): Promise<void> {
+    // Real transparent sheet → slice to one frame (frame-aware parity w/ Phaser).
+    const res0 = await fetch(PLAYER_ASSET_URL);
+    if (!res0.ok) throw new Error(`player asset HTTP ${res0.status}`);
+    const playerPng = Buffer.from(await res0.arrayBuffer());
+    const png = PNG.sync.read(playerPng, { checkCRC: false });
+    const sheet = analyzeSprite({ data: new Uint8ClampedArray(png.data), width: png.width, height: png.height });
+    console.log(`[shot] player ${png.width}x${png.height} → ${sheet.is_sheet ? `SHEET ${sheet.frame_w}x${sheet.frame_h} (${sheet.frame_count}f)` : "single"}`);
+    const playerSlot = SPEC.asset_slots.find((s) => s.slot === "player");
+    if (playerSlot && sheet.is_sheet) {
+        playerSlot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, fps: 8, anchor: { x: 0.5, y: 1 } };
+    }
+
     const scene = composeFor(SPEC);
     const adapter = new GodotAdapter({ e2b: createE2bClient(), r2: stubR2, bucket: "" });
     console.log("[shot] booting sandbox…");
     const sandbox = (await adapter.bootSandbox()) as SandboxSession;
     try {
         for (const f of scene.files) await adapter.writeFile(sandbox, f.path, f.content);
+        await sandbox.writeFile("/project/assets/sprites/player.png", playerPng); // real transparent sprite into the build
         console.log("[shot] exporting WASM…");
         const build = await adapter.build(sandbox);
         if (build.exit_code !== 0) { console.log("[shot] build FAIL:\n" + build.stderr.slice(0, 1500)); return; }

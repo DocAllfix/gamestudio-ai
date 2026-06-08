@@ -23,6 +23,7 @@ import type {
     BackgroundSpec,
     CameraSpec,
     EntitySpec,
+    FrameMeta,
     GoalSpec,
     HudSpec,
     MechanicsSpec,
@@ -64,6 +65,9 @@ interface Controller {
     /** Real level collision/visual grid (1=solid, 0=air). Null → flat floor. */
     solidTiles: number[][] | null;
     tilePx: number;
+    /** Player sheet frame size (sheet → show one frame). Null → whole image. */
+    playerFrameW: number | null;
+    playerFrameH: number | null;
 }
 
 const GROUND_THICKNESS = 64;
@@ -78,7 +82,9 @@ export class GodotComposer implements EngineComposer {
         hudText: "Reach the goal!", bgPath: "", playerPath: "", tilesetPath: "", goalPath: "",
         hitboxW: 28, hitboxH: 38,
         solidTiles: null, tilePx: 16,
+        playerFrameW: null, playerFrameH: null,
     };
+    private slotFrames = new Map<string, FrameMeta>();
     private warnings: string[] = [];
     private pixelArt = false;
 
@@ -91,6 +97,7 @@ export class GodotComposer implements EngineComposer {
             const sub = s.role === "audio" ? "audio" : "sprites";
             const ext = s.role === "audio" ? "mp3" : "png";
             this.slots.set(s.slot, `res://assets/${sub}/${s.slot}.${ext}`);
+            if (s.frame) this.slotFrames.set(s.slot, s.frame);
         }
         this.pixelArt = init.pixelArt;
         this.ctrl.gravity = init.gravity;
@@ -147,6 +154,8 @@ export class GodotComposer implements EngineComposer {
         this.ctrl.hitboxW = player.hitbox_px.w;
         this.ctrl.hitboxH = player.hitbox_px.h;
         this.ctrl.playerPath = this.resPath(player.asset_slot);
+        const pf = this.slotFrames.get(player.asset_slot);
+        if (pf) { this.ctrl.playerFrameW = pf.w; this.ctrl.playerFrameH = pf.h; }
 
         const id = "PlayerShape";
         this.subres.push({ id, type: "RectangleShape2D", props: { size: `Vector2(${player.hitbox_px.w}, ${player.hitbox_px.h})` } });
@@ -262,6 +271,19 @@ export class GodotComposer implements EngineComposer {
             ? "\t_build_level()"
             : `\t_stretch($Ground/GroundSprite, "${c.tilesetPath}", Vector2(${c.worldW}, ${c.thickness}), Color(0.30, 0.42, 0.28))`;
         const levelFuncs = hasLevel ? LEVEL_FUNCS : "";
+        // Player: a sheet (frame metadata present) shows ONE frame via a region
+        // rect — the Godot mirror of Phaser's load.spritesheet + frame 0, so a
+        // sheet renders as one character, not the whole scrambled sheet.
+        const fh = c.playerFrameH ?? c.hitboxH;
+        const pScale = this.pixelArt ? `maxf(1.0, round(${c.hitboxH.toFixed(1)} / ${fh.toFixed(1)}))` : `(${c.hitboxH.toFixed(1)} / ${fh.toFixed(1)})`;
+        const playerBlock = c.playerFrameW !== null && c.playerFrameH !== null
+            ? `\tps.texture = _tex("${c.playerPath}", Vector2(${c.playerFrameW}, ${c.playerFrameH}), Color(0.90, 0.30, 0.30))
+\tif ResourceLoader.exists("${c.playerPath}"):
+\t\tps.region_enabled = true
+\t\tps.region_rect = Rect2(0, 0, ${c.playerFrameW}, ${c.playerFrameH})
+\tps.scale = Vector2.ONE * ${pScale}`
+            : `\tps.texture = _tex("${c.playerPath}", Vector2(${c.hitboxW}, ${c.hitboxH}), Color(0.90, 0.30, 0.30))
+\t_fit(ps, ${c.hitboxH.toFixed(1)})`;
         return `extends Node2D
 
 const GRAVITY := ${c.gravity.toFixed(1)}
@@ -283,8 +305,7 @@ func _ready() -> void:
 	if bs.x > 0.0 and bs.y > 0.0: bg.scale = get_viewport_rect().size / bs
 ${groundSetup}
 	var ps := $Player/PlayerSprite as Sprite2D
-	ps.texture = _tex("${c.playerPath}", Vector2(${c.hitboxW}, ${c.hitboxH}), Color(0.90, 0.30, 0.30))
-	_fit(ps, ${c.hitboxH.toFixed(1)})
+${playerBlock}
 	var qs := $Goal/GoalSprite as Sprite2D
 	qs.texture = _tex("${c.goalPath}", Vector2(36, 50), Color(0.95, 0.85, 0.20))
 	_fit(qs, 50.0)
