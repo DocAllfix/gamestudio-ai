@@ -15,7 +15,8 @@
  */
 import type { AssemblerInput } from "../../contracts/assembly-pipeline.contract.js";
 import type { Engine } from "../../contracts/game-plan.contract.js";
-import { GODOT_FALLBACK_GAME } from "./_godot-fallback.js";
+import { buildFallbackSpec } from "../composer/fallback-spec.js";
+import { composeFor } from "../composer/index.js";
 
 /** One file to write into the sandbox FS. */
 export interface ScaffoldFile {
@@ -296,14 +297,23 @@ function ensureGodotExtendsNode2D(rawCode: string): string {
 /** A game needs a _ready() to build its scene; anything without one (empty
  * string from a failed code_gen, or a bare `extends Node2D`) renders a grey
  * empty scene. Treat that as "no game" → substitute the guaranteed template. */
-function godotCodeOrFallback(code: string): string {
-    return /func\s+_ready\s*\(/.test(code) ? code : GODOT_FALLBACK_GAME;
+/** FASE 3: a failed code_gen → compose a known-good scene instead of a grey
+ * screen. The composer produces all the engine's files and loads the same
+ * resolved res:// assets, so the fallback IS "the new runtime minus the LLM
+ * enrichment" — composed, not a hand-written template or a void. */
+function composeFallbackFiles(engine: Engine): ScaffoldFile[] {
+    return composeFor(buildFallbackSpec(engine)).files.map((f) => ({
+        path: f.path, content: f.content, encoding: f.encoding,
+    }));
 }
 
 function godotScaffold(code: string, assets: ScaffoldFile[]): ScaffoldFile[] {
+    // A game needs a _ready() to build its scene; without one the LLM produced
+    // no usable game → compose the fallback rather than ship a grey scene.
+    if (!/func\s+_ready\s*\(/.test(code)) return [...composeFallbackFiles("godot"), ...assets];
     return [
         { path: "/project/project.godot", content: GODOT_PROJECT, encoding: "utf-8" },
-        { path: "/project/main.gd", content: ensureGodotExtendsNode2D(godotCodeOrFallback(code)), encoding: "utf-8" },
+        { path: "/project/main.gd", content: ensureGodotExtendsNode2D(code), encoding: "utf-8" },
         { path: "/project/main.tscn", content: GODOT_MAIN_TSCN, encoding: "utf-8" },
         {
             path: "/project/export_presets.cfg",
@@ -362,6 +372,9 @@ export function scaffoldProject(
 
     switch (engine) {
         case "phaser":
+            // FASE 3: no usable Phaser code → compose the fallback scene.
+            if (!/new\s+Phaser\.Game/.test(code)) return [...composeFallbackFiles("phaser"), ...assets];
+            return browserScaffold("/project/src/main.js", code, assets);
         case "threejs":
             return browserScaffold("/project/src/main.js", code, assets);
         case "babylon":

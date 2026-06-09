@@ -65,7 +65,7 @@ const baseInput: AssemblerInput = {
         n1: {
             tool_id: "code_gen_phaser",
             files: [
-                { path: "src/main.js", content: "console.log('hi')", encoding: "utf-8" },
+                { path: "src/main.js", content: "new Phaser.Game({ scene: {} }); // hi", encoding: "utf-8" },
             ],
         },
         n2: {
@@ -101,7 +101,7 @@ describe("assemble()", () => {
         expect(paths).toContain("assets/hero.png");
         // The entry holds the generated gameplay source.
         const entry = adapter.written.find((w) => w.path === "/project/src/main.js");
-        expect(entry?.content).toBe("console.log('hi')");
+        expect(entry?.content).toBe("new Phaser.Game({ scene: {} }); // hi");
     });
 
     it("skips the smoke test when run_smoke_test=false", async () => {

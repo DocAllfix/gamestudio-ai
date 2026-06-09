@@ -56,6 +56,23 @@ describe("scaffoldProject", () => {
         }
     });
 
+    it("godot fallback is now COMPOSED (declarative scene + real level), not bare", () => {
+        // FASE 3: the fallback is the composer, not a hand-written template.
+        const files = scaffoldProject("godot", { n1: codeNode("code_gen_godot_gdscript", "") });
+        const tscn = files.find((f) => f.path === "/project/main.tscn");
+        expect(tscn?.content).toContain('type="CharacterBody2D"'); // a composed Player node
+        const gd = files.find((f) => f.path === "/project/main.gd");
+        expect(gd?.content).toContain("const SOLID"); // the real level grid from the composer
+    });
+
+    it("phaser fallback composes a real scene when there's no usable code", () => {
+        const files = scaffoldProject("phaser", { n1: codeNode("code_gen_phaser_js", "") });
+        const js = files.find((f) => f.path === "/project/src/main.js");
+        expect(js?.content).toContain("class MainScene extends Phaser.Scene");
+        expect(js?.content).toContain("window.__GAME_STATE__"); // playable gate signal
+        expect(files.map((f) => f.path)).toContain("/project/dist/index.html");
+    });
+
     it("sanitizeGodot4: rewrites the common Godot 3 → 4 patterns", () => {
         expect(sanitizeGodot4("onready var p = 1")).toContain("@onready var p");
         expect(sanitizeGodot4("export var hp = 100")).toContain("@export var hp");
