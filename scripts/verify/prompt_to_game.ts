@@ -18,33 +18,30 @@ import { chromium } from "playwright";
 import { PNG } from "pngjs";
 
 import { composeFor } from "../../lib/runtime/composer/index.js";
-import { proposeDesign, designToGameSpec } from "../../lib/runtime/composer/from-prompt.js";
+import { proposeDesign, designToGameSpec, resolveSlots } from "../../lib/runtime/composer/from-prompt.js";
 import { analyzeSprite } from "../../lib/studio/sprite-sheet.js";
 import type { SideScrollerSpec, TopDownGridSpec } from "../../lib/contracts/game-spec.contract.js";
 
-const ASSETS: Record<string, string> = {
-    sprite_gen: "https://opengameart.org/sites/default/files/goblin_0.png",
-    tileset: "https://opengameart.org/sites/default/files/ground_7.png",
-    background: "https://opengameart.org/sites/default/files/landscape_fixed_backgrounds_-_morning.png",
-};
-
-async function bindAssets(spec: SideScrollerSpec | TopDownGridSpec): Promise<void> {
+/** Fetch each resolved catalog asset → a data URL (no CORS in the headless page;
+ * in production the assembler writes the real file). Unloadable → unbound, so the
+ * composer uses a placeholder. */
+async function localizeAssets(spec: SideScrollerSpec | TopDownGridSpec): Promise<void> {
     for (const slot of spec.asset_slots) {
-        const url = ASSETS[slot.slot];
-        if (!url) continue;
-        const res = await fetch(url);
-        if (!res.ok) continue;
-        const buf = Buffer.from(await res.arrayBuffer());
-        slot.binding = {
-            source: "catalog", slot: slot.slot, asset_library_id: "00000000-0000-4000-8000-000000000001",
-            download_url: `data:image/png;base64,${buf.toString("base64")}`, license: "CC0-1.0",
-            attribution_required: false, creator_name: null,
-        };
-        if (slot.slot === "sprite_gen") {
-            const png = PNG.sync.read(buf, { checkCRC: false });
-            const sheet = analyzeSprite({ data: new Uint8ClampedArray(png.data), width: png.width, height: png.height });
-            if (sheet.is_sheet) slot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, cols: Math.round(png.width / sheet.frame_w), fps: 8, anchor: { x: 0.5, y: 1 } };
-        }
+        const binding = slot.binding;
+        if (!binding || binding.source !== "catalog") continue;
+        try {
+            const res = await fetch(binding.download_url);
+            if (!res.ok) { slot.binding = null; continue; }
+            const buf = Buffer.from(await res.arrayBuffer());
+            binding.download_url = `data:image/png;base64,${buf.toString("base64")}`;
+            if (slot.slot === "sprite_gen") {
+                try {
+                    const png = PNG.sync.read(buf, { checkCRC: false });
+                    const sheet = analyzeSprite({ data: new Uint8ClampedArray(png.data), width: png.width, height: png.height });
+                    if (sheet.is_sheet) slot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, cols: Math.round(png.width / sheet.frame_w), fps: 8, anchor: { x: 0.5, y: 1 } };
+                } catch { /* non-PNG or odd sheet → load whole image, no frame */ }
+            }
+        } catch { slot.binding = null; }
     }
 }
 
@@ -55,9 +52,16 @@ async function main(): Promise<void> {
     const brief = await proposeDesign(prompt);
     console.log("→ brief:", JSON.stringify(brief));
     const spec = designToGameSpec(brief, "phaser");
+    const outFile = `prompt_game_${brief.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "game"}.png`;
     console.log(`→ GameSpec: archetype=${spec.archetype}, level ${spec.world.width_tiles}x${spec.world.height_tiles}, move_speed=${spec.physics.move_speed}`);
 
-    await bindAssets(spec);
+    console.log(`→ resolving assets from the catalog by theme "${brief.theme}"…`);
+    await resolveSlots(spec, brief.theme);
+    const resolved = spec.asset_slots
+        .map((s) => (s.binding && s.binding.source === "catalog" ? `${s.slot}#${s.binding.asset_library_id.slice(0, 8)}` : null))
+        .filter((x): x is string => x !== null);
+    console.log(`→ resolved: ${resolved.join("  ") || "(none → placeholders)"}`);
+    await localizeAssets(spec);
     const scene = composeFor(spec);
     const mainJs = scene.files.find((f) => f.path.endsWith("main.js"))!.content;
     const dir = join(process.cwd(), ".tmp-prompt-shot");
@@ -78,11 +82,11 @@ async function main(): Promise<void> {
         await page.keyboard.down("ArrowRight");
         await page.keyboard.down("ArrowDown");
         await page.waitForTimeout(2200);
-        await page.screenshot({ path: "prompt_game.png" });
+        await page.screenshot({ path: outFile });
         await page.keyboard.up("ArrowRight");
         await page.keyboard.up("ArrowDown");
         await browser.close();
-        console.log(`→ crash: ${crash ?? "none"} — saved prompt_game.png\n`);
+        console.log(`→ crash: ${crash ?? "none"} — saved ${outFile}\n`);
     } finally {
         rmSync(dir, { recursive: true, force: true });
     }

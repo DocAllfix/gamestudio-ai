@@ -18,6 +18,8 @@ import type { Engine } from "../../contracts/game-plan.contract.js";
 import { GENRE_TO_ARCHETYPE } from "../../contracts/game-spec.contract.js";
 import type { SideScrollerSpec, TopDownGridSpec } from "../../contracts/game-spec.contract.js";
 import { complete } from "../../llm/router.js";
+import { defaultMatchAssets, fetchSpriteKinds } from "../../tools/asset-resolver/index.js";
+import type { MatchedAsset } from "../../tools/asset-resolver/index.js";
 import { DEFAULT_PLATFORMER_PHYSICS } from "../../tools/level/_platformer-physics.js";
 import { buildPlatformerLevel, buildTopDownRoom } from "./sample-level.js";
 
@@ -86,4 +88,63 @@ export function designToGameSpec(brief: DesignBrief, engine: Engine): SideScroll
         archetype: "side_scroller_platform", ...common,
         physics: { gravity: DEFAULT_PLATFORMER_PHYSICS.gravity, jump_velocity: DEFAULT_PLATFORMER_PHYSICS.jump_velocity, move_speed: Math.round(DEFAULT_PLATFORMER_PHYSICS.move_speed * speed) },
     } as SideScrollerSpec;
+}
+
+/** Per-slot catalog query: what to search for + the HARD asset_type filter that
+ * keeps the right kind of asset out (a 2D background, not an .hdr 3D map; a
+ * tileset, not a 3D model; a sprite, transparent). */
+const SLOT_QUERIES: Record<string, { q: (theme: string) => string; asset_type?: string; require_alpha?: boolean }> = {
+    sprite_gen: { q: (t) => `${t} character hero creature sprite`, asset_type: "sprite", require_alpha: true },
+    tileset: { q: (t) => `${t} ground terrain tileset tiles`, asset_type: "tileset" },
+    background: { q: (t) => `${t} background landscape sky scene`, asset_type: "background" },
+};
+
+/** Pick the best USABLE hit for a slot — semantic search returns theme-relevant
+ * candidates, but they must also be the right KIND. Uses the vision
+ * classification (sprite_kind) and tile geometry, not just similarity. */
+async function pickBest(slotName: string, hits: MatchedAsset[]): Promise<MatchedAsset | null> {
+    if (hits.length === 0) return null;
+    if (slotName === "sprite_gen") {
+        // A character must be a real character. Prefer a VERIFIED single sprite
+        // (vision classification); else fall back to a sprite that is neither a
+        // known object_pack/non_asset NOR description-flagged as a collection /
+        // scenery (much of the catalog is unclassified → the keyword guard catches
+        // e.g. "a collection of haunted forest trees"). None → null (clean
+        // placeholder beats a tree blob).
+        const kinds = await fetchSpriteKinds(hits.map((h) => h.id));
+        const notCollection = (h: MatchedAsset) =>
+            !/collection|\bpack\b|\bset\b|trees|tiles|bundle|sheet of|assets/i.test(h.semantic_description);
+        return (
+            hits.find((h) => kinds.get(h.id) === "single") ??
+            hits.find((h) => {
+                const k = kinds.get(h.id);
+                return k !== "object_pack" && k !== "non_asset" && notCollection(h);
+            }) ??
+            null
+        );
+    }
+    if (slotName === "tileset") {
+        // The composer assumes a square grid → reject hexagonal/isometric tilesets.
+        return hits.find((h) => !/hex|isometric|hexagon/i.test(h.semantic_description)) ?? null;
+    }
+    return hits[0]; // background: asset_type='background' is already 2D-clean
+}
+
+/** Bind the GameSpec's asset slots from the CATALOG by theme (semantic search)
+ * AND by kind (classification filters) — contextual assets per prompt that are
+ * also the right type. A slot with no usable hit stays unbound → placeholder. */
+export async function resolveSlots(spec: SideScrollerSpec | TopDownGridSpec, theme: string): Promise<void> {
+    for (const slot of spec.asset_slots) {
+        const cfg = SLOT_QUERIES[slot.slot];
+        if (!cfg) continue;
+        const hits = await defaultMatchAssets({ description: cfg.q(theme), asset_type: cfg.asset_type, require_alpha: cfg.require_alpha });
+        const best = await pickBest(slot.slot, hits);
+        if (best?.download_url) {
+            slot.binding = {
+                source: "catalog", slot: slot.slot, asset_library_id: best.id,
+                download_url: best.download_url, license: best.license,
+                attribution_required: false, creator_name: null,
+            };
+        }
+    }
 }

@@ -108,7 +108,7 @@ function preferLoadable(hits: MatchedAsset[]): MatchedAsset[] {
     return loadable.length > 0 ? loadable : hits;
 }
 
-async function defaultMatchAssets(query: {
+export async function defaultMatchAssets(query: {
     description: string;
     asset_type?: string;
     style_pack?: string;
@@ -171,6 +171,37 @@ async function defaultMatchAssets(query: {
     } catch (error) {
         console.error({ context: "asset_resolver.defaultMatchAssets", query, error });
         return [];
+    }
+}
+
+/** Fetch sprite_kind (vision classification, migration 015) for asset ids, so a
+ * caller can keep only real characters (single / animation_sheet) and drop the
+ * object_pack collections (e.g. a sheet of trees) that semantic search otherwise
+ * returns for a character slot. Read-only; missing env → empty map (degrade). */
+export async function fetchSpriteKinds(ids: string[]): Promise<Map<string, string | null>> {
+    const out = new Map<string, string | null>();
+    if (ids.length === 0) return out;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return out;
+    try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(url, key);
+        const { data, error } = await supabase
+            .from("asset_library_index")
+            .select("id, sprite_kind")
+            .in("id", ids);
+        if (error) {
+            console.error({ context: "asset_resolver.fetchSpriteKinds", error });
+            return out;
+        }
+        for (const row of (data ?? []) as Array<{ id: string; sprite_kind: string | null }>) {
+            out.set(row.id, row.sprite_kind);
+        }
+        return out;
+    } catch (error) {
+        console.error({ context: "asset_resolver.fetchSpriteKinds", error });
+        return out;
     }
 }
 
