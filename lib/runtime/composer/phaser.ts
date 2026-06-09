@@ -68,6 +68,7 @@ export class PhaserComposer implements EngineComposer {
     private clamp = true;
     private hudText = "Reach the goal!";
     private solidTiles: number[][] | null = null;
+    private tilesetTextureUrl: string | null = null;
     private slots = new Map<string, AssetSlot>();
     private playerTextureUrl: string | null = null;
     private playerFrame: FrameMeta | null = null;
@@ -98,6 +99,7 @@ export class PhaserComposer implements EngineComposer {
         this.worldW = world.width_tiles * world.tile_px;
         this.worldH = world.height_tiles * world.tile_px;
         this.solidTiles = world.solid_tiles ?? null;
+        this.tilesetTextureUrl = slotUrl(this.slots.get(world.tileset_slot));
     }
 
     addPlayer(player: PlayerSpec, physics: PhysicsSpec, _mechanics: MechanicsSpec): void {
@@ -160,9 +162,15 @@ export class PhaserComposer implements EngineComposer {
         if (this.solidTiles) {
             const data = this.solidTiles.map((row) => row.map((c) => (c === 1 ? 0 : -1)));
             levelConst = `const TILE = ${this.tilePx};\nconst SOLID = ${JSON.stringify(data)};\n`;
-            level = `    const g = this.add.graphics(); g.fillStyle(0x4d6b47, 1).fillRect(0, 0, TILE, TILE); g.lineStyle(1, 0x3a5238, 1).strokeRect(0, 0, TILE, TILE); g.generateTexture("tile", TILE, TILE); g.destroy();
-    const map = this.make.tilemap({ data: SOLID, tileWidth: TILE, tileHeight: TILE });
-    const layer = map.createLayer(0, map.addTilesetImage("tile"), 0, 0);
+            // Real tileset (loaded in preload as "tiles", tile index 0) or a
+            // generated placeholder tile.
+            const tileSetup = this.tilesetTextureUrl
+                ? `    const ts = map.addTilesetImage("tiles");`
+                : `    const g = this.add.graphics(); g.fillStyle(0x4d6b47, 1).fillRect(0, 0, TILE, TILE); g.lineStyle(1, 0x3a5238, 1).strokeRect(0, 0, TILE, TILE); g.generateTexture("tile", TILE, TILE); g.destroy();
+    const ts = map.addTilesetImage("tile");`;
+            level = `    const map = this.make.tilemap({ data: SOLID, tileWidth: TILE, tileHeight: TILE });
+${tileSetup}
+    const layer = map.createLayer(0, ts, 0, 0);
     layer.setCollisionByExclusion([-1]);
     this.physics.add.collider(this.player, layer);`;
         } else {
@@ -173,7 +181,7 @@ export class PhaserComposer implements EngineComposer {
 
         // Player: a real sprite when the slot has a bound (transparent) asset,
         // else a placeholder rectangle. Aspect preserved, scaled to hitbox height.
-        let preloadBlock = "";
+        const preloadParts: string[] = [];
         let walkUpdate = "";
         let playerCreate = `    this.player = this.add.rectangle(SPAWN_X, SPAWN_Y, HBW, HBH, 0xe54d4d);
     this.physics.add.existing(this.player);`;
@@ -189,7 +197,7 @@ export class PhaserComposer implements EngineComposer {
             const spriteCall = this.playerFrame
                 ? `this.physics.add.sprite(SPAWN_X, SPAWN_Y, "player", 0)`
                 : `this.physics.add.sprite(SPAWN_X, SPAWN_Y, "player")`;
-            preloadBlock = `  preload() { ${loadCall}; }\n`;
+            preloadParts.push(loadCall);
             playerCreate = `    this.player = ${spriteCall};
     if (this.player.height > 0) this.player.setScale(${scaleExpr});`;
             if (this.playerFrame) {
@@ -202,6 +210,11 @@ export class PhaserComposer implements EngineComposer {
 `;
             }
         }
+
+        if (this.solidTiles && this.tilesetTextureUrl) {
+            preloadParts.push(`this.load.spritesheet("tiles", ${JSON.stringify(this.tilesetTextureUrl)}, { frameWidth: ${this.tilePx}, frameHeight: ${this.tilePx} })`);
+        }
+        const preloadBlock = preloadParts.length ? `  preload() { ${preloadParts.map((p) => p + ";").join(" ")} }\n` : "";
 
         return `import Phaser from "phaser";
 

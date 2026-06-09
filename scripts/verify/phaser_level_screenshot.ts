@@ -23,6 +23,8 @@ const W = 40, H = 20, TILE = 16;
 const solid = buildPlatformerLevel({ width: W, height: H, tilePx: TILE, physics: DEFAULT_PLATFORMER_PHYSICS });
 /** The goblin SHEET that rendered as a scramble — now sliced to one frame. */
 const PLAYER_ASSET_URL = "https://opengameart.org/sites/default/files/goblin_0.png";
+/** A real CC0 ground tileset — tile 0 (top-left) is grass, replaces the cubes. */
+const TILESET_ASSET_URL = "https://opengameart.org/sites/default/files/ground_7.png";
 
 const SPEC: SideScrollerSpec = {
     archetype: "side_scroller_platform",
@@ -65,6 +67,20 @@ async function main(): Promise<void> {
         if (sheet.is_sheet) {
             playerSlot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, cols: Math.round(png.width / sheet.frame_w), fps: 8, anchor: { x: 0.5, y: 1 } };
         }
+    }
+
+    // Bind a real tileset (tile 0 = grass) to the tileset slot → real tiles.
+    const resT = await fetch(TILESET_ASSET_URL);
+    if (!resT.ok) throw new Error(`tileset asset HTTP ${resT.status}`);
+    const tilesetDataUrl = `data:image/png;base64,${Buffer.from(await resT.arrayBuffer()).toString("base64")}`;
+    const tilesetSlot = SPEC.asset_slots.find((s) => s.slot === "tileset");
+    if (tilesetSlot) {
+        tilesetSlot.binding = {
+            source: "catalog", slot: "tileset",
+            asset_library_id: "00000000-0000-4000-8000-000000000010",
+            download_url: tilesetDataUrl, license: "CC0-1.0",
+            attribution_required: false, creator_name: null,
+        };
     }
 
     const scene = composeFor(SPEC);

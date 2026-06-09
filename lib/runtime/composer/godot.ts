@@ -277,7 +277,10 @@ export class GodotComposer implements EngineComposer {
         const hasLevel = c.solidTiles !== null;
         const levelConst = hasLevel ? `\nconst TILE := ${c.tilePx}\nconst SOLID := ${JSON.stringify(c.solidTiles)}` : "";
         const groundSetup = hasLevel
-            ? "\t_build_level()"
+            ? `\t_build_level()
+\tif ResourceLoader.exists("${c.tilesetPath}"):
+\t\t_tile_tex = load("${c.tilesetPath}")
+\tqueue_redraw()`
             : `\t_stretch($Ground/GroundSprite, "${c.tilesetPath}", Vector2(${c.worldW}, ${c.thickness}), Color(0.30, 0.42, 0.28))`;
         const levelFuncs = hasLevel ? LEVEL_FUNCS : "";
         // Player: a sheet (frame metadata present) shows ONE frame via a region
@@ -299,6 +302,7 @@ export class GodotComposer implements EngineComposer {
             ? `\nconst FRAME_W := ${c.playerFrameW}\nconst FRAME_H := ${c.playerFrameH}\nconst ANIM_COLS := ${c.playerCols}\nconst ANIM_FPS := ${c.playerFps.toFixed(1)}`
             : "";
         const animVar = c.playerFrameW !== null ? "\nvar _anim_t := 0.0" : "";
+        const levelVar = hasLevel ? "\nvar _tile_tex: Texture2D = null" : "";
         const animUpdate = c.playerFrameW !== null
             ? `\tvar aps := $Player/PlayerSprite as Sprite2D
 \tif absf(player.velocity.x) > 1.0:
@@ -320,7 +324,7 @@ const WORLD_H := ${c.worldH.toFixed(1)}${levelConst}${animConsts}
 @onready var player: CharacterBody2D = $Player
 @onready var status_label: Label = $HUD/Status
 var won := false
-var _t := 0.0${animVar}
+var _t := 0.0${animVar}${levelVar}
 
 func _ready() -> void:
 	var bg := $Background/BgSprite as Sprite2D
@@ -418,8 +422,11 @@ func _draw() -> void:
 		for x in row.size():
 			if int(row[x]) == 1:
 				var r := Rect2(x * TILE, y * TILE, TILE, TILE)
-				draw_rect(r, Color(0.30, 0.42, 0.28))
-				draw_rect(r, Color(0.23, 0.33, 0.22), false, 1.0)
+				if _tile_tex:
+					draw_texture_rect_region(_tile_tex, r, Rect2(0, 0, TILE, TILE))
+				else:
+					draw_rect(r, Color(0.30, 0.42, 0.28))
+					draw_rect(r, Color(0.23, 0.33, 0.22), false, 1.0)
 `;
 
 const GODOT_PROJECT = `; Engine configuration, GameSmith composer.

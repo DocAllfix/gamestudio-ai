@@ -196,6 +196,31 @@ describe("real level + asset binding (Phaser)", () => {
     });
 });
 
+describe("real tileset (both engines)", () => {
+    function withTileset(engine: Engine): SideScrollerSpec {
+        const s = spec(engine);
+        s.world.solid_tiles = [[1, 1, 1], [0, 0, 0]];
+        s.asset_slots.find((a) => a.slot === "tileset")!.binding = {
+            source: "catalog", slot: "tileset", asset_library_id: "00000000-0000-4000-8000-000000000010",
+            download_url: "https://x/tiles.png", license: "CC0-1.0", attribution_required: false, creator_name: null,
+        };
+        return s;
+    }
+
+    it("Phaser loads the tileset image + uses it in the tilemap (not the placeholder)", () => {
+        const js = composeFor(withTileset("phaser")).files.find((f) => f.path.endsWith("main.js"))!.content;
+        expect(js).toContain('this.load.spritesheet("tiles"');
+        expect(js).toContain('map.addTilesetImage("tiles")');
+        expect(js).not.toContain('generateTexture("tile"');
+    });
+
+    it("Godot draws the tileset texture per solid tile (region 0)", () => {
+        const gd = composeScene(withTileset("godot"), makeGodotComposer()).files.find((f) => f.path.endsWith("main.gd"))!.content;
+        expect(gd).toContain('_tile_tex = load("res://assets/sprites/tileset.png")');
+        expect(gd).toContain("draw_texture_rect_region(_tile_tex, r, Rect2(0, 0, TILE, TILE))");
+    });
+});
+
 describe("driver dispatch", () => {
     it("the same spec drives both engines (cross-engine port holds)", () => {
         const s = spec("godot");

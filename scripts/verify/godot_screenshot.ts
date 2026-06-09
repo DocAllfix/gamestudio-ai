@@ -22,6 +22,8 @@ import type { R2Client } from "../../lib/runtime/sandbox/r2.js";
 
 /** The goblin SHEET (transparent) — sliced to one frame, the Godot parity test. */
 const PLAYER_ASSET_URL = "https://opengameart.org/sites/default/files/goblin_0.png";
+/** A real CC0 ground tileset — tile 0 (top-left) is grass, replaces the cubes. */
+const TILESET_ASSET_URL = "https://opengameart.org/sites/default/files/ground_7.png";
 import type { SandboxSession } from "../../lib/runtime/sandbox/e2b.js";
 import type { SideScrollerSpec } from "../../lib/contracts/game-spec.contract.js";
 
@@ -77,6 +79,9 @@ async function main(): Promise<void> {
     const res0 = await fetch(PLAYER_ASSET_URL);
     if (!res0.ok) throw new Error(`player asset HTTP ${res0.status}`);
     const playerPng = Buffer.from(await res0.arrayBuffer());
+    const resT = await fetch(TILESET_ASSET_URL);
+    if (!resT.ok) throw new Error(`tileset asset HTTP ${resT.status}`);
+    const tilesetPng = Buffer.from(await resT.arrayBuffer());
     const png = PNG.sync.read(playerPng, { checkCRC: false });
     const sheet = analyzeSprite({ data: new Uint8ClampedArray(png.data), width: png.width, height: png.height });
     console.log(`[shot] player ${png.width}x${png.height} → ${sheet.is_sheet ? `SHEET ${sheet.frame_w}x${sheet.frame_h} (${sheet.frame_count}f)` : "single"}`);
@@ -92,6 +97,7 @@ async function main(): Promise<void> {
     try {
         for (const f of scene.files) await adapter.writeFile(sandbox, f.path, f.content);
         await sandbox.writeFile("/project/assets/sprites/player.png", playerPng); // real transparent sprite into the build
+        await sandbox.writeFile("/project/assets/sprites/tileset.png", tilesetPng); // real ground tileset into the build
         console.log("[shot] exporting WASM…");
         const build = await adapter.build(sandbox);
         if (build.exit_code !== 0) { console.log("[shot] build FAIL:\n" + build.stderr.slice(0, 1500)); return; }
