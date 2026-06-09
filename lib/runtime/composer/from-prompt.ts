@@ -18,8 +18,8 @@ import type { Engine } from "../../contracts/game-plan.contract.js";
 import { GENRE_TO_ARCHETYPE } from "../../contracts/game-spec.contract.js";
 import type { SideScrollerSpec, TopDownGridSpec } from "../../contracts/game-spec.contract.js";
 import { complete } from "../../llm/router.js";
-import { defaultMatchAssets, fetchSpriteKinds } from "../../tools/asset-resolver/index.js";
-import type { MatchedAsset } from "../../tools/asset-resolver/index.js";
+import { defaultMatchAssets, fetchAssetMeta } from "../../tools/asset-resolver/index.js";
+import type { AssetMeta, MatchedAsset } from "../../tools/asset-resolver/index.js";
 import { DEFAULT_PLATFORMER_PHYSICS } from "../../tools/level/_platformer-physics.js";
 import { buildPlatformerLevel, buildTopDownRoom } from "./sample-level.js";
 
@@ -90,61 +90,82 @@ export function designToGameSpec(brief: DesignBrief, engine: Engine): SideScroll
     } as SideScrollerSpec;
 }
 
-/** Per-slot catalog query: what to search for + the HARD asset_type filter that
- * keeps the right kind of asset out (a 2D background, not an .hdr 3D map; a
- * tileset, not a 3D model; a sprite, transparent). */
-const SLOT_QUERIES: Record<string, { q: (theme: string) => string; asset_type?: string; require_alpha?: boolean }> = {
-    sprite_gen: { q: (t) => `${t} character hero creature sprite`, asset_type: "sprite", require_alpha: true },
-    tileset: { q: (t) => `${t} ground terrain tileset tiles`, asset_type: "tileset" },
-    background: { q: (t) => `${t} background landscape sky scene`, asset_type: "background" },
+type Slot = SideScrollerSpec["asset_slots"][number];
+
+// The style packs in the (frozen) catalog that have full cross-type coverage —
+// background + tileset + single character. Anchoring the scene on one of them
+// gives a COHERENT look (one style) instead of a painted bg + pixel tiles +
+// sketch character. Recompute: unnest(style_pack_compat) grouped, HAVING a hit
+// in each of background / tileset / sprite(single,alpha).
+const COVERAGE_PACKS = new Set(["B01", "A01", "B03", "B04", "A06", "A08", "A05", "A03"]);
+
+const themeQuery = {
+    character: (t: string) => `${t} character hero creature sprite`,
+    tileset: (t: string) => `${t} ground terrain tileset tiles`,
+    background: (t: string) => `${t} background landscape sky scene`,
 };
 
-/** Pick the best USABLE hit for a slot — semantic search returns theme-relevant
- * candidates, but they must also be the right KIND. Uses the vision
- * classification (sprite_kind) and tile geometry, not just similarity. */
-async function pickBest(slotName: string, hits: MatchedAsset[]): Promise<MatchedAsset | null> {
-    if (hits.length === 0) return null;
-    if (slotName === "sprite_gen") {
-        // A character must be a real character. Prefer a VERIFIED single sprite
-        // (vision classification); else fall back to a sprite that is neither a
-        // known object_pack/non_asset NOR description-flagged as a collection /
-        // scenery (much of the catalog is unclassified → the keyword guard catches
-        // e.g. "a collection of haunted forest trees"). None → null (clean
-        // placeholder beats a tree blob).
-        const kinds = await fetchSpriteKinds(hits.map((h) => h.id));
-        const notCollection = (h: MatchedAsset) =>
-            !/collection|\bpack\b|\bset\b|trees|tiles|bundle|sheet of|assets/i.test(h.semantic_description);
-        return (
-            hits.find((h) => kinds.get(h.id) === "single") ??
-            hits.find((h) => {
-                const k = kinds.get(h.id);
-                return k !== "object_pack" && k !== "non_asset" && notCollection(h);
-            }) ??
-            null
-        );
-    }
-    if (slotName === "tileset") {
-        // The composer assumes a square grid → reject hexagonal/isometric tilesets.
-        return hits.find((h) => !/hex|isometric|hexagon/i.test(h.semantic_description)) ?? null;
-    }
-    return hits[0]; // background: asset_type='background' is already 2D-clean
+/** Catalog hits for a character slot often include scenery collections the vision
+ * pass hasn't tagged yet → reject obvious non-characters by description too. */
+const notCollection = (h: MatchedAsset): boolean =>
+    !/collection|\bpack\b|\bset\b|trees|tiles|bundle|sheet of|assets/i.test(h.semantic_description);
+
+function bindSlot(slot: Slot, a: MatchedAsset): void {
+    slot.binding = {
+        source: "catalog", slot: slot.slot, asset_library_id: a.id,
+        download_url: a.download_url, license: a.license,
+        attribution_required: false, creator_name: null,
+    };
 }
 
-/** Bind the GameSpec's asset slots from the CATALOG by theme (semantic search)
- * AND by kind (classification filters) — contextual assets per prompt that are
- * also the right type. A slot with no usable hit stays unbound → placeholder. */
+/** Resolve assets by theme AND coherence. The character is picked first — a
+ * usable single sprite, PREFERRING one that lives in a full-coverage style pack —
+ * and that pack anchors the tileset + background so the three slots share one
+ * style. No coverage-pack character for the theme → best-per-slot (kind-filtered),
+ * accepting mixed styles over an empty scene. */
 export async function resolveSlots(spec: SideScrollerSpec | TopDownGridSpec, theme: string): Promise<void> {
-    for (const slot of spec.asset_slots) {
-        const cfg = SLOT_QUERIES[slot.slot];
-        if (!cfg) continue;
-        const hits = await defaultMatchAssets({ description: cfg.q(theme), asset_type: cfg.asset_type, require_alpha: cfg.require_alpha });
-        const best = await pickBest(slot.slot, hits);
-        if (best?.download_url) {
-            slot.binding = {
-                source: "catalog", slot: slot.slot, asset_library_id: best.id,
-                download_url: best.download_url, license: best.license,
-                attribution_required: false, creator_name: null,
-            };
+    const slotOf = (name: string): Slot | undefined => spec.asset_slots.find((s) => s.slot === name);
+    const charSlot = slotOf("sprite_gen"), tileSlot = slotOf("tileset"), bgSlot = slotOf("background");
+
+    // 1) Character — also yields the anchor style for the rest of the scene.
+    let anchor: string | undefined;
+    if (charSlot) {
+        const hits = await defaultMatchAssets({ description: themeQuery.character(theme), asset_type: "sprite", require_alpha: true });
+        const meta = await fetchAssetMeta(hits.map((h) => h.id));
+        const usable = hits.filter((h) => {
+            const k = meta.get(h.id)?.sprite_kind;
+            return k !== "object_pack" && k !== "non_asset" && notCollection(h);
+        });
+        const inCoveragePack = (h: MatchedAsset) => (meta.get(h.id)?.style_pack_compat ?? []).some((s) => COVERAGE_PACKS.has(s));
+        const best = usable.find(inCoveragePack) ?? usable.find((h) => meta.get(h.id)?.sprite_kind === "single") ?? usable[0];
+        if (best) {
+            bindSlot(charSlot, best);
+            anchor = (meta.get(best.id)?.style_pack_compat ?? []).find((s) => COVERAGE_PACKS.has(s));
         }
+    }
+
+    // 2) Tileset + background — theme-FIRST, but prefer the anchor style when an
+    //    in-style asset is ALSO a strong theme match (within the top hits). This
+    //    keeps coherence without trading a lava tileset for an off-theme one just
+    //    to match a (loose) style tag — theme fidelity wins on the CC0 catalog.
+    const chooseStyled = (hits: MatchedAsset[], meta: Map<string, AssetMeta>, ok: (h: MatchedAsset) => boolean): MatchedAsset | undefined => {
+        const themeBest = hits.find(ok);
+        if (!anchor || !themeBest) return themeBest;
+        const styled = hits.find((h) => ok(h) && (meta.get(h.id)?.style_pack_compat ?? []).includes(anchor));
+        // Use the in-style asset only when it's NEARLY as good a theme match —
+        // never trade a lava tileset for a garden one just to match the tag.
+        return styled && styled.similarity >= themeBest.similarity - 0.03 ? styled : themeBest;
+    };
+    if (tileSlot) {
+        const hits = await defaultMatchAssets({ description: themeQuery.tileset(theme), asset_type: "tileset" });
+        const meta = await fetchAssetMeta(hits.map((h) => h.id));
+        const best = chooseStyled(hits, meta, (h) => !/hex|isometric|hexagon/i.test(h.semantic_description));
+        if (best) bindSlot(tileSlot, best);
+    }
+    if (bgSlot) {
+        const hits = await defaultMatchAssets({ description: themeQuery.background(theme), asset_type: "background" });
+        const meta = await fetchAssetMeta(hits.map((h) => h.id));
+        const best = chooseStyled(hits, meta, () => true);
+        if (best) bindSlot(bgSlot, best);
     }
 }

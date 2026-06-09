@@ -174,12 +174,19 @@ export async function defaultMatchAssets(query: {
     }
 }
 
-/** Fetch sprite_kind (vision classification, migration 015) for asset ids, so a
- * caller can keep only real characters (single / animation_sheet) and drop the
- * object_pack collections (e.g. a sheet of trees) that semantic search otherwise
- * returns for a character slot. Read-only; missing env → empty map (degrade). */
-export async function fetchSpriteKinds(ids: string[]): Promise<Map<string, string | null>> {
-    const out = new Map<string, string | null>();
+export interface AssetMeta {
+    /** Vision classification (migration 015): single / animation_sheet / object_pack / non_asset. */
+    sprite_kind: string | null;
+    /** Style packs this asset is compatible with (migration 003) — used to pick a
+     * coherent style across the background / tileset / character slots. */
+    style_pack_compat: string[];
+}
+
+/** Fetch sprite_kind + style_pack_compat for asset ids, so a caller can both
+ * drop object_pack collections (a sheet of trees in a character slot) AND choose
+ * one coherent style for the whole scene. Read-only; missing env → empty (degrade). */
+export async function fetchAssetMeta(ids: string[]): Promise<Map<string, AssetMeta>> {
+    const out = new Map<string, AssetMeta>();
     if (ids.length === 0) return out;
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -189,18 +196,18 @@ export async function fetchSpriteKinds(ids: string[]): Promise<Map<string, strin
         const supabase = createClient(url, key);
         const { data, error } = await supabase
             .from("asset_library_index")
-            .select("id, sprite_kind")
+            .select("id, sprite_kind, style_pack_compat")
             .in("id", ids);
         if (error) {
-            console.error({ context: "asset_resolver.fetchSpriteKinds", error });
+            console.error({ context: "asset_resolver.fetchAssetMeta", error });
             return out;
         }
-        for (const row of (data ?? []) as Array<{ id: string; sprite_kind: string | null }>) {
-            out.set(row.id, row.sprite_kind);
+        for (const row of (data ?? []) as Array<{ id: string; sprite_kind: string | null; style_pack_compat: string[] | null }>) {
+            out.set(row.id, { sprite_kind: row.sprite_kind, style_pack_compat: row.style_pack_compat ?? [] });
         }
         return out;
     } catch (error) {
-        console.error({ context: "asset_resolver.fetchSpriteKinds", error });
+        console.error({ context: "asset_resolver.fetchAssetMeta", error });
         return out;
     }
 }
