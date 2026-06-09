@@ -74,6 +74,7 @@ export class PhaserComposer implements EngineComposer {
     private playerTextureUrl: string | null = null;
     private playerFrame: FrameMeta | null = null;
     private pixelArt = false;
+    private movement: "platformer" | "top_down" = "platformer";
     private entities: EntityPlacement[] = [];
     private warnings: string[] = [];
 
@@ -82,6 +83,7 @@ export class PhaserComposer implements EngineComposer {
         this.viewW = init.viewport.width;
         this.viewH = init.viewport.height;
         this.pixelArt = init.pixelArt;
+        this.movement = init.movement;
         for (const s of init.assetSlots) this.slots.set(s.slot, s);
     }
 
@@ -208,8 +210,10 @@ ${tileSetup}
                 // moving, freeze frame 0 idle, flip by facing.
                 const walkEnd = (this.playerFrame.cols ?? this.playerFrame.count) - 1;
                 playerCreate += `\n    this.anims.create({ key: "walk", frames: this.anims.generateFrameNumbers("player", { start: 0, end: ${walkEnd} }), frameRate: ${this.playerFrame.fps}, repeat: -1 });`;
-                walkUpdate = `    const _vx = this.player.body.velocity.x;
-    if (_vx !== 0) { this.player.anims.play("walk", true); this.player.setFlipX(_vx < 0); } else { this.player.anims.stop(); this.player.setFrame(0); }
+                const vyDecl = this.movement === "top_down" ? "\n    const _vy = this.player.body.velocity.y;" : "";
+                const movingExpr = this.movement === "top_down" ? "_vx !== 0 || _vy !== 0" : "_vx !== 0";
+                walkUpdate = `    const _vx = this.player.body.velocity.x;${vyDecl}
+    if (${movingExpr}) { this.player.anims.play("walk", true); if (_vx !== 0) this.player.setFlipX(_vx < 0); } else { this.player.anims.stop(); this.player.setFrame(0); }
 `;
             }
         }
@@ -225,6 +229,24 @@ ${tileSetup}
 `;
         }
         const preloadBlock = preloadParts.length ? `  preload() { ${preloadParts.map((p) => p + ";").join(" ")} }\n` : "";
+
+        // Movement model: top_down = 4-directional, no gravity / jump / pit-fall;
+        // platformer = left/right + jump + fall-respawn. Same collider either way.
+        const cfgGravity = this.movement === "top_down" ? "0" : "GRAVITY";
+        const moveBody = this.movement === "top_down"
+            ? `    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const right = this.cursors.right.isDown || this.keys.D.isDown;
+    const up = this.cursors.up.isDown || this.keys.W.isDown;
+    const down = this.cursors.down.isDown || this.keys.S.isDown;
+    b.setVelocityX(((right ? 1 : 0) - (left ? 1 : 0)) * MOVE_SPEED);
+    b.setVelocityY(((down ? 1 : 0) - (up ? 1 : 0)) * MOVE_SPEED);
+${walkUpdate}`
+            : `    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const right = this.cursors.right.isDown || this.keys.D.isDown;
+    b.setVelocityX(((right ? 1 : 0) - (left ? 1 : 0)) * MOVE_SPEED);
+${walkUpdate}    const up = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+    if (up && b.blocked.down) b.setVelocityY(-JUMP_VELOCITY);
+    if (this.player.y > WORLD_H + 400) { this.player.setPosition(SPAWN_X, SPAWN_Y); b.setVelocity(0, 0); }`;
 
         return `import Phaser from "phaser";
 
@@ -249,18 +271,13 @@ ${ents}
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setZoom(${this.zoom});
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys("W,A,D,SPACE");
+    this.keys = this.input.keyboard.addKeys("W,A,S,D,SPACE");
     this.status = this.add.text(16, 12, ${JSON.stringify(this.hudText)}, { color: "#fff", fontFamily: "monospace", fontSize: "14px" }).setScrollFactor(0);
     window.__GAME_STATE__ = { player_alive: true, player_on_screen: true, player_x: SPAWN_X, player_y: SPAWN_Y, score: 0, goal_reached: false, game_over: false, elapsed_seconds: 0 };
   }
   update(time, delta) {
     const b = this.player.body;
-    const left = this.cursors.left.isDown || this.keys.A.isDown;
-    const right = this.cursors.right.isDown || this.keys.D.isDown;
-    b.setVelocityX(((right ? 1 : 0) - (left ? 1 : 0)) * MOVE_SPEED);
-${walkUpdate}    const up = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
-    if (up && b.blocked.down) b.setVelocityY(-JUMP_VELOCITY);
-    if (this.player.y > WORLD_H + 400) { this.player.setPosition(SPAWN_X, SPAWN_Y); b.setVelocity(0, 0); }
+${moveBody}
     this.t += delta / 1000;
     window.__GAME_STATE__ = { player_alive: true, player_on_screen: this.player.x >= -100, player_x: this.player.x, player_y: this.player.y, score: 0, goal_reached: this.won, game_over: false, elapsed_seconds: this.t };
     console.log("__GS__ x=" + Math.round(this.player.x) + " y=" + Math.round(this.player.y) + " won=" + this.won);
@@ -273,7 +290,7 @@ new Phaser.Game({
   height: ${this.viewH},
   parent: "game",
   pixelArt: ${this.pixelArt},
-  physics: { default: "arcade", arcade: { gravity: { y: GRAVITY } } },
+  physics: { default: "arcade", arcade: { gravity: { y: ${cfgGravity} } } },
   scene: MainScene,
 });
 `;

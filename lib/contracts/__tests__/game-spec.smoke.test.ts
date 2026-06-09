@@ -90,9 +90,9 @@ describe("GameSpec — archetype union", () => {
         ).toThrow();
     });
 
-    it("accepts a skeleton archetype (top_down_grid)", () => {
+    it("accepts a skeleton archetype (arena_2d)", () => {
         expect(() =>
-            GameSpecSchema.parse({ archetype: "top_down_grid", meta, draft: {} }),
+            GameSpecSchema.parse({ archetype: "arena_2d", meta, draft: {} }),
         ).not.toThrow();
     });
 

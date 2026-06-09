@@ -73,6 +73,10 @@ export interface SceneInit {
     /** Nearest-neighbor filtering (Godot texture_filter / Phaser pixelArt). */
     pixelArt: boolean;
     viewport: { width: number; height: number };
+    /** Movement model from the archetype: "platformer" (gravity + jump, solid
+     * tiles = ground to stand on) or "top_down" (4-directional, no gravity, solid
+     * tiles = walls). The one thing the gold controller differs by. */
+    movement: "platformer" | "top_down";
 }
 
 // ---- The port (the ~10 primitives) ----------------------------------------

@@ -20,8 +20,8 @@ import { makePhaserComposer } from "./phaser.js";
 const DEFAULT_VIEWPORT = { width: 640, height: 360 };
 
 export function composeScene(spec: GameSpec, composer: EngineComposer): ComposedScene {
-    if (spec.archetype !== "side_scroller_platform") {
-        throw new Error(`composer: archetype "${spec.archetype}" not implemented yet (FASE 2 covers side_scroller_platform)`);
+    if (spec.archetype !== "side_scroller_platform" && spec.archetype !== "top_down_grid") {
+        throw new Error(`composer: archetype "${spec.archetype}" not implemented yet (FASE 2 covers side_scroller_platform + top_down_grid)`);
     }
 
     const init: SceneInit = {
@@ -30,6 +30,7 @@ export function composeScene(spec: GameSpec, composer: EngineComposer): Composed
         gravity: spec.physics.gravity,
         pixelArt: spec.asset_slots.some((s) => s.pixel_art),
         viewport: DEFAULT_VIEWPORT,
+        movement: spec.archetype === "top_down_grid" ? "top_down" : "platformer",
     };
 
     composer.beginScene(init);

@@ -91,6 +91,7 @@ export class GodotComposer implements EngineComposer {
     private slotFrames = new Map<string, FrameMeta>();
     private warnings: string[] = [];
     private pixelArt = false;
+    private movement: "platformer" | "top_down" = "platformer";
 
     private resPath(slot: string): string {
         return this.slots.get(slot) ?? `res://assets/sprites/${slot}.png`;
@@ -104,6 +105,7 @@ export class GodotComposer implements EngineComposer {
             if (s.frame) this.slotFrames.set(s.slot, s.frame);
         }
         this.pixelArt = init.pixelArt;
+        this.movement = init.movement;
         this.ctrl.gravity = init.gravity;
         this.nodes.push({ name: "Main", type: "Node2D", parent: null, props: { script: 'ExtResource("1")' } });
     }
@@ -303,16 +305,38 @@ export class GodotComposer implements EngineComposer {
             : "";
         const animVar = c.playerFrameW !== null ? "\nvar _anim_t := 0.0" : "";
         const levelVar = hasLevel ? "\nvar _tile_tex: Texture2D = null" : "";
+        const movingCond = this.movement === "top_down" ? "player.velocity.length() > 1.0" : "absf(player.velocity.x) > 1.0";
         const animUpdate = c.playerFrameW !== null
             ? `\tvar aps := $Player/PlayerSprite as Sprite2D
-\tif absf(player.velocity.x) > 1.0:
+\tif ${movingCond}:
 \t\t_anim_t += delta
 \t\taps.region_rect = Rect2((int(_anim_t * ANIM_FPS) % ANIM_COLS) * FRAME_W, 0, FRAME_W, FRAME_H)
-\t\taps.flip_h = player.velocity.x < 0.0
+\t\tif absf(player.velocity.x) > 1.0: aps.flip_h = player.velocity.x < 0.0
 \telse:
 \t\taps.region_rect = Rect2(0, 0, FRAME_W, FRAME_H)
 `
             : "";
+        // Movement model: top_down = 4-directional, no gravity / jump / pit-fall.
+        const physBody = this.movement === "top_down"
+            ? `\tvar v := Vector2.ZERO
+\tif Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A): v.x -= 1.0
+\tif Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D): v.x += 1.0
+\tif Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W): v.y -= 1.0
+\tif Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S): v.y += 1.0
+\tplayer.velocity = v.normalized() * MOVE_SPEED
+\tplayer.move_and_slide()
+${animUpdate}`
+            : `\tplayer.velocity.y += GRAVITY * delta
+\tvar dir := 0.0
+\tif Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A): dir -= 1.0
+\tif Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D): dir += 1.0
+\tplayer.velocity.x = dir * MOVE_SPEED
+\tif (Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_UP)) and player.is_on_floor():
+\t\tplayer.velocity.y = JUMP_VELOCITY
+\tplayer.move_and_slide()
+${animUpdate}\tif player.position.y > WORLD_H + 400.0:
+\t\tplayer.position = SPAWN
+\t\tplayer.velocity = Vector2.ZERO`;
         return `extends Node2D
 
 const GRAVITY := ${c.gravity.toFixed(1)}
@@ -367,17 +391,7 @@ func _on_goal(body: Node) -> void:
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player): return
-	player.velocity.y += GRAVITY * delta
-	var dir := 0.0
-	if Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A): dir -= 1.0
-	if Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D): dir += 1.0
-	player.velocity.x = dir * MOVE_SPEED
-	if (Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_UP)) and player.is_on_floor():
-		player.velocity.y = JUMP_VELOCITY
-	player.move_and_slide()
-${animUpdate}	if player.position.y > WORLD_H + 400.0:
-		player.position = SPAWN
-		player.velocity = Vector2.ZERO
+${physBody}
 	_t += delta
 	var vp := get_viewport_rect().size
 	var on := player.position.x >= -100.0 and player.position.y <= WORLD_H + 400.0

@@ -295,7 +295,27 @@ function skeleton<L extends Archetype>(archetype: L) {
     });
 }
 
-export const TopDownGridSpecSchema = skeleton("top_down_grid");
+/** top_down_grid (jrpg/roguelike) — the SAME field shape as side_scroller, but
+ * the composer reads it with TOP-DOWN semantics: solid_tiles = walls (1=wall,
+ * 0=walkable floor), no gravity, 4-directional movement. Proves the archetype
+ * axis collapses (one composer path per archetype, not per engine×genre). */
+export const TopDownGridSpecSchema = z.object({
+    archetype: z.literal("top_down_grid"),
+    meta: GameSpecMetaSchema,
+    world: WorldSpecSchema,
+    physics: PhysicsSpecSchema,
+    player: PlayerSpecSchema,
+    entities: z.array(EntitySpecSchema).default([]),
+    camera: CameraSpecSchema,
+    parallax: z.array(ParallaxLayerSchema).default([]),
+    background: BackgroundSpecSchema,
+    hud: HudSpecSchema,
+    goal: GoalSpecSchema,
+    mechanics: MechanicsSpecSchema,
+    asset_slots: z.array(AssetSlotSchema).min(1),
+});
+export type TopDownGridSpec = z.infer<typeof TopDownGridSpecSchema>;
+
 export const Arena2DSpecSchema = skeleton("arena_2d");
 export const PuzzleGridSpecSchema = skeleton("puzzle_grid");
 export const Scene3DSpecSchema = skeleton("scene_3d");

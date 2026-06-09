@@ -8,7 +8,7 @@
 import { describe, it, expect } from "vitest";
 
 import type { Engine } from "../../../contracts/game-plan.contract.js";
-import type { SideScrollerSpec } from "../../../contracts/game-spec.contract.js";
+import type { GameSpec, SideScrollerSpec } from "../../../contracts/game-spec.contract.js";
 import { composeFor, composeScene } from "../index.js";
 import { makeGodotComposer } from "../godot.js";
 
@@ -247,6 +247,27 @@ describe("real background (both engines)", () => {
     });
 });
 
+describe("top_down_grid archetype (the axis collapses, both engines)", () => {
+    function tdSpec(engine: Engine): GameSpec {
+        const s = spec(engine);
+        return { ...s, archetype: "top_down_grid", physics: { ...s.physics, gravity: 0 } } as unknown as GameSpec;
+    }
+
+    it("Phaser: 4-directional movement + zero gravity (no jump/pit-fall)", () => {
+        const js = composeFor(tdSpec("phaser")).files.find((f) => f.path.endsWith("main.js"))!.content;
+        expect(js).toContain("setVelocityY(((down ? 1 : 0) - (up ? 1 : 0)) * MOVE_SPEED)");
+        expect(js).toContain("gravity: { y: 0 }");
+        expect(js).not.toContain("b.blocked.down"); // no platformer jump
+    });
+
+    it("Godot: 4-directional movement + no gravity", () => {
+        const gd = composeScene(tdSpec("godot"), makeGodotComposer()).files.find((f) => f.path.endsWith("main.gd"))!.content;
+        expect(gd).toContain("v.y -= 1.0");
+        expect(gd).toContain("player.velocity = v.normalized() * MOVE_SPEED");
+        expect(gd).not.toContain("player.velocity.y += GRAVITY"); // no gravity
+    });
+});
+
 describe("driver dispatch", () => {
     it("the same spec drives both engines (cross-engine port holds)", () => {
         const s = spec("godot");
@@ -259,7 +280,7 @@ describe("driver dispatch", () => {
     });
 
     it("rejects a not-yet-implemented archetype", () => {
-        const skeleton = { archetype: "top_down_grid", meta: spec("godot").meta, draft: {} } as never;
+        const skeleton = { archetype: "arena_2d", meta: spec("godot").meta, draft: {} } as never;
         expect(() => composeScene(skeleton, makeGodotComposer())).toThrow();
     });
 });

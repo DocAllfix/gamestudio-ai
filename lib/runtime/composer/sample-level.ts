@@ -41,3 +41,19 @@ export function buildPlatformerLevel(args: SampleLevelArgs): number[][] {
     }
     return grid;
 }
+
+/** Sample top_down_grid level: a walled room (border walls + scattered interior
+ * pillars). TOP-DOWN semantics — 1 = wall (blocks), 0 = walkable floor. The
+ * player spawns on the floor and walks around the obstacles. */
+export function buildTopDownRoom(args: { width: number; height: number }): number[][] {
+    const { width, height } = args;
+    const grid: number[][] = Array.from({ length: height }, () => new Array<number>(width).fill(0));
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const border = x === 0 || y === 0 || x === width - 1 || y === height - 1;
+            const pillar = x % 9 === 5 && y % 6 === 4; // scattered interior obstacles
+            if (border || pillar) grid[y][x] = 1;
+        }
+    }
+    return grid;
+}
