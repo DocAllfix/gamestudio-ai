@@ -184,6 +184,26 @@ function openRouterModel(model: ModelId): string {
     }
 }
 
+let cachedOpenAI: ChatClient | null = null;
+/** Direct OpenAI client (api.openai.com) with the user's OPENAI_API_KEY —
+ * enabled by LLM_ROUTER_PROVIDER=openai. Lets a run use OpenAI credit instead of
+ * Azure/OpenRouter (e.g. for the FASE 3 prompt→GameSpec verification). */
+function openaiClient(): ChatClient {
+    if (cachedOpenAI) return cachedOpenAI;
+    cachedOpenAI = new OpenAI({ apiKey: requireEnv("OPENAI_API_KEY") }) as unknown as ChatClient;
+    return cachedOpenAI;
+}
+
+/** Map our model id to a valid OpenAI model. Non-OpenAI ids (deepseek/claude)
+ * collapse to gpt-4.1-mini — the chosen model for the OpenAI test path. */
+function openaiModel(model: ModelId): string {
+    switch (model) {
+        case "gpt-4o-mini": return "gpt-4o-mini";
+        case "gpt-4o": return "gpt-4o";
+        default: return "gpt-4.1-mini";
+    }
+}
+
 let cachedClient: ChatClient | null = null;
 /** Default client: Azure AI Foundry, or OpenRouter when
  * `LLM_ROUTER_PROVIDER=openrouter`. Neither path uses Helicone. */
@@ -288,13 +308,16 @@ export async function complete(
     // Claude isn't on Azure: route claude-* to OpenRouter (when configured)
     // while gpt/deepseek stay on the default Azure client. Explicit deps.client
     // (tests) always wins.
+    const useOpenAI = !deps.client && process.env.LLM_ROUTER_PROVIDER === "openai";
     const useOpenRouter =
+        !useOpenAI &&
         isClaude(parsed.model) &&
         process.env.LLM_ROUTER_PROVIDER !== "openrouter" &&
         !!process.env.OPENROUTER_API_KEY;
-    const client = deps.client ?? (useOpenRouter ? openRouterClient() : defaultClient());
-    const params = buildChatParams(parsed.model, parsed, useOpenRouter);
+    const client = deps.client ?? (useOpenAI ? openaiClient() : useOpenRouter ? openRouterClient() : defaultClient());
+    const params = buildChatParams(parsed.model, parsed, useOpenRouter || useOpenAI);
     if (useOpenRouter) params.model = openRouterModel(parsed.model);
+    if (useOpenAI) params.model = openaiModel(parsed.model);
     // Use the explicit tracer, else the ambient run tracer (set by the
     // orchestrator via withTracer) so every LLM call is audited without
     // threading a tracer through every call site.
