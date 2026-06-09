@@ -69,6 +69,7 @@ export class PhaserComposer implements EngineComposer {
     private hudText = "Reach the goal!";
     private solidTiles: number[][] | null = null;
     private tilesetTextureUrl: string | null = null;
+    private bgTextureUrl: string | null = null;
     private slots = new Map<string, AssetSlot>();
     private playerTextureUrl: string | null = null;
     private playerFrame: FrameMeta | null = null;
@@ -84,8 +85,10 @@ export class PhaserComposer implements EngineComposer {
         for (const s of init.assetSlots) this.slots.set(s.slot, s);
     }
 
-    addBackground(_bg: BackgroundSpec): void {
-        // Sky color is set on the camera in the template (never a void).
+    addBackground(bg: BackgroundSpec): void {
+        // A real bound background → load + display it (behind everything, fixed to
+        // the camera); the sky colour stays as the fallback when unbound.
+        this.bgTextureUrl = bg.asset_slot ? slotUrl(this.slots.get(bg.asset_slot)) : null;
     }
 
     addParallax(layers: ParallaxLayer[]): void {
@@ -214,6 +217,13 @@ ${tileSetup}
         if (this.solidTiles && this.tilesetTextureUrl) {
             preloadParts.push(`this.load.spritesheet("tiles", ${JSON.stringify(this.tilesetTextureUrl)}, { frameWidth: ${this.tilePx}, frameHeight: ${this.tilePx} })`);
         }
+        let bgCreate = "";
+        if (this.bgTextureUrl) {
+            preloadParts.push(`this.load.image("bg", ${JSON.stringify(this.bgTextureUrl)})`);
+            bgCreate = `    const _bg = this.add.image(0, 0, "bg").setOrigin(0, 0).setScrollFactor(0).setDepth(-1000);
+    _bg.setDisplaySize(this.scale.width, this.scale.height);
+`;
+        }
         const preloadBlock = preloadParts.length ? `  preload() { ${preloadParts.map((p) => p + ";").join(" ")} }\n` : "";
 
         return `import Phaser from "phaser";
@@ -228,7 +238,7 @@ class MainScene extends Phaser.Scene {
   constructor() { super("main"); this.won = false; this.t = 0; }
 ${preloadBlock}  create() {
     this.cameras.main.setBackgroundColor("#6aa0db"); // sky — never a void
-${playerCreate}
+${bgCreate}${playerCreate}
 ${level}
     this.goal = this.add.rectangle(GOAL_X, GOAL_Y, 36, 50, 0xf2d933);
     this.physics.add.existing(this.goal, true);

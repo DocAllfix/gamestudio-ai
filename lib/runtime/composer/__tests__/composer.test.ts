@@ -221,6 +221,32 @@ describe("real tileset (both engines)", () => {
     });
 });
 
+describe("real background (both engines)", () => {
+    function withBg(engine: Engine): SideScrollerSpec {
+        const s = spec(engine);
+        s.asset_slots.push({
+            slot: "sky", role: "background", tile_size: null, frame: null, palette_hex: [], pixel_art: false,
+            binding: {
+                source: "catalog", slot: "sky", asset_library_id: "00000000-0000-4000-8000-000000000020",
+                download_url: "https://x/sky.png", license: "CC0-1.0", attribution_required: false, creator_name: null,
+            },
+        });
+        return s; // spec()'s background.asset_slot is already "sky"
+    }
+
+    it("Phaser loads + displays the bound background, fixed behind everything", () => {
+        const js = composeFor(withBg("phaser")).files.find((f) => f.path.endsWith("main.js"))!.content;
+        expect(js).toContain('this.load.image("bg"');
+        expect(js).toContain('this.add.image(0, 0, "bg")');
+        expect(js).toContain("setScrollFactor(0)");
+    });
+
+    it("Godot loads the background sprite from the slot", () => {
+        const gd = composeScene(withBg("godot"), makeGodotComposer()).files.find((f) => f.path.endsWith("main.gd"))!.content;
+        expect(gd).toContain('_tex("res://assets/sprites/sky.png"');
+    });
+});
+
 describe("driver dispatch", () => {
     it("the same spec drives both engines (cross-engine port holds)", () => {
         const s = spec("godot");

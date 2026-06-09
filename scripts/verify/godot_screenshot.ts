@@ -24,6 +24,8 @@ import type { R2Client } from "../../lib/runtime/sandbox/r2.js";
 const PLAYER_ASSET_URL = "https://opengameart.org/sites/default/files/goblin_0.png";
 /** A real CC0 ground tileset — tile 0 (top-left) is grass, replaces the cubes. */
 const TILESET_ASSET_URL = "https://opengameart.org/sites/default/files/ground_7.png";
+/** A real CC0 landscape background (640x360) — replaces the flat sky colour. */
+const BG_ASSET_URL = "https://opengameart.org/sites/default/files/landscape_fixed_backgrounds_-_morning.png";
 import type { SandboxSession } from "../../lib/runtime/sandbox/e2b.js";
 import type { SideScrollerSpec } from "../../lib/contracts/game-spec.contract.js";
 
@@ -41,6 +43,7 @@ const SPEC: SideScrollerSpec = {
     goal: { type: "reach_exit", exit_tile: { x: 56, y: 20 } },
     mechanics: { flags: [], delta_script_path: null },
     asset_slots: [
+        { slot: "sky", role: "background", binding: null, tile_size: null, frame: null, palette_hex: [], pixel_art: false },
         { slot: "tileset", role: "tileset", binding: null, tile_size: 16, frame: null, palette_hex: [], pixel_art: true },
         { slot: "player", role: "character", binding: null, tile_size: null, frame: null, palette_hex: [], pixel_art: true },
     ],
@@ -82,6 +85,9 @@ async function main(): Promise<void> {
     const resT = await fetch(TILESET_ASSET_URL);
     if (!resT.ok) throw new Error(`tileset asset HTTP ${resT.status}`);
     const tilesetPng = Buffer.from(await resT.arrayBuffer());
+    const resB = await fetch(BG_ASSET_URL);
+    if (!resB.ok) throw new Error(`bg asset HTTP ${resB.status}`);
+    const bgPng = Buffer.from(await resB.arrayBuffer());
     const png = PNG.sync.read(playerPng, { checkCRC: false });
     const sheet = analyzeSprite({ data: new Uint8ClampedArray(png.data), width: png.width, height: png.height });
     console.log(`[shot] player ${png.width}x${png.height} → ${sheet.is_sheet ? `SHEET ${sheet.frame_w}x${sheet.frame_h} (${sheet.frame_count}f)` : "single"}`);
@@ -98,6 +104,7 @@ async function main(): Promise<void> {
         for (const f of scene.files) await adapter.writeFile(sandbox, f.path, f.content);
         await sandbox.writeFile("/project/assets/sprites/player.png", playerPng); // real transparent sprite into the build
         await sandbox.writeFile("/project/assets/sprites/tileset.png", tilesetPng); // real ground tileset into the build
+        await sandbox.writeFile("/project/assets/sprites/sky.png", bgPng); // real landscape background into the build
         console.log("[shot] exporting WASM…");
         const build = await adapter.build(sandbox);
         if (build.exit_code !== 0) { console.log("[shot] build FAIL:\n" + build.stderr.slice(0, 1500)); return; }

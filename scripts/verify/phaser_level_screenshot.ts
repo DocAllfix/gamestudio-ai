@@ -25,6 +25,8 @@ const solid = buildPlatformerLevel({ width: W, height: H, tilePx: TILE, physics:
 const PLAYER_ASSET_URL = "https://opengameart.org/sites/default/files/goblin_0.png";
 /** A real CC0 ground tileset — tile 0 (top-left) is grass, replaces the cubes. */
 const TILESET_ASSET_URL = "https://opengameart.org/sites/default/files/ground_7.png";
+/** A real CC0 landscape background (640x360) — replaces the flat sky colour. */
+const BG_ASSET_URL = "https://opengameart.org/sites/default/files/landscape_fixed_backgrounds_-_morning.png";
 
 const SPEC: SideScrollerSpec = {
     archetype: "side_scroller_platform",
@@ -40,6 +42,7 @@ const SPEC: SideScrollerSpec = {
     goal: { type: "reach_exit", exit_tile: { x: 37, y: 16 } },
     mechanics: { flags: [], delta_script_path: null },
     asset_slots: [
+        { slot: "sky", role: "background", binding: null, tile_size: null, frame: null, palette_hex: [], pixel_art: false },
         { slot: "tileset", role: "tileset", binding: null, tile_size: 16, frame: null, palette_hex: [], pixel_art: true },
         { slot: "player", role: "character", binding: null, tile_size: null, frame: null, palette_hex: [], pixel_art: true },
     ],
@@ -79,6 +82,20 @@ async function main(): Promise<void> {
             source: "catalog", slot: "tileset",
             asset_library_id: "00000000-0000-4000-8000-000000000010",
             download_url: tilesetDataUrl, license: "CC0-1.0",
+            attribution_required: false, creator_name: null,
+        };
+    }
+
+    // Bind a real landscape background to the sky slot.
+    const resB = await fetch(BG_ASSET_URL);
+    if (!resB.ok) throw new Error(`bg asset HTTP ${resB.status}`);
+    const bgDataUrl = `data:image/png;base64,${Buffer.from(await resB.arrayBuffer()).toString("base64")}`;
+    const skySlot = SPEC.asset_slots.find((s) => s.slot === "sky");
+    if (skySlot) {
+        skySlot.binding = {
+            source: "catalog", slot: "sky",
+            asset_library_id: "00000000-0000-4000-8000-000000000020",
+            download_url: bgDataUrl, license: "CC0-1.0",
             attribution_required: false, creator_name: null,
         };
     }
