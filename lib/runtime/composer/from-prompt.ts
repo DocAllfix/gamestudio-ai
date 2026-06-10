@@ -111,6 +111,10 @@ const notCollection = (h: MatchedAsset): boolean =>
     !/collection|\bpack\b|\bset\b|trees|tiles|bundle|sheet of|assets/i.test(h.semantic_description);
 
 function bindSlot(slot: Slot, a: MatchedAsset): void {
+    // A catalog row can have a null download_url (the interface types it string,
+    // the data doesn't always honour it) — binding it would emit a url-ref file
+    // with null content and fail the AssemblerInput schema. Skip → placeholder.
+    if (!a.download_url) return;
     slot.binding = {
         source: "catalog", slot: slot.slot, asset_library_id: a.id,
         download_url: a.download_url, license: a.license,

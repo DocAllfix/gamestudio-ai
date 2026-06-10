@@ -64,7 +64,7 @@ export async function composeForRun(args: {
     // (res://assets/sprites/<slot>.png = /project/assets/sprites/<slot>.png). The
     // assembler fetches + validates these into the sandbox.
     const assetFiles = spec.asset_slots.flatMap((s): ComposedAssetFile[] =>
-        s.binding && s.binding.source === "catalog"
+        s.binding && s.binding.source === "catalog" && s.binding.download_url
             ? [{ path: `/project/assets/sprites/${s.slot}.png`, content: s.binding.download_url, encoding: "url-ref" }]
             : [],
     );
