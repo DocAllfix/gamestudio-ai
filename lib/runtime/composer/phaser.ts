@@ -191,9 +191,13 @@ ${tileSetup}
         let playerCreate = `    this.player = this.add.rectangle(SPAWN_X, SPAWN_Y, HBW, HBH, 0xe54d4d);
     this.physics.add.existing(this.player);`;
         if (this.playerTextureUrl) {
-            // Pixel art scales to an INTEGER factor (crisp, no shimmer); smooth
-            // art fits the hitbox height exactly.
-            const scaleExpr = this.pixelArt ? "Math.max(1, Math.round(HBH / this.player.height))" : "HBH / this.player.height";
+            // Fit the sprite to the hitbox height. Pixel art INTEGER-upscales a
+            // small sprite (crisp), but a sprite TALLER than the hitbox must scale
+            // DOWN (catalog characters are often 200-350px) — `Math.max(1, round)`
+            // would clamp to 1 and render it full-size, filling the screen.
+            const scaleExpr = this.pixelArt
+                ? "(this.player.height > HBH ? HBH / this.player.height : Math.max(1, Math.round(HBH / this.player.height)))"
+                : "HBH / this.player.height";
             const url = JSON.stringify(this.playerTextureUrl);
             // A sheet → load ONE frame (no scramble); a single image → load whole.
             const loadCall = this.playerFrame

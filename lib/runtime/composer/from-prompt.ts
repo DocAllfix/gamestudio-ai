@@ -66,7 +66,7 @@ export function designToGameSpec(brief: DesignBrief, engine: Engine): SideScroll
     const common = {
         meta: { project_id: "00000000-0000-4000-8000-000000000000", plan_version: 1, engine, style_pack_id: "pixel-art-dark", title: brief.title },
         world: { width_tiles: W, height_tiles: H, tile_px: TILE, tmj_path: "/p/level.tmj", tileset_slot: "tileset", solid_tiles: solid },
-        player: { spawn_tile: { x: topDown ? 8 : 3, y: topDown ? 8 : H - 4 }, asset_slot: "sprite_gen", hitbox_px: { w: 24, h: 30 }, facing: "right" as const },
+        player: { spawn_tile: { x: topDown ? 8 : 3, y: topDown ? 8 : H - 5 }, asset_slot: "sprite_gen", hitbox_px: { w: 30, h: 44 }, facing: "right" as const },
         entities: [],
         camera: { zoom: 1, deadzone_px: { w: 80, h: 60 }, follow: "player" as const, clamp_to_world: true },
         parallax: [],
@@ -136,8 +136,18 @@ export async function resolveSlots(spec: SideScrollerSpec | TopDownGridSpec, the
             const k = meta.get(h.id)?.sprite_kind;
             return k !== "object_pack" && k !== "non_asset" && notCollection(h);
         });
-        const inCoveragePack = (h: MatchedAsset) => (meta.get(h.id)?.style_pack_compat ?? []).some((s) => COVERAGE_PACKS.has(s));
-        const best = usable.find(inCoveragePack) ?? usable.find((h) => meta.get(h.id)?.sprite_kind === "single") ?? usable[0];
+        const isSingle = (h: MatchedAsset) => meta.get(h.id)?.sprite_kind === "single";
+        const inCov = (h: MatchedAsset) => (meta.get(h.id)?.style_pack_compat ?? []).some((s) => COVERAGE_PACKS.has(s));
+        // Prefer a SINGLE sprite: it renders as a WHOLE image, dodging the fragile
+        // sheet frame-detection that mis-slices arbitrary catalog sheets (an LPC
+        // golem read as 64x128, a labelled hero sheet as 32x32) into a blank or
+        // squished frame. Among singles prefer a coverage-pack one (style); then
+        // any single; then a sheet; then anything usable.
+        const best =
+            usable.find((h) => isSingle(h) && inCov(h)) ??
+            usable.find(isSingle) ??
+            usable.find(inCov) ??
+            usable[0];
         if (best) {
             bindSlot(charSlot, best);
             anchor = (meta.get(best.id)?.style_pack_compat ?? []).find((s) => COVERAGE_PACKS.has(s));

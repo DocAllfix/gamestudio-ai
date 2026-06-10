@@ -81,7 +81,7 @@ async function main(): Promise<void> {
         await page.waitForTimeout(1500);
         await page.keyboard.down("ArrowRight");
         await page.keyboard.down("ArrowDown");
-        await page.waitForTimeout(2200);
+        await page.waitForTimeout(700); // stop mid-level so the player stays in view (not at the goal)
         await page.screenshot({ path: outFile });
         await page.keyboard.up("ArrowRight");
         await page.keyboard.up("ArrowDown");
