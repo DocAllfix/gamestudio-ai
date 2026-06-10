@@ -289,7 +289,10 @@ export class GodotComposer implements EngineComposer {
         // rect — the Godot mirror of Phaser's load.spritesheet + frame 0, so a
         // sheet renders as one character, not the whole scrambled sheet.
         const fh = c.playerFrameH ?? c.hitboxH;
-        const pScale = this.pixelArt ? `maxf(1.0, round(${c.hitboxH.toFixed(1)} / ${fh.toFixed(1)}))` : `(${c.hitboxH.toFixed(1)} / ${fh.toFixed(1)})`;
+        // Fit the frame to the hitbox; a frame TALLER than the hitbox scales DOWN
+        // (large catalog art) instead of being clamped to full size — Phaser parity.
+        const ratio = c.hitboxH / fh;
+        const pScale = (this.pixelArt && fh <= c.hitboxH ? Math.max(1, Math.round(ratio)) : ratio).toFixed(3);
         const playerBlock = c.playerFrameW !== null && c.playerFrameH !== null
             ? `\tps.texture = _tex("${c.playerPath}", Vector2(${c.playerFrameW}, ${c.playerFrameH}), Color(0.90, 0.30, 0.30))
 \tif ResourceLoader.exists("${c.playerPath}"):
