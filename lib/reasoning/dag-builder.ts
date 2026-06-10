@@ -15,6 +15,7 @@
  * them; dispatchSafe degrades a node that fails so the DAG still completes.
  */
 import type { Engine, Genre } from "../contracts/game-plan.contract.js";
+import { GENRE_TO_ARCHETYPE } from "../contracts/game-spec.contract.js";
 import type { GameDesignDoc } from "./game-designer.js";
 
 export interface DagNode {
@@ -35,6 +36,22 @@ const ENGINE_CODE_GEN: Record<Engine, string> = {
   stride: "code_gen_stride_csharp",
   babylon: "code_gen_babylon_ts",
 };
+
+/** FASE 3.2: when COMPOSER_PIPELINE is on, the deterministic composer handles the
+ * 2D spatial archetypes on Godot (side_scroller / top_down) — a single `compose`
+ * node replaces the sprite_gen/level/code_gen chain (no overlap). Other genres,
+ * engines, or the flag off → the existing code_gen pipeline, unchanged. */
+function usesComposer(genre: Genre, engine: Engine): boolean {
+  if (process.env.COMPOSER_PIPELINE !== "true" || engine !== "godot") return false;
+  const arch = GENRE_TO_ARCHETYPE[genre];
+  return arch === "side_scroller_platform" || arch === "top_down_grid";
+}
+
+/** The design's DifficultyEnum (chill/balanced/hard/brutal) → the composer's
+ * speed tuning (easy/normal/hard). */
+function composerDifficulty(d: string | undefined): "easy" | "normal" | "hard" {
+  return d === "chill" ? "easy" : d === "hard" || d === "brutal" ? "hard" : "normal";
+}
 
 type Spatiality = "2d" | "3d" | "non_spatial";
 
@@ -122,6 +139,25 @@ export function buildExecutionDag(args: {
     ? `${design.pitch} Mechanics: ${design.mechanics.join(", ")}. Loop: ${design.gameplay_loop}. Win: ${design.win_condition}. Lose: ${design.lose_condition}.`
     : undefined;
   const nodes: DagNode[] = [];
+
+  if (usesComposer(genre, engine)) {
+    // ONE node: the composer builds the GameSpec (deterministic level + resolved
+    // assets via resolveSlots) and renders the scene. No sprite_gen/level/code_gen
+    // nodes run → no overlap with the old pipeline. Handled specially in
+    // execution.ts (not a registered tool).
+    nodes.push({
+      id: "compose",
+      tool_id: "compose_gamespec",
+      input: {
+        genre, engine,
+        title: design?.title ?? genre,
+        theme: design?.mood ?? genre,
+        difficulty: composerDifficulty(design?.difficulty),
+      },
+      depends_on: [],
+    });
+    return { nodes };
+  }
 
   if (spatiality === "non_spatial") {
     // No level geometry: characters + audio + code.

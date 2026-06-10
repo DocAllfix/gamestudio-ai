@@ -291,7 +291,34 @@ export const executionOrchestrator: ExecutionOrchestrator = {
             const playtestFeedback = typeof input.memory.short_term?.playtest_feedback === "string"
                 ? (input.memory.short_term.playtest_feedback as string)
                 : undefined;
-            const invocations: ToolInvocation[] = runnable.map((node) => ({
+            // FASE 3.2: `compose` nodes are not registered tools — the composer
+            // builds the GameSpec directly (deterministic level + resolveSlots
+            // assets) and emits gamespec.json + asset url-refs the Assembler
+            // composes. Handled here, before the tool batch, so the rest of the
+            // loop (and every other genre/engine) is untouched.
+            const composeNodes = runnable.filter((n) => n.tool_id === "compose_gamespec");
+            const toolNodes = runnable.filter((n) => n.tool_id !== "compose_gamespec");
+            for (const node of composeNodes) {
+                const start = Date.now();
+                try {
+                    const { composeForRun } = await import("../runtime/composer/compose-for-run.js");
+                    const inp = node.input as Parameters<typeof composeForRun>[0];
+                    const { spec, assetFiles } = await composeForRun(inp);
+                    toolOutputs[node.id] = {
+                        tool_id: "compose_gamespec",
+                        files: [
+                            { path: "gamespec.json", content: JSON.stringify(spec), encoding: "utf-8" },
+                            ...assetFiles,
+                        ],
+                    };
+                    nodeResults.push({ node_id: node.id, tool_id: "compose_gamespec", status: "succeeded", cost_usd: 0, latency_ms: Date.now() - start, error_message: null });
+                } catch (error) {
+                    failed.add(node.id);
+                    nodeResults.push({ node_id: node.id, tool_id: "compose_gamespec", status: "failed", cost_usd: 0, latency_ms: Date.now() - start, error_message: error instanceof Error ? error.message : String(error) });
+                }
+            }
+
+            const invocations: ToolInvocation[] = toolNodes.map((node) => ({
                 tool_id: node.tool_id as ToolInvocation["tool_id"],
                 input: wireInputs(node, nodeOutputs, entryNode, playtestFeedback),
                 node_id: node.id,

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { scaffoldProject, sanitizeGodot4 } from "../scaffold.js";
+import { buildFallbackSpec } from "../../composer/fallback-spec.js";
 import type { AssemblerInput } from "../../../contracts/assembly-pipeline.contract.js";
 
 type ToolOutputs = AssemblerInput["tool_outputs"];
@@ -63,6 +64,25 @@ describe("scaffoldProject", () => {
         expect(tscn?.content).toContain('type="CharacterBody2D"'); // a composed Player node
         const gd = files.find((f) => f.path === "/project/main.gd");
         expect(gd?.content).toContain("const SOLID"); // the real level grid from the composer
+    });
+
+    it("FASE 3.2: a gamespec.json → COMPOSED scene (not code_gen) + carries assets", () => {
+        const spec = buildFallbackSpec("godot"); // any valid GameSpec
+        const outputs: ToolOutputs = {
+            compose: {
+                tool_id: "compose_gamespec",
+                files: [
+                    { path: "gamespec.json", content: JSON.stringify(spec), encoding: "utf-8" },
+                    { path: "/project/assets/sprites/sprite_gen.png", content: "https://r2/hero.png", encoding: "url-ref" },
+                ],
+            },
+        };
+        const files = scaffoldProject("godot", outputs);
+        const tscn = files.find((f) => f.path === "/project/main.tscn");
+        expect(tscn?.content).toContain('type="CharacterBody2D"'); // a composed Player node, not the bare scene
+        const paths = files.map((f) => f.path);
+        expect(paths).toContain("/project/assets/sprites/sprite_gen.png"); // resolved asset carried to res://
+        expect(paths).not.toContain("gamespec.json"); // the marker itself is not shipped
     });
 
     it("phaser fallback composes a real scene when there's no usable code", () => {

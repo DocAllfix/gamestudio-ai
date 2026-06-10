@@ -15,6 +15,7 @@
  */
 import type { AssemblerInput } from "../../contracts/assembly-pipeline.contract.js";
 import type { Engine } from "../../contracts/game-plan.contract.js";
+import { GameSpecSchema } from "../../contracts/game-spec.contract.js";
 import { buildFallbackSpec } from "../composer/fallback-spec.js";
 import { composeFor } from "../composer/index.js";
 
@@ -359,6 +360,36 @@ function defoldScaffold(code: string, assets: ScaffoldFile[]): ScaffoldFile[] {
     ];
 }
 
+/** FASE 3.2: a `compose` node (compose-for-run.ts) emits a gamespec.json. Find +
+ * validate it → the run is COMPOSED, not code_gen. Returns null otherwise. */
+function extractGameSpec(toolOutputs: ToolOutputs): ReturnType<typeof GameSpecSchema.parse> | null {
+    for (const node of Object.values(toolOutputs)) {
+        for (const f of node.files) {
+            if (!f.path.endsWith("gamespec.json") || typeof f.content !== "string") continue;
+            try {
+                const parsed = GameSpecSchema.safeParse(JSON.parse(f.content));
+                if (parsed.success) return parsed.data;
+            } catch {
+                /* malformed → fall through to the code_gen path */
+            }
+        }
+    }
+    return null;
+}
+
+/** Carry every asset file (the resolved sprite/audio url-refs) through, minus the
+ * gamespec.json marker — the assembler fetches these into the project's res://. */
+function composedAssets(toolOutputs: ToolOutputs): ScaffoldFile[] {
+    const out: ScaffoldFile[] = [];
+    for (const node of Object.values(toolOutputs)) {
+        for (const f of node.files) {
+            if (f.path.endsWith("gamespec.json")) continue;
+            out.push({ path: f.path, content: f.content, encoding: f.encoding });
+        }
+    }
+    return out;
+}
+
 /**
  * Build the full, build-ready file tree for an engine from a run's tool
  * outputs. The assembler writes the returned files into the sandbox before
@@ -368,6 +399,15 @@ export function scaffoldProject(
     engine: Engine,
     toolOutputs: ToolOutputs,
 ): ScaffoldFile[] {
+    // FASE 3.2: a composed run carries a GameSpec → render the scene
+    // deterministically (the same composer as the fallback), carrying the
+    // resolved asset url-refs through for the assembler to fetch into res://.
+    const spec = extractGameSpec(toolOutputs);
+    if (spec) {
+        const scene = composeFor(spec).files.map((f) => ({ path: f.path, content: f.content, encoding: f.encoding }));
+        return [...scene, ...composedAssets(toolOutputs)];
+    }
+
     const { code, assets } = extract(toolOutputs);
 
     switch (engine) {
