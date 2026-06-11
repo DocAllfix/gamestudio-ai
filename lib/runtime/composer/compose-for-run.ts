@@ -15,6 +15,8 @@ import { PNG } from "pngjs";
 import type { Engine, Genre } from "../../contracts/game-plan.contract.js";
 import type { SideScrollerSpec, TopDownGridSpec } from "../../contracts/game-spec.contract.js";
 import { analyzeSprite, leadingContentFrames } from "../../studio/sprite-sheet.js";
+import { pickKit } from "./curated-kits.js";
+import type { CuratedKit } from "./curated-kits.js";
 import { designToGameSpec, resolveSlots } from "./from-prompt.js";
 
 export interface ComposedAssetFile {
@@ -49,8 +51,30 @@ async function setPlayerFrame(spec: Spec): Promise<void> {
     }
 }
 
-/** Build the GameSpec + asset files for a run. `theme` (design mood) drives the
- * catalog selection; `genre` picks the archetype; difficulty tunes speed. */
+/** Bind the three slots from a CURATED kit — hand-verified clean assets with
+ * known metadata (the character is a single → static, no flicker). Skips the CC0
+ * resolver entirely for a guaranteed-coherent, guaranteed-clean scene. */
+function applyKit(spec: Spec, kit: CuratedKit): void {
+    const bind = (slotName: string, a: { asset_library_id: string; download_url: string; license: string }) => {
+        const s = spec.asset_slots.find((x) => x.slot === slotName);
+        if (s) {
+            s.binding = {
+                source: "catalog", slot: slotName, asset_library_id: a.asset_library_id,
+                download_url: a.download_url, license: a.license,
+                attribution_required: a.license !== "CC0-1.0", creator_name: null,
+            };
+        }
+    };
+    bind("sprite_gen", kit.character);
+    bind("tileset", kit.tileset);
+    bind("background", kit.background);
+    const char = spec.asset_slots.find((x) => x.slot === "sprite_gen");
+    if (char) char.frame = kit.character.frame; // known frame (null = a static single)
+}
+
+/** Build the GameSpec + asset files for a run. A CURATED kit (hand-verified,
+ * coherent, known metadata) wins when the theme matches; otherwise the CC0
+ * resolver picks per-slot by theme + classification. */
 export async function composeForRun(args: {
     genre: Genre;
     engine: Engine;
@@ -62,8 +86,13 @@ export async function composeForRun(args: {
         { genre: args.genre, title: args.title.slice(0, 60), theme: args.theme.slice(0, 60), difficulty: args.difficulty },
         args.engine,
     );
-    await resolveSlots(spec, args.theme);
-    await setPlayerFrame(spec);
+    const kit = pickKit(args.theme);
+    if (kit) {
+        applyKit(spec, kit);
+    } else {
+        await resolveSlots(spec, args.theme);
+        await setPlayerFrame(spec);
+    }
     // Each resolved slot → a url-ref at the res:// path the Godot composer loads
     // (res://assets/sprites/<slot>.png = /project/assets/sprites/<slot>.png). The
     // assembler fetches + validates these into the sandbox.
