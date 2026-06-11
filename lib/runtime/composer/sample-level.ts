@@ -28,15 +28,23 @@ export function buildPlatformerLevel(args: SampleLevelArgs): number[][] {
         for (let x = 0; x < width; x++) grid[y][x] = 1;
     }
 
-    // Ascending platforms, each a short solid run within jump reach of the last.
+    // Platforms in a WAVE (up AND down), each a short solid run within jump reach
+    // of the last — a balanced layout, not a one-way ascending staircase. Bounds
+    // keep it between the top and just above the floor; direction flips at each.
     const rise = Math.max(1, Math.min(maxRiseY, 3));
     const gap = Math.max(2, Math.min(maxGapX, 5));
     const platW = 4;
-    let y = height - 2 - rise;
+    const top = 4;
+    const bottomPlat = height - 4;
+    let y = bottomPlat;
     let x = 6;
-    while (y >= 3 && x + platW < width) {
+    let dir = -1; // start by going up
+    while (x + platW < width - 4) {
         for (let i = 0; i < platW; i++) grid[y][x + i] = 1;
-        y -= rise;
+        let ny = y + dir * rise;
+        if (ny < top) { ny = top; dir = 1; }
+        if (ny > bottomPlat) { ny = bottomPlat; dir = -1; }
+        y = ny;
         x += platW + gap;
     }
     return grid;

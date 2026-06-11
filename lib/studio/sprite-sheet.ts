@@ -32,6 +32,28 @@ export interface SpriteSheetOptions {
     alphaThreshold?: number;
 }
 
+/** How many LEADING frames of row 0 actually contain pixels — the safe number to
+ * cycle a walk animation over. Arbitrary catalog sheets over-count columns (label
+ * text, empty cells after the character frames); cycling the region into an empty
+ * frame makes the sprite blink out mid-animation. Stop at the first empty column
+ * → only the real frames animate; degrades to 1 (static) when row 0 has none. */
+export function leadingContentFrames(img: ImageRGBA, frameW: number, frameH: number, alphaThreshold = 16): number {
+    const cols = Math.floor(img.width / Math.max(1, frameW));
+    let n = 0;
+    for (let c = 0; c < cols; c++) {
+        let opaque = false;
+        for (let y = 0; y < frameH && y < img.height && !opaque; y++) {
+            const base = y * img.width;
+            for (let x = c * frameW; x < (c + 1) * frameW && x < img.width; x++) {
+                if (img.data[(base + x) * 4 + 3] > alphaThreshold) { opaque = true; break; }
+            }
+        }
+        if (!opaque) break;
+        n++;
+    }
+    return Math.max(1, n);
+}
+
 /** Opaque-pixel count per column and per row. */
 function contentProfiles(img: ImageRGBA, aT: number): { col: number[]; row: number[] } {
     const { data, width, height } = img;

@@ -68,7 +68,7 @@ export function designToGameSpec(brief: DesignBrief, engine: Engine): SideScroll
         world: { width_tiles: W, height_tiles: H, tile_px: TILE, tmj_path: "/p/level.tmj", tileset_slot: "tileset", solid_tiles: solid },
         player: { spawn_tile: { x: topDown ? 8 : 3, y: topDown ? 8 : H - 5 }, asset_slot: "sprite_gen", hitbox_px: { w: 30, h: 44 }, facing: "right" as const },
         entities: [],
-        camera: { zoom: 1, deadzone_px: { w: 80, h: 60 }, follow: "player" as const, clamp_to_world: true },
+        camera: { zoom: 1.3, deadzone_px: { w: 80, h: 60 }, follow: "player" as const, clamp_to_world: true },
         parallax: [],
         background: { asset_slot: "background", fill_mode: "stretch_cover" as const },
         hud: { elements: [{ type: "label" as const, text: brief.title }] },

@@ -14,7 +14,7 @@ import { PNG } from "pngjs";
 
 import type { Engine, Genre } from "../../contracts/game-plan.contract.js";
 import type { SideScrollerSpec, TopDownGridSpec } from "../../contracts/game-spec.contract.js";
-import { analyzeSprite } from "../../studio/sprite-sheet.js";
+import { analyzeSprite, leadingContentFrames } from "../../studio/sprite-sheet.js";
 import { designToGameSpec, resolveSlots } from "./from-prompt.js";
 
 export interface ComposedAssetFile {
@@ -36,9 +36,13 @@ async function setPlayerFrame(spec: Spec): Promise<void> {
         if (!res.ok) return;
         const buf = Buffer.from(await res.arrayBuffer());
         const png = PNG.sync.read(buf, { checkCRC: false });
-        const sheet = analyzeSprite({ data: new Uint8ClampedArray(png.data), width: png.width, height: png.height });
+        const img = { data: new Uint8ClampedArray(png.data), width: png.width, height: png.height };
+        const sheet = analyzeSprite(img);
         if (sheet.is_sheet) {
-            slot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, cols: Math.round(png.width / sheet.frame_w), fps: 8, anchor: { x: 0.5, y: 1 } };
+            // Cycle ONLY the frames of row 0 that have content — never the empty/
+            // label columns an arbitrary sheet pads with (those make it blink out).
+            const cols = leadingContentFrames(img, sheet.frame_w, sheet.frame_h);
+            slot.frame = { w: sheet.frame_w, h: sheet.frame_h, count: sheet.frame_count, cols, fps: 8, anchor: { x: 0.5, y: 1 } };
         }
     } catch {
         /* no frame → the composer loads the whole image */

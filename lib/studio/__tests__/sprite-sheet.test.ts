@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 
-import { analyzeSprite } from "../sprite-sheet.js";
+import { analyzeSprite, leadingContentFrames } from "../sprite-sheet.js";
 
 /** Transparent canvas. */
 function blank(w: number, h: number) {
@@ -21,6 +21,22 @@ function blob(img: { data: Uint8ClampedArray; width: number }, cx: number, cy: n
         }
     }
 }
+
+describe("leadingContentFrames", () => {
+    it("counts only the leading frames with content (stops at the first empty column)", () => {
+        const fw = 32, fh = 32;
+        const img = blank(fw * 7, fh); // 7 columns, like a labelled hero sheet
+        for (let c = 0; c < 4; c++) blob(img, c * fw + 16, 16, 20); // content in 0..3, empty 4..6
+        expect(leadingContentFrames(img, fw, fh)).toBe(4);
+    });
+    it("a full row → all columns; an empty row → 1 (static, never 0)", () => {
+        const fw = 24, fh = 24;
+        const full = blank(fw * 5, fh);
+        for (let c = 0; c < 5; c++) blob(full, c * fw + 12, 12, 16);
+        expect(leadingContentFrames(full, fw, fh)).toBe(5);
+        expect(leadingContentFrames(blank(fw * 5, fh), fw, fh)).toBe(1);
+    });
+});
 
 describe("analyzeSprite", () => {
     it("detects a SINGLE sprite (one centred blob, no periodicity)", () => {
